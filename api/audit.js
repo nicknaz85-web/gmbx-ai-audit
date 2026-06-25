@@ -190,5 +190,23 @@ Make good 2-4 items, bad 2-4 items (only from directly-observed gaps — e.g. mi
 
   const parsed = JSON.parse(text);
   parsed.profileName = place.name;
+  stripUnverifiableFindings(parsed);
   return parsed;
+}
+
+// Belt-and-braces enforcement: the model sometimes ignores the prompt instruction and turns
+// "we can't see this" into a finding anyway (just with softer wording). Strip those out here
+// instead of trusting the model to comply, so the UI never shows things like "no description"
+// or "no review replies" as if they were confirmed facts.
+const UNVERIFIABLE_TOPIC_PATTERN = /editorial summary|review repl|owner repl|service (and\/or )?product listing|service area|google post|update activity|post frequency|post(ing)? activity/i;
+
+function stripUnverifiableFindings(parsed) {
+  ['good', 'bad'].forEach(key => {
+    if (Array.isArray(parsed[key])) {
+      parsed[key] = parsed[key].filter(item => {
+        const text = (item.title || '') + ' ' + (item.body || '');
+        return !UNVERIFIABLE_TOPIC_PATTERN.test(text);
+      });
+    }
+  });
 }
