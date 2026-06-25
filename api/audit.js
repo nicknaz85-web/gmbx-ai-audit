@@ -110,21 +110,38 @@ async function getPlaceDetails(placeId, placesKey) {
     openNow: p.opening_hours ? !!p.opening_hours.open_now : null,
     categories: p.types || [],
     businessStatus: p.business_status || null,
-    description: p.editorial_summary ? p.editorial_summary.overview : null,
+    // This is Google's own auto-generated blurb for well-known places, NOT the owner-written
+    // GBP description. The Places API has no field for the owner's actual description text,
+    // so its absence here must never be reported as "the business has no description".
+    googleEditorialSummary: p.editorial_summary ? p.editorial_summary.overview : null,
     photoCount: p.photos ? p.photos.length : 0,
     reviews: (p.reviews || []).slice(0, 5).map(r => ({
       rating: r.rating,
       text: (r.text || '').slice(0, 300),
-      time: r.relative_time_description,
-      hasOwnerReply: !!r.author_url && false // Places API does not expose owner replies; left false/unknown deliberately
+      time: r.relative_time_description
+      // Note: the Places API does not expose whether the owner replied to a review at all,
+      // so no reply-status field is included here — do not infer or assume reply behaviour.
     })),
-    mapsUrl: p.url || null
+    mapsUrl: p.url || null,
+    dataNotAvailable: [
+      'owner-written business description',
+      'review reply status / reply rate',
+      'service area list',
+      'service/product listings',
+      'Google Posts / update frequency',
+      'total photo count (only a sample is returned by this API)'
+    ]
   };
 }
 
 // ── Send the real data to Claude for scoring/summarisation ──
 async function analyseWithClaude(place, anthropicKey) {
-  const prompt = `You are a Google Business Profile auditor. Below is REAL data pulled from the Google Places API for one business. Score and analyse ONLY what is given — do not invent facts, reviews, or business details that aren't present. If a field is missing or null, treat that as a gap to flag (e.g. no website, no hours, no description).
+  const prompt = `You are a Google Business Profile auditor. Below is REAL data pulled from the Google Places API for one business. Score and analyse ONLY what is given — do not invent facts, reviews, or business details that aren't present.
+
+IMPORTANT — read this before scoring: the Google Places API (a public, read-only API) cannot see some things that genuinely exist on every Google Business Profile but are only visible to the profile owner: the owner-written description, whether/how often the owner replies to reviews, the listed service areas, the service/product listings, and Google Posts/update activity. The "dataNotAvailable" array in the JSON below lists exactly which of these are structurally invisible to this audit for EVERY business, not just this one.
+
+For anything in "dataNotAvailable": you MUST NOT say "no description", "doesn't reply to reviews", "no services listed", etc. as if it were a confirmed fact — that would be wrong, since the data could easily exist on the real profile and you simply can't see it. Instead, phrase any related finding as a transparent data limitation (e.g. "Reply behaviour can't be verified from public data — recommend checking directly") and do NOT score that specific category below 50 purely because the field is absent; treat it as "unknown", not "failing".
+Fields that ARE directly observed (rating, review count, review text, phone, website, hours, photo sample, categories) should be scored and discussed normally and confidently — those are real, verified signals.
 
 REAL PROFILE DATA:
 ${JSON.stringify(place, null, 2)}
@@ -150,7 +167,7 @@ Respond ONLY with valid JSON, no markdown, in this exact shape:
   "actions": [ {"title": "<action>", "body": "<specific advice>", "impact": "<high|med|low>"} ]
 }
 
-Notes on scoring fields you don't have direct data for (update activity, service listings, local SEO depth): be conservative and explicitly say in the relevant "bad" or "good" item that this is inferred from limited public signals (e.g. review recency, category breadth, presence of a website) rather than presenting it as a confirmed fact. Make good 2-4 items, bad 3-5 items, actions 4-6 items.`;
+For "Review Reply Rate", "Update Activity", "Service Areas" and "Service Listings": these rely on data this API cannot see, so score them in the 50-70 range by default (reflecting genuine uncertainty, not failure) and frame any related notes as "can't be verified from public data, worth checking directly" rather than a confirmed weakness. "Local SEO" may be assessed loosely from category breadth and website presence, but say so explicitly when you do. Make good 2-4 items, bad 3-5 items, actions 4-6 items.`;
 
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
