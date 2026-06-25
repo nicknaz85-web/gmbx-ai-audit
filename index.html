@@ -1,0 +1,668 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8342A;--blue:#2B6FD4;--teal:#1A9B6C;--gold:#F5A623;--dark:#1A1A2E;--text:#2D3142;--muted:#6B7280;--border:#E5E7EB;--wh:#fff;--bg:#F4F4F6}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);background:var(--bg)}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--wh);border-bottom:1px solid var(--border)}
+.logo{display:flex;align-items:center;gap:8px;cursor:pointer}
+.lw{font-size:20px;font-weight:800;color:var(--blue)}
+.nav-links{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.nl{font-size:12px;color:var(--muted);cursor:pointer;border:none;background:none;text-decoration:none}
+.nl:hover{color:var(--blue)}
+.nc{background:var(--red);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer}
+.page{display:none}.page.active{display:block}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#f0f4ff,#fff8f0);padding:48px 20px 40px;text-align:center;border-bottom:1px solid var(--border)}
+.hbadge{display:inline-flex;align-items:center;gap:6px;background:#EEF4FF;color:var(--blue);font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:16px;border:1px solid #C7D9F8}
+.hero h1{font-size:24px;font-weight:800;line-height:1.25;color:var(--dark);margin-bottom:12px;max-width:520px;margin-left:auto;margin-right:auto}
+.hero h1 span{color:var(--red)}
+.hero p{font-size:14px;color:var(--muted);max-width:440px;margin:0 auto 24px;line-height:1.6}
+
+/* AUDIT FORM BOX */
+.audit-form{max-width:480px;margin:0 auto 12px;display:flex;flex-direction:column;gap:10px}
+.audit-input{width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-size:13px;color:var(--text);background:#fff;outline:none;transition:border-color .2s}
+.audit-input:focus{border-color:var(--blue)}
+.audit-input::placeholder{color:#9CA3AF}
+.audit-input.error-field{border-color:var(--red)}
+.bstart{background:var(--red);color:#fff;border:none;padding:13px 18px;font-size:14px;font-weight:700;cursor:pointer;border-radius:10px;width:100%;transition:background .2s}
+.bstart:hover{background:#c9271e}
+.bstart:disabled{background:#ccc;cursor:not-allowed}
+
+.hnote{font-size:11px;color:var(--muted)}.hnote span{color:var(--teal);font-weight:600}
+.trow{display:flex;justify-content:center;gap:16px;margin-top:24px;flex-wrap:wrap}
+.ti{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.td{width:5px;height:5px;border-radius:50%;background:var(--teal)}
+.uerr{color:var(--red);font-size:12px;margin-top:4px;display:none;text-align:left;padding:8px 12px;background:#FEF3F2;border-radius:8px;max-width:480px;margin-left:auto;margin-right:auto}
+
+/* CHECKS */
+.checks-sec{background:var(--bg);padding:36px 20px}
+.checks-sec h2{font-size:18px;font-weight:700;text-align:center;margin-bottom:5px;color:var(--dark)}
+.checks-sub{text-align:center;color:var(--muted);font-size:12px;margin-bottom:24px}
+.checks-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;max-width:640px;margin:0 auto}
+.check-card{background:var(--wh);border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px;border:1px solid var(--border)}
+.check-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.check-info h3{font-size:13px;font-weight:700;margin-bottom:2px;color:var(--dark)}
+.check-info p{font-size:11px;color:var(--muted);line-height:1.4}
+
+/* TESTIMONIALS */
+.tsec{background:linear-gradient(135deg,#1A1A2E,#16213E);padding:40px 20px}
+.tsec h2{text-align:center;font-size:18px;font-weight:700;color:#fff;margin-bottom:4px}
+.tsub2{text-align:center;font-size:12px;color:rgba(255,255,255,.5);margin-bottom:6px}
+.srow{display:flex;justify-content:center;gap:3px;margin-bottom:20px}
+.srow span{color:var(--gold);font-size:16px}
+.ttrack{overflow:hidden}
+.tslider{display:flex;gap:12px;transition:transform .4s ease;padding:4px 0 6px}
+.tcard{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:14px;min-width:200px;max-width:200px;flex-shrink:0}
+.tcstars{color:var(--gold);font-size:11px;margin-bottom:8px}
+.tctext{font-size:11px;color:rgba(255,255,255,.82);line-height:1.55;margin-bottom:10px}
+.tcauth{display:flex;align-items:center;gap:7px}
+.tcav{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.tcname{font-size:11px;font-weight:600;color:#fff}
+.tcmeta{font-size:10px;color:rgba(255,255,255,.4)}
+.tctrl{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:16px}
+.tbtn{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.tbtn:hover{background:rgba(255,255,255,.16)}
+.tdots{display:flex;gap:5px;align-items:center}
+.tdot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.25);cursor:pointer;transition:all .2s}
+.tdot.active{background:var(--gold);width:14px;border-radius:3px}
+
+/* PRICING */
+.psec{padding:36px 20px 44px;background:var(--bg)}
+.psec-head{text-align:center;margin-bottom:28px}
+.stitle{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block}
+.psec-head h2{font-size:18px;font-weight:700;margin-bottom:4px;color:var(--dark)}
+.psec-head p{font-size:12px;color:var(--muted)}
+.pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:640px;margin:0 auto}
+@media(max-width:540px){.pgrid{grid-template-columns:repeat(2,1fr)}}
+.pcard{background:var(--wh);border:2px solid #D1D5DB;border-radius:14px;padding:20px 12px 16px;position:relative;display:flex;flex-direction:column;margin-top:16px}
+.pcard.fp{border-color:var(--blue)}.pcard.pp{border-color:var(--red)}.pcard.sp{border-color:#7C3AED}
+.pbadge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;padding:3px 12px;border-radius:20px;white-space:nowrap;color:#fff}
+.ptier{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.pname{font-size:12px;font-weight:800;color:var(--dark);margin-bottom:8px;line-height:1.25}
+.pamt{font-size:26px;font-weight:900;color:var(--dark);line-height:1;margin-bottom:12px}
+.pamt span{font-size:11px;font-weight:500;color:var(--muted)}
+.pfeats{list-style:none;margin:0;padding:0;flex:1;display:flex;flex-direction:column}
+.pfeats li{font-size:10.5px;color:var(--text);padding:4px 0;display:flex;align-items:flex-start;gap:6px;border-top:1px solid var(--border);line-height:1.35}
+.pfeats li:first-child{border-top:none;padding-top:0}
+.pfeat-spacer{flex:1}
+.pchk{font-weight:700;font-size:11px;flex-shrink:0}
+.bprice{width:100%;background:var(--wh);border:2px solid var(--dark);border-radius:8px;padding:9px;font-size:12px;font-weight:800;cursor:pointer;color:var(--dark);margin-top:14px;flex-shrink:0}
+.bprice:hover{background:#f0f0f0}
+
+/* LOADING */
+.lpage{padding:60px 20px;text-align:center;min-height:420px;background:var(--bg)}
+.lring{width:68px;height:68px;border:4px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 20px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lpage h2{font-size:18px;font-weight:700;margin-bottom:6px;color:var(--dark)}
+.lsub{color:var(--muted);font-size:13px;margin-bottom:24px}
+.lsteps{max-width:320px;margin:0 auto;text-align:left}
+.lstep{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:7px;font-size:12px;color:var(--muted);margin-bottom:5px;transition:all .3s}
+.lstep.done{color:var(--teal);font-weight:500}
+.lstep.active{color:var(--blue);font-weight:600;background:#EEF4FF}
+.sico{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;font-weight:700}
+.sico.di{background:var(--teal);color:#fff}
+.sico.ai{background:var(--blue);color:#fff;animation:pulse .8s infinite}
+.sico.pi{background:var(--border);color:var(--muted)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* RESULTS */
+.rpage{max-width:680px;margin:0 auto;padding:0 16px 48px;background:var(--bg)}
+.rheader{padding:20px 0 16px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.rmeta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.rurl{font-size:11px;color:var(--muted)}.rurl span{color:var(--blue);font-weight:600;word-break:break-all}
+.bra{background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;color:var(--text);white-space:nowrap}
+.bra:hover{border-color:var(--blue);color:var(--blue)}
+.shero{background:linear-gradient(135deg,#1A1A2E,#16213E);border-radius:12px;padding:22px 18px;display:flex;align-items:center;gap:18px;margin-bottom:20px;flex-wrap:wrap}
+.sring{position:relative;width:100px;height:100px;flex-shrink:0}
+.sring svg{transform:rotate(-90deg)}
+.srt{fill:none;stroke:rgba(255,255,255,.12);stroke-width:7}
+.srf{fill:none;stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset 1.4s ease}
+.snum{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.snum span{font-size:26px;font-weight:700;color:#fff;display:block;line-height:1}
+.snum small{font-size:10px;color:rgba(255,255,255,.5)}
+.sinfo{flex:1;min-width:150px}
+.sgrd{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+.shl{font-size:15px;font-weight:700;color:#fff;margin-bottom:4px}
+.sdsc{font-size:12px;color:rgba(255,255,255,.65);line-height:1.5;margin-bottom:10px}
+.spills{display:flex;gap:6px;flex-wrap:wrap}
+.sp{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600}
+.pw{background:rgba(245,166,35,.2);color:#F5A623}
+.pg{background:rgba(26,155,108,.2);color:#1A9B6C}
+.pb{background:rgba(232,52,42,.2);color:#F87171}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:22px}
+.ccard{background:var(--wh);border:1px solid var(--border);border-radius:10px;padding:12px 10px}
+.ctop{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.clbl{font-size:10px;font-weight:500;color:var(--muted)}
+.csco{font-size:16px;font-weight:700}
+.cbg{height:4px;border-radius:2px;background:var(--border);overflow:hidden}
+.cbar{height:4px;border-radius:2px;transition:width 1.2s ease;width:0}
+.cst{font-size:10px;margin-top:4px;font-weight:600}
+.fsec{margin-bottom:20px}
+.fcard{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px;background:var(--wh)}
+.fh{display:flex;align-items:center;gap:8px;padding:10px 12px}
+.fdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.ftit{font-size:12px;font-weight:700;flex:1}
+.ftag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.fbody{padding:8px 12px 10px;font-size:12px;color:var(--muted);line-height:1.55;border-top:1px solid var(--border)}
+.alist{display:flex;flex-direction:column;gap:8px;margin-bottom:22px}
+.aitem{display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--wh);border:1px solid var(--border);border-radius:10px}
+.anum{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.acont h4{font-size:12px;font-weight:700;margin-bottom:2px}
+.acont p{font-size:11px;color:var(--muted);line-height:1.5}
+.ibadge{display:inline-block;margin-top:4px;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px}
+.ih{background:#FEF3F2;color:var(--red)}.im{background:#FFFBEB;color:#B45309}.il{background:#F0FDF4;color:#166534}
+.ctasec{background:linear-gradient(135deg,var(--red),#c9271e);border-radius:12px;padding:22px 18px;text-align:center;margin-bottom:20px;color:#fff}
+.ctasec h2{font-size:17px;font-weight:700;margin-bottom:6px}
+.ctasec p{font-size:12px;opacity:.88;max-width:380px;margin:0 auto 16px;line-height:1.5}
+.bctaw{background:#fff;color:var(--red);border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer}
+.footer{background:#1A1A2E;padding:20px;text-align:center}
+.footer-links{display:flex;justify-content:center;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:10px}
+.footer-link{color:rgba(255,255,255,.65);font-size:12px;text-decoration:none}
+.footer-link:hover{color:#fff}
+.footer-copy{font-size:10px;color:rgba(255,255,255,.3)}
+.ai-note{background:#EEF4FF;border:1px solid #C7D9F8;border-radius:8px;padding:10px 14px;font-size:11px;color:var(--blue);margin-bottom:16px;text-align:center}
+
+/* ADMIN PAGE */
+.admin-page{max-width:680px;margin:0 auto;padding:24px 16px 48px}
+.admin-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.admin-header h2{font-size:20px;font-weight:800;color:var(--dark)}
+.admin-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--wh);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+.stat-num{font-size:28px;font-weight:800;color:var(--blue)}
+.stat-label{font-size:11px;color:var(--muted);margin-top:2px}
+.email-table{background:var(--wh);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.email-table-header{display:grid;grid-template-columns:1fr 1.5fr auto;gap:12px;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.email-row{display:grid;grid-template-columns:1fr 1.5fr auto;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);align-items:center;font-size:12px}
+.email-row:last-child{border-bottom:none}
+.email-row:hover{background:#fafafa}
+.email-val{color:var(--blue);font-weight:600;word-break:break-all}
+.url-val{color:var(--muted);font-size:11px;word-break:break-all;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.date-val{color:var(--muted);font-size:10px;white-space:nowrap}
+.no-emails{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
+.bcopy{background:var(--blue);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:11px;font-weight:600;cursor:pointer}
+.bcopy:hover{background:#1558B0}
+.bclear{background:none;color:var(--red);border:1px solid var(--red);border-radius:6px;padding:7px 14px;font-size:11px;font-weight:600;cursor:pointer}
+.admin-pass-wrap{max-width:320px;margin:80px auto;text-align:center;background:var(--wh);border:1px solid var(--border);border-radius:16px;padding:32px 24px}
+.admin-pass-wrap h3{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--dark)}
+.admin-pass-wrap p{font-size:12px;color:var(--muted);margin-bottom:20px}
+.pass-input{width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:12px;outline:none}
+.pass-input:focus{border-color:var(--blue)}
+.bpass{width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer}
+.pass-err{color:var(--red);font-size:11px;margin-top:6px;display:none}
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="nav">
+  <div class="logo" onclick="showPage('landing')">
+    <svg width="36" height="40" viewBox="0 0 40 44" fill="none">
+      <path d="M20 0C9.507 0 1 8.507 1 19C1 28.5 20 44 20 44C20 44 39 28.5 39 19C39 8.507 30.493 0 20 0Z" fill="#E8342A"/>
+      <circle cx="20" cy="18" r="11" fill="white"/>
+      <text x="20" y="15.5" text-anchor="middle" font-family="Arial" font-weight="700" font-size="7.2" fill="#2B6FD4">GM</text>
+      <text x="20" y="23.5" text-anchor="middle" font-family="Arial" font-weight="700" font-size="7.2" fill="#2B6FD4">BX</text>
+    </svg>
+    <div class="lw">GMBX</div>
+  </div>
+  <div class="nav-links">
+    <button class="nl" onclick="showPage('landing')">Home</button>
+    <button class="nl" onclick="scrollToPricing()">Pricing</button>
+    <a href="https://www.facebook.com/profile.php?id=61571653626007" target="_blank" class="nl">Facebook</a>
+    <a href="https://www.gmbx.co.uk" target="_blank" class="nl">Website</a>
+    <button class="nl" onclick="showAdminLogin()" style="color:#9CA3AF;font-size:10px">Admin</button>
+    <button class="nc" onclick="focusInput()">Free Audit</button>
+  </div>
+</nav>
+
+<!-- LANDING -->
+<div class="page active" id="page-landing">
+  <div class="hero">
+    <div class="hbadge">✦ Free AI-Powered Google Business Profile Audit</div>
+    <h1>Find Out How Optimised Your Google Business Profile <span>Really Is</span></h1>
+    <p>Paste your Google Business Profile or Maps link and get a personalised AI audit showing exactly what's holding you back.</p>
+
+    <!-- AUDIT FORM with email -->
+    <div class="audit-form">
+      <input type="text" id="gbp-url" class="audit-input" placeholder="Paste your Google Maps or Business Profile link…"/>
+      <input type="email" id="user-email" class="audit-input" placeholder="Enter your email to receive your audit report"/>
+      <button class="bstart" id="auditBtn" onclick="startAudit()">Get My Free Audit →</button>
+      <div class="uerr" id="uerr">⚠ Please enter both your Google Business Profile link and your email address</div>
+    </div>
+
+    <div class="hnote" style="margin-top:4px"><span>✓ Free</span> &nbsp;·&nbsp; AI-powered &nbsp;·&nbsp; No spam, ever</div>
+    <div class="trow">
+      <div class="ti"><div class="td"></div> 13 profile checks</div>
+      <div class="ti"><div class="td"></div> AI analysis</div>
+      <div class="ti"><div class="td"></div> Personalised recommendations</div>
+    </div>
+  </div>
+
+  <div class="checks-sec">
+    <h2>What we check</h2>
+    <p class="checks-sub">A complete AI audit across every dimension of your Google Business Profile</p>
+    <div class="checks-grid">
+      <div class="check-card"><div class="check-icon" style="background:#FEF3F2">⭐</div><div class="check-info"><h3>Review Strength</h3><p>Volume, rating, and reply rate</p></div></div>
+      <div class="check-card"><div class="check-icon" style="background:#EEF4FF">📄</div><div class="check-info"><h3>Profile Completeness</h3><p>Every field from description to services</p></div></div>
+      <div class="check-card"><div class="check-icon" style="background:#F0FDF4">📍</div><div class="check-info"><h3>Local SEO</h3><p>Keywords, categories, competitive strength</p></div></div>
+      <div class="check-card"><div class="check-icon" style="background:#FFFBEB">📷</div><div class="check-info"><h3>Photo Activity</h3><p>Recency, volume, visual engagement</p></div></div>
+      <div class="check-card"><div class="check-icon" style="background:#F5F3FF">🔄</div><div class="check-info"><h3>Update Activity</h3><p>Post frequency and recency</p></div></div>
+      <div class="check-card"><div class="check-icon" style="background:#FEF3F2">🛡️</div><div class="check-info"><h3>Trust Signals</h3><p>Completeness, consistency, credibility</p></div></div>
+    </div>
+  </div>
+
+  <div class="tsec">
+    <h2>Trusted by local businesses</h2>
+    <p class="tsub2">Real reviews from real GMBX clients</p>
+    <div class="srow"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+    <div class="ttrack"><div class="tslider" id="tslider"></div></div>
+    <div class="tctrl">
+      <button class="tbtn" onclick="tSlide(-1)">‹</button>
+      <div class="tdots" id="tdots"></div>
+      <button class="tbtn" onclick="tSlide(1)">›</button>
+    </div>
+    <p style="text-align:center;margin-top:12px;font-size:10px;color:rgba(255,255,255,.3)">All reviews from Facebook recommendations · 90% recommend (14 reviews)</p>
+  </div>
+
+  <div class="psec" id="pricing-section">
+    <div class="psec-head">
+      <span class="stitle">Packages</span>
+      <h2>Want GMBX to manage it for you?</h2>
+      <p>Simple monthly plans. Cancel anytime.</p>
+    </div>
+    <div class="pgrid">
+      <div class="pcard"><div class="ptier">Starter</div><div class="pname">Basic Optimisations</div><div class="pamt">£10<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--teal)">✓</span>1 update per week</li><li><span class="pchk" style="color:var(--teal)">✓</span>Review responses</li><li><span class="pchk" style="color:var(--teal)">✓</span>Profile setup with correct info</li><li><span class="pchk" style="color:var(--teal)">✓</span>Pinpoint service area optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://www.gmbx.co.uk','_blank')">Get Started</button></div>
+      <div class="pcard fp"><div class="pbadge" style="background:var(--blue)">Most Popular</div><div class="ptier">Growth</div><div class="pname">Medium Optimisations</div><div class="pamt">£20<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--blue)">✓</span>Everything in Starter</li><li><span class="pchk" style="color:var(--blue)">✓</span>2 updates per week</li><li><span class="pchk" style="color:var(--blue)">✓</span>Flag / report bad reviews & photos</li><li><span class="pchk" style="color:var(--blue)">✓</span>Service area optimisation for reach</li><li><span class="pchk" style="color:var(--blue)">✓</span>Service description optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://www.gmbx.co.uk','_blank')">Get Started</button></div>
+      <div class="pcard pp"><div class="pbadge" style="background:var(--red)">Best Value</div><div class="ptier">Premium</div><div class="pname">Max Optimisations</div><div class="pamt">£30<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--red)">✓</span>Everything in Growth</li><li><span class="pchk" style="color:var(--red)">✓</span>3 updates per week</li><li><span class="pchk" style="color:var(--red)">✓</span>1–2 mile niche exclusivity</li><li><span class="pchk" style="color:var(--red)">✓</span>Category optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Service optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Main description optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Full profile optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://www.gmbx.co.uk','_blank')">Get Started</button></div>
+      <div class="pcard sp"><div class="pbadge" style="background:#7C3AED">Add-On</div><div class="ptier">Social Media</div><div class="pname">Social Package</div><div class="pamt">£150<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:#7C3AED">✓</span>3 posts weekly</li><li><span class="pchk" style="color:#7C3AED">✓</span>3 platforms of your choice</li><li><span class="pchk" style="color:#7C3AED">✓</span>Group outreach & engagement</li><li><span class="pchk" style="color:#7C3AED">✓</span>Run boosted ads</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://www.gmbx.co.uk','_blank')">Get Started</button></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-links">
+      <a href="https://www.gmbx.co.uk" target="_blank" class="footer-link">🌐 gmbx.co.uk</a>
+      <a href="https://www.facebook.com/profile.php?id=61571653626007" target="_blank" class="footer-link">📘 GMBX on Facebook</a>
+    </div>
+    <div class="footer-copy">© 2025 GMBX · Google Business Profile Management</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="page" id="page-loading">
+  <div class="lpage">
+    <div class="lring"></div>
+    <h2>Analysing your profile…</h2>
+    <p class="lsub" id="lstatus">Connecting to AI engine</p>
+    <div class="lsteps" id="lsteps"></div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="page" id="page-results">
+  <div class="rpage">
+    <div class="rheader">
+      <div class="rmeta">
+        <div class="rurl">Audit for: <span id="rdisplay"></span></div>
+        <button class="bra" onclick="showPage('landing')">← New Audit</button>
+      </div>
+    </div>
+    <div class="ai-note">✨ This audit was generated by AI based on your specific Google Business Profile link</div>
+    <div class="shero">
+      <div class="sring">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle class="srt" cx="50" cy="50" r="42"/>
+          <circle class="srf" id="srfill" cx="50" cy="50" r="42" stroke-dasharray="264" stroke-dashoffset="264"/>
+        </svg>
+        <div class="snum"><span id="sdisp">0</span><small>/ 100</small></div>
+      </div>
+      <div class="sinfo">
+        <div class="sgrd" id="sgrd"></div>
+        <div class="shl" id="shl"></div>
+        <div class="sdsc" id="sdsc"></div>
+        <div class="spills" id="spills"></div>
+      </div>
+    </div>
+    <div class="stitle">Score breakdown</div>
+    <div class="cgrid" id="cgrid"></div>
+    <div class="fsec"><div class="stitle" style="color:var(--teal)">✓ What you're doing well</div><div id="fgood"></div></div>
+    <div class="fsec"><div class="stitle" style="color:var(--red)">⚠ Opportunities for improvement</div><div id="fbad"></div></div>
+    <div class="stitle">Recommended actions</div>
+    <div class="alist" id="alist"></div>
+    <div class="ctasec">
+      <h2>Want GMBX to fix everything for you?</h2>
+      <p>We help local businesses improve their Google Business Profiles through optimisation, updates, review management, and ongoing management.</p>
+      <button class="bctaw" onclick="window.open('https://www.gmbx.co.uk','_blank')">View Packages →</button>
+    </div>
+    <div style="background:var(--bg);border-radius:12px;padding:20px 14px 24px;margin-bottom:14px">
+      <div class="stitle">Packages</div>
+      <div class="pgrid">
+        <div class="pcard"><div class="ptier">Starter</div><div class="pname">Basic Optimisations</div><div class="pamt">£10<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--teal)">✓</span>1 update per week</li><li><span class="pchk" style="color:var(--teal)">✓</span>Review responses</li><li><span class="pchk" style="color:var(--teal)">✓</span>Profile setup with correct info</li><li><span class="pchk" style="color:var(--teal)">✓</span>Pinpoint service area optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://www.gmbx.co.uk','_blank')">Get Started</button></div>
+        <div class="pcard fp"><div class="pbadge" style="background:var(--blue)">Most Popular</div><div class="ptier">Growth</div><div class="pname">Medium Optimisations</div><div class="pamt">£20<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--blue)">✓</span>Everything in Starter</li><li><span class="pchk" style="color:var(--blue)">✓</span>2 updates per week</li><li><span class="pchk" style="color:var(--blue)">✓</span>Flag / report bad reviews & photos</li><li><span class="pchk" style="color:var(--blue)">✓</span>Service area optimisation for reach</li><li><span class="pchk" style="color:var(--blue)">✓</span>Service description optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://www.gmbx.co.uk','_blank')">Get Started</button></div>
+        <div class="pcard pp"><div class="pbadge" style="background:var(--red)">Best Value</div><div class="ptier">Premium</div><div class="pname">Max Optimisations</div><div class="pamt">£30<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--red)">✓</span>Everything in Growth</li><li><span class="pchk" style="color:var(--red)">✓</span>3 updates per week</li><li><span class="pchk" style="color:var(--red)">✓</span>1–2 mile niche exclusivity</li><li><span class="pchk" style="color:var(--red)">✓</span>Category optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Service optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Main description optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Full profile optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://www.gmbx.co.uk','_blank')">Get Started</button></div>
+        <div class="pcard sp"><div class="pbadge" style="background:#7C3AED">Add-On</div><div class="ptier">Social Media</div><div class="pname">Social Package</div><div class="pamt">£150<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:#7C3AED">✓</span>3 posts weekly</li><li><span class="pchk" style="color:#7C3AED">✓</span>3 platforms of your choice</li><li><span class="pchk" style="color:#7C3AED">✓</span>Group outreach & engagement</li><li><span class="pchk" style="color:#7C3AED">✓</span>Run boosted ads</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://www.gmbx.co.uk','_blank')">Get Started</button></div>
+      </div>
+    </div>
+    <div class="footer" style="border-radius:10px">
+      <div class="footer-links">
+        <a href="https://www.gmbx.co.uk" target="_blank" class="footer-link">🌐 gmbx.co.uk</a>
+        <a href="https://www.facebook.com/profile.php?id=61571653626007" target="_blank" class="footer-link">📘 GMBX on Facebook</a>
+      </div>
+      <div class="footer-copy">© 2025 GMBX · Google Business Profile Management</div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div class="page" id="page-admin-login">
+  <div class="admin-pass-wrap">
+    <div style="font-size:32px;margin-bottom:12px">🔒</div>
+    <h3>Admin Access</h3>
+    <p>Enter your password to view collected email leads</p>
+    <input type="password" id="admin-pass" class="pass-input" placeholder="Password" onkeydown="if(event.key==='Enter')checkAdminPass()"/>
+    <button class="bpass" onclick="checkAdminPass()">Login</button>
+    <div class="pass-err" id="pass-err">Incorrect password. Please try again.</div>
+    <div style="margin-top:16px"><button class="nl" onclick="showPage('landing')" style="font-size:12px;color:var(--muted)">← Back to audit</button></div>
+  </div>
+</div>
+
+<!-- ADMIN DASHBOARD -->
+<div class="page" id="page-admin">
+  <div class="admin-page">
+    <div class="admin-header">
+      <h2>📬 Email Leads</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="bcopy" onclick="copyAllEmails()">Copy All Emails</button>
+        <button class="bclear" onclick="clearAllEmails()">Clear All</button>
+        <button class="nl" onclick="showPage('landing')" style="font-size:12px">← Back</button>
+      </div>
+    </div>
+    <div class="admin-stats" id="admin-stats"></div>
+    <div class="email-table" id="email-table"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ── TESTIMONIALS ──
+var TDATA=[
+  {n:"Jamie Connolly",d:"22 Sept 2025",av:"JC",c:"#E8342A",t:"Nicholas manages our weekly updates and reviews, making sure our profile stays updated and visible to customers."},
+  {n:"TrendMarketing",d:"21 Sept 2025",av:"TM",c:"#2B6FD4",t:"It's been an absolute pleasure working with Nick! Professional, friendly, and reliable. Highly recommend GMBX!"},
+  {n:"Conscious Living Wellness",d:"21 Sept 2025",av:"CL",c:"#1A9B6C",t:"Fantastic service at a great price! Results have been excellent. Professional, responsive, and really effective — highly recommended!"},
+  {n:"Liam Byrne",d:"26 Aug 2025",av:"LB",c:"#7C3AED",t:"Great lad done a brilliant job for very little money. Big impact on calls and enquiries! Highly recommended."},
+  {n:"Charley King",d:"17 Jul 2025",av:"CK",c:"#E8342A",t:"I cannot recommend Nick highly enough. The value he brings is next level. Do not delay in reaching out to GMBX."},
+  {n:"Ravensby Firewood",d:"9 Jun 2025",av:"RF",c:"#2B6FD4",t:"Can't fault it. He listened carefully and implemented quickly with minimal fuss required from us after the initial chat."},
+  {n:"Rehab My Patient",d:"4 Apr 2025",av:"RM",c:"#1A9B6C",t:"Working with Nick for over 6 months. It's been excellent. Highly recommend to any small or big businesses."},
+  {n:"Jay Silva",d:"4 Apr 2025",av:"JS",c:"#B45309",t:"Does regular updates and so much more than expected — all at a very good price. Works hard and is professional."},
+  {n:"Securedstylegates",d:"14 Mar 2025",av:"SS",c:"#7C3AED",t:"Nicholas is doing a great job managing our social media and GMB profile. Very professional and great content."},
+  {n:"Nathan Phelps",d:"7 Mar 2025",av:"NP",c:"#E8342A",t:"Very professional and almost instant responses to any questions. Highly recommend if you want your business noticed."},
+  {n:"Julia Croswald",d:"19 Feb 2025",av:"JC",c:"#2B6FD4",t:"Doing a great job posting updates on my Google profile and answering reviews effectively. Delivering on what he promised!"},
+  {n:"JP Locksmiths Carlisle",d:"6 Feb 2025",av:"JP",c:"#E8342A",t:"This lad helped us out with our GMB profile. Great help and really knows what he's doing — recommend GMBX!"},
+  {n:"John Alexander",d:"21 Jan 2025",av:"JA",c:"#1A9B6C",t:"Good service, takes time to understand client needs. Refreshing to work with someone who actually listens."}
+];
+var VIS=3, tIdx=0;
+function buildT(){
+  var s=document.getElementById('tslider'),d=document.getElementById('tdots');
+  s.innerHTML='';d.innerHTML='';
+  TDATA.forEach(function(t){
+    var c=document.createElement('div');c.className='tcard';
+    c.innerHTML='<div class="tcstars">★★★★★</div><div class="tctext">"'+t.t+'"</div><div class="tcauth"><div class="tcav" style="background:'+t.c+'">'+t.av.slice(0,2)+'</div><div><div class="tcname">'+t.n+'</div><div class="tcmeta">'+t.d+' · Facebook</div></div></div>';
+    s.appendChild(c);
+  });
+  var pages=Math.ceil(TDATA.length/VIS);
+  for(var i=0;i<pages;i++){
+    var dot=document.createElement('div');dot.className='tdot'+(i===0?' active':'');
+    (function(idx){dot.onclick=function(){tIdx=idx*VIS;updT();};})(i);
+    d.appendChild(dot);
+  }
+  updT();
+}
+function updT(){
+  document.getElementById('tslider').style.transform='translateX(-'+(tIdx*(200+12))+'px)';
+  var pg=Math.floor(tIdx/VIS);
+  document.querySelectorAll('.tdot').forEach(function(d,i){d.classList.toggle('active',i===pg);});
+}
+function tSlide(dir){tIdx=Math.max(0,Math.min(tIdx+dir,TDATA.length-VIS));updT();}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('page-'+id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function focusInput(){showPage('landing');setTimeout(function(){document.getElementById('gbp-url').focus();},100);}
+function scrollToPricing(){showPage('landing');setTimeout(function(){document.getElementById('pricing-section').scrollIntoView({behavior:'smooth'});},100);}
+
+// ── UTIL ──
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+// ── EMAIL STORAGE ──
+var adminToken=null;
+
+async function saveEmail(email,url){
+  try{
+    await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,url:url})});
+  }catch(e){console.log('Storage error:',e);}
+}
+
+async function loadEmails(){
+  try{
+    var r=await fetch('/api/leads',{headers:{'Authorization':'Bearer '+adminToken}});
+    if(!r.ok) return [];
+    var data=await r.json();
+    return data.leads||[];
+  }catch(e){}
+  return [];
+}
+
+// ── ADMIN ──
+function showAdminLogin(){
+  showPage('admin-login');
+  setTimeout(function(){document.getElementById('admin-pass').focus();},100);
+}
+
+async function checkAdminPass(){
+  var pass=document.getElementById('admin-pass').value;
+  var errEl=document.getElementById('pass-err');
+  try{
+    var r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pass})});
+    var data=await r.json();
+    if(r.ok&&data.token){
+      adminToken=data.token;
+      errEl.style.display='none';
+      document.getElementById('admin-pass').value='';
+      showPage('admin');
+      renderAdmin();
+    } else {
+      errEl.style.display='block';
+    }
+  }catch(e){
+    errEl.textContent='Could not reach server. Please try again.';
+    errEl.style.display='block';
+  }
+}
+
+async function renderAdmin(){
+  var emails=await loadEmails();
+  var statsEl=document.getElementById('admin-stats');
+  var today=new Date().toLocaleDateString('en-GB');
+  var todayCount=emails.filter(function(e){return e.date&&e.date.startsWith(today.split('/').reverse().join('/'));}).length;
+  statsEl.innerHTML='<div class="stat-card"><div class="stat-num">'+emails.length+'</div><div class="stat-label">Total Leads</div></div><div class="stat-card"><div class="stat-num">'+todayCount+'</div><div class="stat-label">Today</div></div><div class="stat-card"><div class="stat-num">'+(emails.length>0?emails[0].date.split(',')[0]:'—')+'</div><div class="stat-label">Last Lead</div></div>';
+  var tableEl=document.getElementById('email-table');
+  if(emails.length===0){
+    tableEl.innerHTML='<div class="no-emails">📭 No leads yet. Share your audit tool to start collecting emails!</div>';
+    return;
+  }
+  var rows='<div class="email-table-header"><div>Email</div><div>Profile URL</div><div>Date</div></div>';
+  emails.forEach(function(e){
+    var shortUrl=e.url&&e.url.length>40?e.url.substring(0,40)+'…':e.url||'—';
+    rows+='<div class="email-row"><div class="email-val">'+escapeHtml(e.email)+'</div><div class="url-val" title="'+escapeHtml(e.url)+'">'+escapeHtml(shortUrl)+'</div><div class="date-val">'+escapeHtml(e.date)+'</div></div>';
+  });
+  tableEl.innerHTML=rows;
+}
+
+async function copyAllEmails(){
+  var emails=await loadEmails();
+  var list=emails.map(function(e){return e.email;}).join('\n');
+  navigator.clipboard.writeText(list).then(function(){alert('✅ '+emails.length+' emails copied to clipboard!');}).catch(function(){alert('Email list:\n\n'+list);});
+}
+
+async function clearAllEmails(){
+  var emails=await loadEmails();
+  if(!confirm('Are you sure you want to delete all '+emails.length+' leads? This cannot be undone.')) return;
+  await fetch('/api/leads',{method:'DELETE',headers:{'Authorization':'Bearer '+adminToken}});
+  renderAdmin();
+}
+
+// ── AUDIT ──
+var currentUrl='', currentEmail='', auditResult=null;
+
+function startAudit(){
+  var url=document.getElementById('gbp-url').value.trim();
+  var email=document.getElementById('user-email').value.trim();
+  var errEl=document.getElementById('uerr');
+  var urlInput=document.getElementById('gbp-url');
+  var emailInput=document.getElementById('user-email');
+  urlInput.classList.remove('error-field');
+  emailInput.classList.remove('error-field');
+
+  var emailOk=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if(!url||url.length<3||!emailOk){
+    errEl.style.display='block';
+    if(!url||url.length<3) urlInput.classList.add('error-field');
+    if(!emailOk) emailInput.classList.add('error-field');
+    return;
+  }
+  errEl.style.display='none';
+  currentUrl=url;
+  currentEmail=email;
+
+  // Save email immediately
+  saveEmail(email,url);
+
+  var display=url.length>55?url.substring(0,55)+'…':url;
+  document.getElementById('rdisplay').textContent=display;
+  document.getElementById('auditBtn').disabled=true;
+  runLoad();
+}
+
+var LSTEPS=[
+  "Reading your Google Business Profile link",
+  "Checking profile completeness signals",
+  "Analysing review strength & response rate",
+  "Scanning update and post activity",
+  "Evaluating photo and visual signals",
+  "Auditing service listings and categories",
+  "Assessing local SEO signals",
+  "Calculating trust and engagement scores",
+  "Generating your personalised AI report"
+];
+
+function runLoad(){
+  showPage('loading');
+  var container=document.getElementById('lsteps');
+  container.innerHTML='';
+  var els=[];
+  LSTEPS.forEach(function(s,i){
+    var el=document.createElement('div');el.className='lstep';
+    el.innerHTML='<div class="sico pi" id="si'+i+'">·</div><span>'+s+'</span>';
+    container.appendChild(el);els.push(el);
+  });
+  var i=0;
+  function nx(){
+    if(i>0){els[i-1].className='lstep done';var p=document.getElementById('si'+(i-1));if(p){p.className='sico di';p.textContent='✓';}}
+    if(i<LSTEPS.length){
+      els[i].className='lstep active';var cur=document.getElementById('si'+i);
+      if(cur){cur.className='sico ai';cur.textContent='◉';}
+      var st=document.getElementById('lstatus');if(st)st.textContent=LSTEPS[i];
+      i++;
+      if(i===5) callAuditAPI();
+      setTimeout(nx,500);
+    } else {
+      els[LSTEPS.length-1].className='lstep done';
+      var last=document.getElementById('si'+(LSTEPS.length-1));
+      if(last){last.className='sico di';last.textContent='✓';}
+    }
+  }
+  nx();
+}
+
+var auditError=null;
+
+function callAuditAPI(){
+  auditError=null;
+  fetch('/api/audit',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({url:currentUrl})
+  })
+  .then(function(r){return r.json().then(function(data){return {ok:r.ok,data:data};});})
+  .then(function(res){
+    if(res.ok){
+      auditResult=res.data;
+    } else {
+      auditResult=null;
+      auditError=res.data&&res.data.error?res.data.error:'Audit failed. Please try again.';
+    }
+    setTimeout(function(){showResults();},800);
+  })
+  .catch(function(){
+    auditResult=null;
+    auditError='Could not reach the audit server. Please try again shortly.';
+    setTimeout(function(){showResults();},800);
+  });
+}
+
+function showResults(){
+  document.getElementById('auditBtn').disabled=false;
+  if(!auditResult){
+    showPage('landing');
+    var errEl=document.getElementById('uerr');
+    errEl.textContent='⚠ '+(auditError||'Audit failed. Please try again.');
+    errEl.style.display='block';
+    return;
+  }
+  renderResults(auditResult);
+  showPage('results');
+}
+
+function getC(v){
+  if(v>=75)return{s:'#1A9B6C',t:'#1A9B6C',l:'Good'};
+  if(v>=50)return{s:'#F5A623',t:'#B45309',l:'Fair'};
+  return{s:'#E8342A',t:'#E8342A',l:'Needs work'};
+}
+
+function renderResults(data){
+  var v=data.score||50;
+  var gradeColor=v>=80?'#1A9B6C':v>=60?'#F5A623':'#E8342A';
+  document.getElementById('sgrd').innerHTML='<span style="color:'+gradeColor+'">'+escapeHtml(data.grade)+'</span>';
+  document.getElementById('shl').textContent=data.headline||'Your audit is ready';
+  document.getElementById('sdsc').textContent=data.description||'See your full results below.';
+  var pillsHtml=v>=80?'<span class="sp pg">Strong visibility</span><span class="sp pg">High trust</span>':v>=60?'<span class="sp pw">Needs consistency</span><span class="sp pg">Decent foundation</span>':'<span class="sp pb">Low visibility</span><span class="sp pw">High opportunity</span>';
+  document.getElementById('spills').innerHTML=pillsHtml;
+  var fill=document.getElementById('srfill');fill.style.stroke=gradeColor;fill.style.strokeDashoffset='264';
+  var cur=0,disp=document.getElementById('sdisp');disp.textContent='0';
+  setTimeout(function(){var iv=setInterval(function(){cur=Math.min(cur+1,v);disp.textContent=cur;fill.style.strokeDashoffset=''+(264-(264*cur/100));if(cur>=v)clearInterval(iv);},18);},300);
+  var cg=document.getElementById('cgrid');cg.innerHTML='';
+  (data.categories||[]).forEach(function(cat){var cc=getC(cat.score);var d2=document.createElement('div');d2.className='ccard';d2.innerHTML='<div class="ctop"><div class="clbl">'+escapeHtml(cat.label)+'</div><div class="csco" style="color:'+cc.t+'">'+cat.score+'</div></div><div class="cbg"><div class="cbar" style="background:'+cc.s+'" data-w="'+cat.score+'%"></div></div><div class="cst" style="color:'+cc.t+'">'+cc.l+'</div>';cg.appendChild(d2);});
+  setTimeout(function(){document.querySelectorAll('.cbar').forEach(function(b){b.style.width=b.dataset.w;});},500);
+  var ge=document.getElementById('fgood');ge.innerHTML='';
+  (data.good||[]).forEach(function(f){ge.innerHTML+='<div class="fcard"><div class="fh"><div class="fdot" style="background:#1A9B6C"></div><div class="ftit">'+escapeHtml(f.title)+'</div><div class="ftag" style="background:#F0FDF4;color:#166534">GOOD</div></div><div class="fbody">'+escapeHtml(f.body)+'</div></div>';});
+  var be=document.getElementById('fbad');be.innerHTML='';
+  (data.bad||[]).forEach(function(f){var hi=f.tag&&f.tag.includes('HIGH');var mi=f.tag&&f.tag.includes('MEDIUM');var tb=hi?'#FEF3F2':mi?'#FFFBEB':'#F0FDF4';var tc=hi?'#991B1B':mi?'#92400E':'#166534';var dc=hi?'#E8342A':mi?'#F5A623':'#1A9B6C';be.innerHTML+='<div class="fcard"><div class="fh"><div class="fdot" style="background:'+dc+'"></div><div class="ftit">'+escapeHtml(f.title)+'</div>'+(f.tag?'<div class="ftag" style="background:'+tb+';color:'+tc+'">'+escapeHtml(f.tag)+'</div>':'')+'</div><div class="fbody">'+escapeHtml(f.body)+'</div></div>';});
+  var ae=document.getElementById('alist');ae.innerHTML='';
+  (data.actions||[]).forEach(function(a,idx){var ic=a.impact==='high'?'ih':a.impact==='med'?'im':'il';var il=a.impact==='high'?'High impact':a.impact==='med'?'Medium impact':'Low impact';ae.innerHTML+='<div class="aitem"><div class="anum">'+(idx+1)+'</div><div class="acont"><h4>'+escapeHtml(a.title)+'</h4><p>'+escapeHtml(a.body)+'</p><span class="ibadge '+ic+'">'+il+'</span></div></div>';});
+}
+
+document.getElementById('gbp-url').addEventListener('keydown',function(e){if(e.key==='Enter')startAudit();document.getElementById('uerr').style.display='none';});
+document.getElementById('user-email').addEventListener('keydown',function(e){if(e.key==='Enter')startAudit();document.getElementById('uerr').style.display='none';});
+
+buildT();
+</script>
+</body>
+</html>
