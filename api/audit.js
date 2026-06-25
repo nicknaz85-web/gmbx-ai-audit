@@ -167,6 +167,11 @@ Notes on scoring fields you don't have direct data for (update activity, service
   });
 
   const data = await r.json();
+  if (!r.ok) {
+    console.error('Anthropic API error:', r.status, JSON.stringify(data));
+    throw new Error('Anthropic API error ' + r.status + ': ' + (data.error && data.error.message || 'unknown'));
+  }
+
   const text = (data.content && data.content[0] && data.content[0].text || '')
     .trim().replace(/```json/g, '').replace(/```/g, '').trim();
 
