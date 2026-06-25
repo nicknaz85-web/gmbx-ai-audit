@@ -138,36 +138,32 @@ async function getPlaceDetails(placeId, placesKey) {
 async function analyseWithClaude(place, anthropicKey) {
   const prompt = `You are a Google Business Profile auditor. Below is REAL data pulled from the Google Places API for one business. Score and analyse ONLY what is given — do not invent facts, reviews, or business details that aren't present.
 
-IMPORTANT — read this before scoring: the Google Places API (a public, read-only API) cannot see some things that genuinely exist on every Google Business Profile but are only visible to the profile owner: the owner-written description, whether/how often the owner replies to reviews, the listed service areas, the service/product listings, and Google Posts/update activity. The "dataNotAvailable" array in the JSON below lists exactly which of these are structurally invisible to this audit for EVERY business, not just this one.
+The "dataNotAvailable" array in the JSON below lists things the public Places API structurally cannot see for ANY business (owner-written description, review reply behaviour, service areas, service/product listings, posting activity). These may well exist on the real profile — their absence here is a data-source limitation, not evidence the business lacks them. Do NOT create "bad" findings, categories, or scores about anything in that list, and do NOT claim or imply the business lacks them. You MAY mention them once, collectively, in the "dataLimitations" field described below — nowhere else.
 
-For anything in "dataNotAvailable": you MUST NOT say "no description", "doesn't reply to reviews", "no services listed", etc. as if it were a confirmed fact — that would be wrong, since the data could easily exist on the real profile and you simply can't see it. Instead, phrase any related finding as a transparent data limitation (e.g. "Reply behaviour can't be verified from public data — recommend checking directly") and do NOT score that specific category below 50 purely because the field is absent; treat it as "unknown", not "failing".
-Fields that ARE directly observed (rating, review count, review text, phone, website, hours, photo sample, categories) should be scored and discussed normally and confidently — those are real, verified signals.
+Only score and discuss what is directly observed: rating, review count, review text/recency, phone, website, hours, business status, photo sample count, and categories/types. These are real, verified signals — be specific and confident about them.
 
 REAL PROFILE DATA:
 ${JSON.stringify(place, null, 2)}
 
 Respond ONLY with valid JSON, no markdown, in this exact shape:
 {
-  "score": <number 0-100, derived from the real data above>,
+  "score": <number 0-100, derived ONLY from the directly-observed fields above>,
   "grade": "<NEEDS ATTENTION|GOOD PROGRESS|EXCELLENT>",
   "headline": "<short headline specific to this business>",
   "description": "<2 sentence summary grounded in the real data>",
   "categories": [
-    {"label": "Profile Completeness", "score": <0-100>},
-    {"label": "Review Strength", "score": <0-100>},
-    {"label": "Review Reply Rate", "score": <0-100>},
-    {"label": "Update Activity", "score": <0-100>},
-    {"label": "Service Areas", "score": <0-100>},
-    {"label": "Service Listings", "score": <0-100>},
-    {"label": "Photo Activity", "score": <0-100>},
-    {"label": "Local SEO", "score": <0-100>}
+    {"label": "Profile Completeness", "score": <0-100, based on phone/website/hours/address presence>},
+    {"label": "Review Strength", "score": <0-100, based on rating and review count>},
+    {"label": "Review Recency & Engagement", "score": <0-100, based on how recent/frequent the sampled reviews are>},
+    {"label": "Photo Presence", "score": <0-100, based on the photo sample count>}
   ],
-  "good": [ {"title": "<finding grounded in real data>", "body": "<why this is good>"} ],
-  "bad": [ {"title": "<real gap or weakness>", "body": "<explanation with specific advice>", "tag": "<HIGH IMPACT|MEDIUM IMPACT|LOW IMPACT>"} ],
-  "actions": [ {"title": "<action>", "body": "<specific advice>", "impact": "<high|med|low>"} ]
+  "good": [ {"title": "<finding grounded in directly-observed data>", "body": "<why this is good>"} ],
+  "bad": [ {"title": "<real gap in directly-observed data only>", "body": "<explanation with specific advice>", "tag": "<HIGH IMPACT|MEDIUM IMPACT|LOW IMPACT>"} ],
+  "actions": [ {"title": "<action>", "body": "<specific advice>", "impact": "<high|med|low>"} ],
+  "dataLimitations": "<one short sentence noting that description, review replies, service areas/listings, and posting activity can't be checked from public data and should be reviewed directly on the profile>"
 }
 
-For "Review Reply Rate", "Update Activity", "Service Areas" and "Service Listings": these rely on data this API cannot see, so score them in the 50-70 range by default (reflecting genuine uncertainty, not failure) and frame any related notes as "can't be verified from public data, worth checking directly" rather than a confirmed weakness. "Local SEO" may be assessed loosely from category breadth and website presence, but say so explicitly when you do. Make good 2-4 items, bad 3-5 items, actions 4-6 items.`;
+Make good 2-4 items, bad 2-4 items (only from directly-observed gaps — e.g. missing phone, no website, low photo count, no hours), actions 4-6 items (can include suggestions about replying to reviews or adding services as general best-practice advice, but without claiming the business currently fails to do these).`;
 
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
