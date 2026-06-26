@@ -293,6 +293,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
   </div>
 </div>
 
+<!-- CONTEXT QUESTIONS -->
+<div class="page" id="page-context">
+  <div class="hero" style="padding-top:40px">
+    <div class="hbadge">✦ Almost there</div>
+    <h1 style="max-width:480px">A Few Quick Details <span>(Optional)</span></h1>
+    <p style="max-width:460px">These help us make your audit more accurate — answer what you can, skip the rest.</p>
+    <div class="audit-form" style="max-width:480px;text-align:left">
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:6px">Roughly how many updates/posts do you publish per month?</label>
+        <input type="number" min="0" id="ctx-updates" class="audit-input" placeholder="e.g. 2"/>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:6px">What keywords are you trying to rank for?</label>
+        <input type="text" id="ctx-keywords" class="audit-input" placeholder="e.g. nail salon Whitley Bay, gel nails"/>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:6px">What area(s) do you serve?</label>
+        <input type="text" id="ctx-area" class="audit-input" placeholder="e.g. Whitley Bay and surrounding areas"/>
+      </div>
+      <button class="bstart" onclick="submitContext()">Continue to My Audit →</button>
+      <button class="nl" onclick="skipContext()" style="margin-top:2px">Skip this step</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOADING -->
 <div class="page" id="page-loading">
   <div class="lpage">
@@ -526,6 +551,7 @@ async function clearAllEmails(){
 
 // ── AUDIT ──
 var currentUrl='', currentEmail='', auditResult=null;
+var ctxUpdatesPerMonth=null, ctxKeywords=null, ctxServiceArea=null;
 
 function startAudit(){
   var url=document.getElementById('gbp-url').value.trim();
@@ -555,6 +581,24 @@ function startAudit(){
   var display=url.length>55?url.substring(0,55)+'…':url;
   document.getElementById('rdisplay').textContent=display;
   document.getElementById('auditBtn').disabled=true;
+  showPage('context');
+  setTimeout(function(){document.getElementById('ctx-updates').focus();},100);
+}
+
+function submitContext(){
+  var updates=document.getElementById('ctx-updates').value.trim();
+  var keywords=document.getElementById('ctx-keywords').value.trim();
+  var area=document.getElementById('ctx-area').value.trim();
+  ctxUpdatesPerMonth=updates?Number(updates):null;
+  ctxKeywords=keywords||null;
+  ctxServiceArea=area||null;
+  runLoad();
+}
+
+function skipContext(){
+  ctxUpdatesPerMonth=null;
+  ctxKeywords=null;
+  ctxServiceArea=null;
   runLoad();
 }
 
@@ -606,7 +650,12 @@ function callAuditAPI(){
   fetch('/api/audit',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({url:currentUrl})
+    body:JSON.stringify({
+      url:currentUrl,
+      updatesPerMonth:ctxUpdatesPerMonth,
+      targetKeywords:ctxKeywords,
+      serviceArea:ctxServiceArea
+    })
   })
   .then(function(r){return r.json().then(function(data){return {ok:r.ok,data:data};});})
   .then(function(res){

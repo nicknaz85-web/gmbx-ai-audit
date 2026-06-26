@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { url } = req.body || {};
+  const { url, updatesPerMonth, targetKeywords, serviceArea } = req.body || {};
   if (!url || typeof url !== 'string' || url.trim().length < 3) {
     return res.status(400).json({ error: 'Missing or invalid url' });
   }
@@ -23,6 +23,20 @@ export default async function handler(req, res) {
     const place = await resolvePlace(url.trim(), PLACES_KEY);
     if (!place) {
       return res.status(404).json({ error: "Couldn't find a matching Google Business Profile for that link. Please check the link and try again." });
+    }
+
+    // Self-reported by the person submitting the audit, NOT independently verified — pass
+    // through clearly labelled so the prompt/model treats it as a claim, not a confirmed fact.
+    place.selfReported = {
+      updatesPerMonth: (typeof updatesPerMonth === 'number' && updatesPerMonth >= 0) ? updatesPerMonth : null,
+      targetKeywords: (typeof targetKeywords === 'string' && targetKeywords.trim()) ? targetKeywords.trim() : null,
+      serviceArea: (typeof serviceArea === 'string' && serviceArea.trim()) ? serviceArea.trim() : null
+    };
+    if (place.selfReported.updatesPerMonth != null) {
+      place.dataNotAvailable = place.dataNotAvailable.filter(d => d !== 'Google Posts / update frequency');
+    }
+    if (place.selfReported.serviceArea != null) {
+      place.dataNotAvailable = place.dataNotAvailable.filter(d => d !== 'service area list');
     }
 
     const report = await analyseWithClaude(place, ANTHROPIC_KEY);
@@ -270,7 +284,13 @@ Two specific traps to avoid:
 - Each review's "text" field was cut short by US (not by the customer) when "textWasTruncatedForBrevityByUs" is true, purely to keep this prompt a reasonable size. Never comment on review length, completeness, "cut off" text, or whether customers write detailed reviews — you are not seeing the real cutoff point, only ours.
 - "accessibilityFeatures", when present, is a real list of accessibility attributes from the live profile (e.g. wheelchair access) — discuss it confidently as a real signal.
 
-Only score and discuss what is directly observed: rating, review count, review text/recency (reviews are pre-sorted newest-first, so the dates you see are accurate), phone, website, hours, business status, photo count (only when not API-capped), liveProfileCategories (when present), and accessibilityFeatures (when present). These are real, verified signals — be specific and confident about them.
+"selfReported" holds answers the business owner typed in when requesting this audit — NOT independently verified, so treat it as a claim, not a confirmed fact, and say so when you use it:
+- "updatesPerMonth" (number or null): if not null, you may now score an "Update Activity" category and discuss posting frequency, framed as "the business reports posting ~N times/month" — don't claim this is independently confirmed.
+- "targetKeywords" (string or null): if not null, you may now score a "Keyword Alignment" category assessing whether the website/categories/address support ranking for these self-reported target keywords — frame findings around whether the visible profile data (categories, website, location) plausibly supports these keyword goals.
+- "serviceArea" (string or null): if not null, you may now score a "Service Area Coverage" category, framed around whether the address/categories are consistent with serving that self-reported area — don't claim to have independently verified the actual configured service-area radius on the profile.
+For any of the three that ARE null, do not invent or score them — they remain in dataNotAvailable.
+
+Only score and discuss what is directly observed: rating, review count, review text/recency (reviews are pre-sorted newest-first, so the dates you see are accurate), phone, website, hours, business status, photo count (only when not API-capped), liveProfileCategories (when present), accessibilityFeatures (when present), and selfReported fields (when present, framed as self-reported). These are real signals — be specific and confident, while being clear about which are independently verified vs. self-reported.
 
 REAL PROFILE DATA:
 ${JSON.stringify(place, null, 2)}
@@ -285,7 +305,8 @@ Respond ONLY with valid JSON, no markdown, in this exact shape:
     {"label": "Profile Completeness", "score": <0-100, based on phone/website/hours/address presence>},
     {"label": "Review Strength", "score": <0-100, based on rating and review count>},
     {"label": "Review Recency & Engagement", "score": <0-100, based on how recent/frequent the sampled reviews are>},
-    {"label": "Photo Presence", "score": <0-100; if photoCountIsApiCapped is true, score 70-85 (presence confirmed, true volume unknown) — never score this low just because it hit the cap; if not capped, score based on the actual low count>}
+    {"label": "Photo Presence", "score": <0-100; if photoCountIsApiCapped is true, score 70-85 (presence confirmed, true volume unknown) — never score this low just because it hit the cap; if not capped, score based on the actual low count>},
+    "<then append {\"label\": \"Update Activity\", \"score\": <0-100>} ONLY if selfReported.updatesPerMonth is not null, append {\"label\": \"Keyword Alignment\", \"score\": <0-100>} ONLY if selfReported.targetKeywords is not null, and append {\"label\": \"Service Area Coverage\", \"score\": <0-100>} ONLY if selfReported.serviceArea is not null — omit any of these three entirely when their field is null, do not include this instruction string itself in your output"
   ],
   "good": [ {"title": "<finding grounded in directly-observed data>", "body": "<why this is good>"} ],
   "bad": [ {"title": "<real gap in directly-observed data only>", "body": "<explanation with specific advice>", "tag": "<HIGH IMPACT|MEDIUM IMPACT|LOW IMPACT>"} ],
@@ -329,17 +350,24 @@ Make good 2-4 items, bad 2-4 items (only from directly-observed gaps — e.g. mi
 // instead of trusting the model to comply, so the UI never shows things like "no description",
 // "no review replies", "no subcategories", or "low photo count" (when the count is just the
 // API's hard cap of 10) as if they were confirmed facts.
-const UNVERIFIABLE_TOPIC_PATTERN = /editorial summary|review repl|owner repl|service (and\/or )?product listing|service area|google post|update activity|post frequency|post(ing)? activity|review.*(truncat|cut off|cut short)|truncat.*review|(detailed|complete|full) reviews?/i;
+// These can never be verified from any data source this tool has access to.
+const ALWAYS_UNVERIFIABLE_PATTERN = /editorial summary|review repl|owner repl|service (and\/or )?product listing|review.*(truncat|cut off|cut short)|truncat.*review|(detailed|complete|full) reviews?/i;
+// These become verifiable once the matching selfReported field is supplied.
+const UPDATE_ACTIVITY_PATTERN = /google post|update activity|post frequency|post(ing)? activity/i;
+const SERVICE_AREA_PATTERN = /service area/i;
 const CATEGORY_CLAIM_PATTERN = /subcategor|categor(y|ies) (is|are) (broad|limited|generic)|no specialist|category breadth|categor(y|ies).*not.*populat|no live categor|categor.*not.*currently|live category data/i;
 const LOW_PHOTO_CLAIM_PATTERN = /photo/i;
 
 function stripUnverifiableFindings(parsed, place) {
   const hasLiveCategories = Array.isArray(place.liveProfileCategories) && place.liveProfileCategories.length > 0;
+  const selfReported = place.selfReported || {};
   ['good', 'bad'].forEach(key => {
     if (Array.isArray(parsed[key])) {
       parsed[key] = parsed[key].filter(item => {
         const text = (item.title || '') + ' ' + (item.body || '');
-        if (UNVERIFIABLE_TOPIC_PATTERN.test(text)) return false;
+        if (ALWAYS_UNVERIFIABLE_PATTERN.test(text)) return false;
+        if (selfReported.updatesPerMonth == null && UPDATE_ACTIVITY_PATTERN.test(text)) return false;
+        if (selfReported.serviceArea == null && SERVICE_AREA_PATTERN.test(text)) return false;
         // Only drop category-breadth claims when we genuinely couldn't see the real list —
         // if the live-listing scrape succeeded, these claims are grounded and should stay.
         if (!hasLiveCategories && CATEGORY_CLAIM_PATTERN.test(text)) return false;
