@@ -462,6 +462,9 @@ function initStaticReveals(){
   revealGroup('.check-card');
   revealGroup('.pcard');
   document.querySelectorAll('.shero,.ctasec').forEach(function(el){reveal(el);});
+  ['.hbadge','.hero h1','.hero p','.audit-form','.hnote','.trow'].forEach(function(sel,i){
+    reveal(document.querySelector(sel),i*0.08);
+  });
 }
 
 function buildT(){
