@@ -243,8 +243,11 @@ function buildPreviewPb(cidHex, lat, lng) {
 
 function extractCategoriesNearAddress(payloadText, address) {
   if (!address) return [];
+  // Google's internal payload stores the address string as "{Business Name}, {address}"
+  // (concatenated), while Places API's formatted_address is just the address — so we match
+  // address as a suffix inside the quotes (preceded by arbitrary text), not the whole string.
   const escaped = address.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp('\\[((?:"[^"\\]]*",?)+)\\](?:,null){0,8},"' + escaped + '"');
+  const re = new RegExp('\\[((?:"[^"\\]]*",?)+)\\](?:,null){0,8},"[^"]*' + escaped + '"');
   const m = payloadText.match(re);
   if (!m) return [];
   return m[1].split(',').map(s => s.replace(/^"|"$/g, '')).filter(Boolean);
@@ -262,7 +265,7 @@ async function analyseWithClaude(place, anthropicKey) {
 The "dataNotAvailable" array in the JSON below lists things the public Places API structurally cannot see for ANY business (owner-written description, review reply behaviour, the full category list, service areas, service/product listings, posting activity). These may well exist on the real profile — their absence here is a data-source limitation, not evidence the business lacks them. Do NOT create "bad" findings, categories, or scores about anything in that list, and do NOT claim or imply the business lacks them. You MAY mention them once, collectively, in the "dataLimitations" field described below — nowhere else.
 
 Two specific traps to avoid:
-- "googleTypeTags" is a short list of coarse Google-internal tags, NOT the real category list shown on the live profile. If "liveProfileCategories" is present and non-empty, THAT is the real, live category list from the profile — use and discuss it confidently instead. If "liveProfileCategories" is missing or empty, you cannot see the real category list at all — never say "no subcategories" or "categories are broad/limited" in that case, it belongs in dataLimitations instead.
+- "googleTypeTags" is a short list of coarse Google-internal tags, NOT the real category list shown on the live profile. If "liveProfileCategories" is present and non-empty, THAT is the real, live category list from the profile — use and discuss it confidently instead. If "liveProfileCategories" is missing or empty, this means OUR LOOKUP FAILED, NOT that the business has no categories — never say "no subcategories", "categories not populated", "no live category data", or "categories are broad/limited" in that case. Treat it exactly like the other dataNotAvailable items: omit it from findings entirely, mention only collectively in dataLimitations if at all.
 - "photoCountReturned" is capped at 10 by the API ("photoCountIsApiCapped" will be true when this happened). If capped, the true count is unknown and could be hundreds — do NOT call it "low" or "insufficient". Only treat the photo count as a real, discussable signal when photoCountIsApiCapped is false (i.e. the count is genuinely below the cap).
 - Each review's "text" field was cut short by US (not by the customer) when "textWasTruncatedForBrevityByUs" is true, purely to keep this prompt a reasonable size. Never comment on review length, completeness, "cut off" text, or whether customers write detailed reviews — you are not seeing the real cutoff point, only ours.
 - "accessibilityFeatures", when present, is a real list of accessibility attributes from the live profile (e.g. wheelchair access) — discuss it confidently as a real signal.
@@ -327,7 +330,7 @@ Make good 2-4 items, bad 2-4 items (only from directly-observed gaps — e.g. mi
 // "no review replies", "no subcategories", or "low photo count" (when the count is just the
 // API's hard cap of 10) as if they were confirmed facts.
 const UNVERIFIABLE_TOPIC_PATTERN = /editorial summary|review repl|owner repl|service (and\/or )?product listing|service area|google post|update activity|post frequency|post(ing)? activity|review.*(truncat|cut off|cut short)|truncat.*review|(detailed|complete|full) reviews?/i;
-const CATEGORY_CLAIM_PATTERN = /subcategor|categor(y|ies) (is|are) (broad|limited|generic)|no specialist|category breadth/i;
+const CATEGORY_CLAIM_PATTERN = /subcategor|categor(y|ies) (is|are) (broad|limited|generic)|no specialist|category breadth|categor(y|ies).*not.*populat|no live categor|categor.*not.*currently|live category data/i;
 const LOW_PHOTO_CLAIM_PATTERN = /photo/i;
 
 function stripUnverifiableFindings(parsed, place) {
