@@ -125,13 +125,20 @@ async function getPlaceDetails(placeId, placesKey) {
     // or could be hundreds) and must NOT be reported as "low"/"insufficient". Only a count below
     // this cap (e.g. 3) is a real, trustworthy signal of an actually sparse photo library.
     photoCountIsApiCapped: photoCount >= 10,
-    reviews: (p.reviews || []).slice(0, 5).map(r => ({
-      rating: r.rating,
-      text: (r.text || '').slice(0, 300),
-      time: r.relative_time_description
-      // Note: the Places API does not expose whether the owner replied to a review at all,
-      // so no reply-status field is included here — do not infer or assume reply behaviour.
-    })),
+    reviews: (p.reviews || []).slice(0, 5).map(r => {
+      var fullText = r.text || '';
+      var truncated = fullText.length > 800;
+      return {
+        rating: r.rating,
+        // Cut for prompt size only, not because the real review is incomplete — truncated
+        // is flagged explicitly so the model never mistakes our cut for the customer's writing.
+        text: truncated ? fullText.slice(0, 800) + '…' : fullText,
+        textWasTruncatedForBrevityByUs: truncated,
+        time: r.relative_time_description
+        // Note: the Places API does not expose whether the owner replied to a review at all,
+        // so no reply-status field is included here — do not infer or assume reply behaviour.
+      };
+    }),
     reviewsSortedBy: 'newest',
     mapsUrl: p.url || null,
     dataNotAvailable: [
@@ -155,6 +162,7 @@ The "dataNotAvailable" array in the JSON below lists things the public Places AP
 Two specific traps to avoid:
 - "googleTypeTags" is a short list of coarse Google-internal tags, NOT the real category list shown on the live profile (which typically has far more, specific categories). Never say "no subcategories" or "categories are broad/limited" — you cannot see the real list at all, so this belongs in dataLimitations, not as a finding.
 - "photoCountReturned" is capped at 10 by the API ("photoCountIsApiCapped" will be true when this happened). If capped, the true count is unknown and could be hundreds — do NOT call it "low" or "insufficient". Only treat the photo count as a real, discussable signal when photoCountIsApiCapped is false (i.e. the count is genuinely below the cap).
+- Each review's "text" field was cut short by US (not by the customer) when "textWasTruncatedForBrevityByUs" is true, purely to keep this prompt a reasonable size. Never comment on review length, completeness, "cut off" text, or whether customers write detailed reviews — you are not seeing the real cutoff point, only ours.
 
 Only score and discuss what is directly observed: rating, review count, review text/recency (reviews are pre-sorted newest-first, so the dates you see are accurate), phone, website, hours, business status, and photo count (only when not API-capped). These are real, verified signals — be specific and confident about them.
 
@@ -215,7 +223,7 @@ Make good 2-4 items, bad 2-4 items (only from directly-observed gaps — e.g. mi
 // instead of trusting the model to comply, so the UI never shows things like "no description",
 // "no review replies", "no subcategories", or "low photo count" (when the count is just the
 // API's hard cap of 10) as if they were confirmed facts.
-const UNVERIFIABLE_TOPIC_PATTERN = /editorial summary|review repl|owner repl|service (and\/or )?product listing|service area|google post|update activity|post frequency|post(ing)? activity|subcategor|categor(y|ies) (is|are) (broad|limited|generic)|no specialist|category breadth/i;
+const UNVERIFIABLE_TOPIC_PATTERN = /editorial summary|review repl|owner repl|service (and\/or )?product listing|service area|google post|update activity|post frequency|post(ing)? activity|subcategor|categor(y|ies) (is|are) (broad|limited|generic)|no specialist|category breadth|review.*(truncat|cut off|cut short)|truncat.*review|(detailed|complete|full) reviews?/i;
 const LOW_PHOTO_CLAIM_PATTERN = /photo/i;
 
 function stripUnverifiableFindings(parsed, place) {
