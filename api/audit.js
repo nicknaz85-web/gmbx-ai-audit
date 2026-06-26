@@ -51,7 +51,15 @@ async function resolvePlace(rawUrl, placesKey) {
     if (!placeId) return null;
   }
 
-  return await getPlaceDetails(placeId, placesKey);
+  const place = await getPlaceDetails(placeId, placesKey);
+  if (!place) return null;
+
+  const enrichment = await enrichFromLiveMapsListing(place, url);
+  if (enrichment) {
+    place.liveProfileCategories = enrichment.extraCategories;
+    place.accessibilityFeatures = enrichment.accessibilityFeatures;
+  }
+  return place;
 }
 
 function extractPlaceId(url) {
@@ -91,7 +99,7 @@ async function getPlaceDetails(placeId, placesKey) {
   const fields = [
     'name', 'rating', 'user_ratings_total', 'formatted_address', 'formatted_phone_number',
     'website', 'opening_hours', 'business_status', 'types', 'editorial_summary',
-    'reviews', 'photos', 'url'
+    'reviews', 'photos', 'url', 'geometry'
   ].join(',');
   const params = new URLSearchParams({ place_id: placeId, fields, key: placesKey, reviews_sort: 'newest' });
   const r = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?${params}`);
@@ -141,16 +149,87 @@ async function getPlaceDetails(placeId, placesKey) {
     }),
     reviewsSortedBy: 'newest',
     mapsUrl: p.url || null,
+    lat: p.geometry && p.geometry.location ? p.geometry.location.lat : null,
+    lng: p.geometry && p.geometry.location ? p.geometry.location.lng : null,
     dataNotAvailable: [
       'owner-written business description',
       'review reply status / reply rate',
-      'full list of owner-assigned categories (only a few coarse type tags are visible, see googleTypeTags note)',
       'service area list',
       'service/product listings',
       'Google Posts / update frequency',
       'true total photo count when googleTypeTags photoCountIsApiCapped is true'
     ]
   };
+}
+
+// ── Best-effort enrichment: fetch the richer category list + accessibility attributes that
+// are visible on the live Maps listing but not exposed by the official Places API. This calls
+// an undocumented internal Google endpoint (not the public Places API), so it may break or
+// return nothing at any time — every failure path below must be silently non-fatal.
+async function enrichFromLiveMapsListing(place, rawInputUrl) {
+  try {
+    if (place.lat == null || place.lng == null) return null;
+    const cidHex = extractCidHex(place.mapsUrl, rawInputUrl);
+    if (!cidHex) return null;
+
+    const pb = buildPreviewPb(cidHex, place.lat, place.lng);
+    const r = await fetch(`https://www.google.com/maps/preview/place?authuser=0&hl=en&gl=us&pb=${pb}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36' }
+    });
+    if (!r.ok) return null;
+    const raw = await r.text();
+    const cleaned = raw.replace(/^\)\]\}'\s*/, '');
+
+    const extraCategories = extractCategoriesNearAddress(cleaned, place.address);
+    const accessibilityFeatures = extractAccessibilityFeatures(cleaned);
+
+    if (!extraCategories.length && !accessibilityFeatures.length) return null;
+    return { extraCategories, accessibilityFeatures };
+  } catch (e) {
+    console.error('Live listing enrichment skipped (non-fatal):', e.message);
+    return null;
+  }
+}
+
+function extractCidHex(mapsUrl, rawInputUrl) {
+  // Prefer a CID/feature-id pair already present in the user's own pasted link.
+  for (const url of [rawInputUrl, mapsUrl]) {
+    if (!url) continue;
+    const pairMatch = url.match(/0x[0-9a-f]+:0x[0-9a-f]+/i);
+    if (pairMatch) return pairMatch[0];
+    const cidMatch = url.match(/[?&]cid=(\d+)/);
+    if (cidMatch) return '0x0:0x' + BigInt(cidMatch[1]).toString(16);
+  }
+  return null;
+}
+
+function buildPreviewPb(cidHex, lat, lng) {
+  const session = 'GMBXAUDIT' + Date.now();
+  return [
+    '!1m14', '!1s' + cidHex, '!3m12',
+    '!1m3', '!1d50703', '!2d' + lng, '!3d' + lat,
+    '!2m3', '!1f0.0', '!2f0.0', '!3f0.0',
+    '!3m2', '!1i1024', '!2i768', '!4f13.1',
+    '!12m4', '!2m3', '!1i360', '!2i120', '!4i8',
+    '!13m57', '!2m2', '!1i203', '!2i100', '!3m2', '!2i4', '!5b1',
+    '!6m6', '!1m2', '!1i86', '!2i86', '!1m2', '!1i408', '!2i240',
+    '!15m8', '!1m7', '!1m2', '!1m1', '!1e2', '!2m2', '!1i195', '!2i195', '!3i20',
+    '!14m3', '!1s' + session, '!7e81', '!15i10112'
+  ].join('');
+}
+
+function extractCategoriesNearAddress(payloadText, address) {
+  if (!address) return [];
+  const escaped = address.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp('\\[((?:"[^"\\]]*",?)+)\\](?:,null){0,8},"' + escaped + '"');
+  const m = payloadText.match(re);
+  if (!m) return [];
+  return m[1].split(',').map(s => s.replace(/^"|"$/g, '')).filter(Boolean);
+}
+
+function extractAccessibilityFeatures(payloadText) {
+  const matches = payloadText.match(/"(?:Has |No )?[Ww]heelchair accessible [a-z]+"/g) || [];
+  return [...new Set(matches.map(s => s.replace(/^"|"$/g, '')))];
 }
 
 // ── Send the real data to Claude for scoring/summarisation ──
@@ -160,11 +239,12 @@ async function analyseWithClaude(place, anthropicKey) {
 The "dataNotAvailable" array in the JSON below lists things the public Places API structurally cannot see for ANY business (owner-written description, review reply behaviour, the full category list, service areas, service/product listings, posting activity). These may well exist on the real profile — their absence here is a data-source limitation, not evidence the business lacks them. Do NOT create "bad" findings, categories, or scores about anything in that list, and do NOT claim or imply the business lacks them. You MAY mention them once, collectively, in the "dataLimitations" field described below — nowhere else.
 
 Two specific traps to avoid:
-- "googleTypeTags" is a short list of coarse Google-internal tags, NOT the real category list shown on the live profile (which typically has far more, specific categories). Never say "no subcategories" or "categories are broad/limited" — you cannot see the real list at all, so this belongs in dataLimitations, not as a finding.
+- "googleTypeTags" is a short list of coarse Google-internal tags, NOT the real category list shown on the live profile. If "liveProfileCategories" is present and non-empty, THAT is the real, live category list from the profile — use and discuss it confidently instead. If "liveProfileCategories" is missing or empty, you cannot see the real category list at all — never say "no subcategories" or "categories are broad/limited" in that case, it belongs in dataLimitations instead.
 - "photoCountReturned" is capped at 10 by the API ("photoCountIsApiCapped" will be true when this happened). If capped, the true count is unknown and could be hundreds — do NOT call it "low" or "insufficient". Only treat the photo count as a real, discussable signal when photoCountIsApiCapped is false (i.e. the count is genuinely below the cap).
 - Each review's "text" field was cut short by US (not by the customer) when "textWasTruncatedForBrevityByUs" is true, purely to keep this prompt a reasonable size. Never comment on review length, completeness, "cut off" text, or whether customers write detailed reviews — you are not seeing the real cutoff point, only ours.
+- "accessibilityFeatures", when present, is a real list of accessibility attributes from the live profile (e.g. wheelchair access) — discuss it confidently as a real signal.
 
-Only score and discuss what is directly observed: rating, review count, review text/recency (reviews are pre-sorted newest-first, so the dates you see are accurate), phone, website, hours, business status, and photo count (only when not API-capped). These are real, verified signals — be specific and confident about them.
+Only score and discuss what is directly observed: rating, review count, review text/recency (reviews are pre-sorted newest-first, so the dates you see are accurate), phone, website, hours, business status, photo count (only when not API-capped), liveProfileCategories (when present), and accessibilityFeatures (when present). These are real, verified signals — be specific and confident about them.
 
 REAL PROFILE DATA:
 ${JSON.stringify(place, null, 2)}
@@ -184,7 +264,7 @@ Respond ONLY with valid JSON, no markdown, in this exact shape:
   "good": [ {"title": "<finding grounded in directly-observed data>", "body": "<why this is good>"} ],
   "bad": [ {"title": "<real gap in directly-observed data only>", "body": "<explanation with specific advice>", "tag": "<HIGH IMPACT|MEDIUM IMPACT|LOW IMPACT>"} ],
   "actions": [ {"title": "<action>", "body": "<specific advice>", "impact": "<high|med|low>"} ],
-  "dataLimitations": "<one short sentence noting that description, review replies, service areas/listings, and posting activity can't be checked from public data and should be reviewed directly on the profile>"
+  "dataLimitations": "<one short sentence noting that description, review replies, service areas/listings, and posting activity can't be checked from public data and should be reviewed directly on the profile (omit category list from this sentence if liveProfileCategories was present and used above)>"
 }
 
 Make good 2-4 items, bad 2-4 items (only from directly-observed gaps — e.g. missing phone, no website, low photo count, no hours), actions 4-6 items (can include suggestions about replying to reviews or adding services as general best-practice advice, but without claiming the business currently fails to do these).`;
@@ -223,15 +303,20 @@ Make good 2-4 items, bad 2-4 items (only from directly-observed gaps — e.g. mi
 // instead of trusting the model to comply, so the UI never shows things like "no description",
 // "no review replies", "no subcategories", or "low photo count" (when the count is just the
 // API's hard cap of 10) as if they were confirmed facts.
-const UNVERIFIABLE_TOPIC_PATTERN = /editorial summary|review repl|owner repl|service (and\/or )?product listing|service area|google post|update activity|post frequency|post(ing)? activity|subcategor|categor(y|ies) (is|are) (broad|limited|generic)|no specialist|category breadth|review.*(truncat|cut off|cut short)|truncat.*review|(detailed|complete|full) reviews?/i;
+const UNVERIFIABLE_TOPIC_PATTERN = /editorial summary|review repl|owner repl|service (and\/or )?product listing|service area|google post|update activity|post frequency|post(ing)? activity|review.*(truncat|cut off|cut short)|truncat.*review|(detailed|complete|full) reviews?/i;
+const CATEGORY_CLAIM_PATTERN = /subcategor|categor(y|ies) (is|are) (broad|limited|generic)|no specialist|category breadth/i;
 const LOW_PHOTO_CLAIM_PATTERN = /photo/i;
 
 function stripUnverifiableFindings(parsed, place) {
+  const hasLiveCategories = Array.isArray(place.liveProfileCategories) && place.liveProfileCategories.length > 0;
   ['good', 'bad'].forEach(key => {
     if (Array.isArray(parsed[key])) {
       parsed[key] = parsed[key].filter(item => {
         const text = (item.title || '') + ' ' + (item.body || '');
         if (UNVERIFIABLE_TOPIC_PATTERN.test(text)) return false;
+        // Only drop category-breadth claims when we genuinely couldn't see the real list —
+        // if the live-listing scrape succeeded, these claims are grounded and should stay.
+        if (!hasLiveCategories && CATEGORY_CLAIM_PATTERN.test(text)) return false;
         // Photo count is ambiguous (API-capped) — drop any photo-related claim in that case,
         // since we can't tell if the real count is 10 or 10,000.
         if (place.photoCountIsApiCapped && LOW_PHOTO_CLAIM_PATTERN.test(text)) return false;

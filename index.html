@@ -228,6 +228,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
     <div class="audit-form">
       <input type="text" id="gbp-url" class="audit-input" placeholder="Paste your Google Maps or Business Profile link…"/>
       <input type="email" id="user-email" class="audit-input" placeholder="Enter your email to receive your audit report"/>
+      <label style="display:flex;align-items:flex-start;gap:8px;font-size:11px;color:var(--muted);text-align:left;padding:2px 4px">
+        <input type="checkbox" id="consent-check" style="margin-top:2px;flex-shrink:0"/>
+        <span>I confirm I'm authorised to request this audit and allow GMBX to access and analyse this Google Business Profile's publicly visible information for the purpose of generating this report.</span>
+      </label>
       <button class="bstart" id="auditBtn" onclick="startAudit()">Get My Free Audit →</button>
       <div class="uerr" id="uerr">⚠ Please enter both your Google Business Profile link and your email address</div>
     </div>
@@ -533,8 +537,10 @@ function startAudit(){
   emailInput.classList.remove('error-field');
 
   var emailOk=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  if(!url||url.length<3||!emailOk){
+  var consentOk=document.getElementById('consent-check').checked;
+  if(!url||url.length<3||!emailOk||!consentOk){
     errEl.style.display='block';
+    errEl.textContent=!consentOk?'⚠ Please confirm you\'re authorised to request this audit':'⚠ Please enter both your Google Business Profile link and your email address';
     if(!url||url.length<3) urlInput.classList.add('error-field');
     if(!emailOk) emailInput.classList.add('error-field');
     return;
