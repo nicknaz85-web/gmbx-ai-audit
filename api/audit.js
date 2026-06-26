@@ -93,12 +93,13 @@ async function getPlaceDetails(placeId, placesKey) {
     'website', 'opening_hours', 'business_status', 'types', 'editorial_summary',
     'reviews', 'photos', 'url'
   ].join(',');
-  const params = new URLSearchParams({ place_id: placeId, fields, key: placesKey });
+  const params = new URLSearchParams({ place_id: placeId, fields, key: placesKey, reviews_sort: 'newest' });
   const r = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?${params}`);
   const data = await r.json();
   if (data.status !== 'OK' || !data.result) return null;
 
   const p = data.result;
+  const photoCount = p.photos ? p.photos.length : 0;
   return {
     name: p.name || null,
     rating: p.rating ?? null,
@@ -108,13 +109,22 @@ async function getPlaceDetails(placeId, placesKey) {
     website: p.website || null,
     hasHours: !!(p.opening_hours && p.opening_hours.weekday_text && p.opening_hours.weekday_text.length),
     openNow: p.opening_hours ? !!p.opening_hours.open_now : null,
-    categories: p.types || [],
+    // IMPORTANT: this is a small set of coarse Google-internal type tags (e.g. "beauty_salon",
+    // "spa"), NOT the full list of categories the owner has assigned in their live profile
+    // (which commonly has 5-10 specific categories). Never treat the shortness of this list as
+    // evidence the real profile lacks subcategories — that cannot be determined from this field.
+    googleTypeTags: p.types || [],
     businessStatus: p.business_status || null,
     // This is Google's own auto-generated blurb for well-known places, NOT the owner-written
     // GBP description. The Places API has no field for the owner's actual description text,
     // so its absence here must never be reported as "the business has no description".
     googleEditorialSummary: p.editorial_summary ? p.editorial_summary.overview : null,
-    photoCount: p.photos ? p.photos.length : 0,
+    photoCountReturned: photoCount,
+    // The Places API hard-caps the photos array at 10 regardless of how many photos actually
+    // exist on the live profile. A value of 10 here is therefore ambiguous (could be exactly 10
+    // or could be hundreds) and must NOT be reported as "low"/"insufficient". Only a count below
+    // this cap (e.g. 3) is a real, trustworthy signal of an actually sparse photo library.
+    photoCountIsApiCapped: photoCount >= 10,
     reviews: (p.reviews || []).slice(0, 5).map(r => ({
       rating: r.rating,
       text: (r.text || '').slice(0, 300),
@@ -122,14 +132,16 @@ async function getPlaceDetails(placeId, placesKey) {
       // Note: the Places API does not expose whether the owner replied to a review at all,
       // so no reply-status field is included here — do not infer or assume reply behaviour.
     })),
+    reviewsSortedBy: 'newest',
     mapsUrl: p.url || null,
     dataNotAvailable: [
       'owner-written business description',
       'review reply status / reply rate',
+      'full list of owner-assigned categories (only a few coarse type tags are visible, see googleTypeTags note)',
       'service area list',
       'service/product listings',
       'Google Posts / update frequency',
-      'total photo count (only a sample is returned by this API)'
+      'true total photo count when googleTypeTags photoCountIsApiCapped is true'
     ]
   };
 }
@@ -138,9 +150,13 @@ async function getPlaceDetails(placeId, placesKey) {
 async function analyseWithClaude(place, anthropicKey) {
   const prompt = `You are a Google Business Profile auditor. Below is REAL data pulled from the Google Places API for one business. Score and analyse ONLY what is given — do not invent facts, reviews, or business details that aren't present.
 
-The "dataNotAvailable" array in the JSON below lists things the public Places API structurally cannot see for ANY business (owner-written description, review reply behaviour, service areas, service/product listings, posting activity). These may well exist on the real profile — their absence here is a data-source limitation, not evidence the business lacks them. Do NOT create "bad" findings, categories, or scores about anything in that list, and do NOT claim or imply the business lacks them. You MAY mention them once, collectively, in the "dataLimitations" field described below — nowhere else.
+The "dataNotAvailable" array in the JSON below lists things the public Places API structurally cannot see for ANY business (owner-written description, review reply behaviour, the full category list, service areas, service/product listings, posting activity). These may well exist on the real profile — their absence here is a data-source limitation, not evidence the business lacks them. Do NOT create "bad" findings, categories, or scores about anything in that list, and do NOT claim or imply the business lacks them. You MAY mention them once, collectively, in the "dataLimitations" field described below — nowhere else.
 
-Only score and discuss what is directly observed: rating, review count, review text/recency, phone, website, hours, business status, photo sample count, and categories/types. These are real, verified signals — be specific and confident about them.
+Two specific traps to avoid:
+- "googleTypeTags" is a short list of coarse Google-internal tags, NOT the real category list shown on the live profile (which typically has far more, specific categories). Never say "no subcategories" or "categories are broad/limited" — you cannot see the real list at all, so this belongs in dataLimitations, not as a finding.
+- "photoCountReturned" is capped at 10 by the API ("photoCountIsApiCapped" will be true when this happened). If capped, the true count is unknown and could be hundreds — do NOT call it "low" or "insufficient". Only treat the photo count as a real, discussable signal when photoCountIsApiCapped is false (i.e. the count is genuinely below the cap).
+
+Only score and discuss what is directly observed: rating, review count, review text/recency (reviews are pre-sorted newest-first, so the dates you see are accurate), phone, website, hours, business status, and photo count (only when not API-capped). These are real, verified signals — be specific and confident about them.
 
 REAL PROFILE DATA:
 ${JSON.stringify(place, null, 2)}
@@ -155,7 +171,7 @@ Respond ONLY with valid JSON, no markdown, in this exact shape:
     {"label": "Profile Completeness", "score": <0-100, based on phone/website/hours/address presence>},
     {"label": "Review Strength", "score": <0-100, based on rating and review count>},
     {"label": "Review Recency & Engagement", "score": <0-100, based on how recent/frequent the sampled reviews are>},
-    {"label": "Photo Presence", "score": <0-100, based on the photo sample count>}
+    {"label": "Photo Presence", "score": <0-100; if photoCountIsApiCapped is true, score 70-85 (presence confirmed, true volume unknown) — never score this low just because it hit the cap; if not capped, score based on the actual low count>}
   ],
   "good": [ {"title": "<finding grounded in directly-observed data>", "body": "<why this is good>"} ],
   "bad": [ {"title": "<real gap in directly-observed data only>", "body": "<explanation with specific advice>", "tag": "<HIGH IMPACT|MEDIUM IMPACT|LOW IMPACT>"} ],
@@ -190,22 +206,28 @@ Make good 2-4 items, bad 2-4 items (only from directly-observed gaps — e.g. mi
 
   const parsed = JSON.parse(text);
   parsed.profileName = place.name;
-  stripUnverifiableFindings(parsed);
+  stripUnverifiableFindings(parsed, place);
   return parsed;
 }
 
 // Belt-and-braces enforcement: the model sometimes ignores the prompt instruction and turns
 // "we can't see this" into a finding anyway (just with softer wording). Strip those out here
-// instead of trusting the model to comply, so the UI never shows things like "no description"
-// or "no review replies" as if they were confirmed facts.
-const UNVERIFIABLE_TOPIC_PATTERN = /editorial summary|review repl|owner repl|service (and\/or )?product listing|service area|google post|update activity|post frequency|post(ing)? activity/i;
+// instead of trusting the model to comply, so the UI never shows things like "no description",
+// "no review replies", "no subcategories", or "low photo count" (when the count is just the
+// API's hard cap of 10) as if they were confirmed facts.
+const UNVERIFIABLE_TOPIC_PATTERN = /editorial summary|review repl|owner repl|service (and\/or )?product listing|service area|google post|update activity|post frequency|post(ing)? activity|subcategor|categor(y|ies) (is|are) (broad|limited|generic)|no specialist|category breadth/i;
+const LOW_PHOTO_CLAIM_PATTERN = /photo/i;
 
-function stripUnverifiableFindings(parsed) {
+function stripUnverifiableFindings(parsed, place) {
   ['good', 'bad'].forEach(key => {
     if (Array.isArray(parsed[key])) {
       parsed[key] = parsed[key].filter(item => {
         const text = (item.title || '') + ' ' + (item.body || '');
-        return !UNVERIFIABLE_TOPIC_PATTERN.test(text);
+        if (UNVERIFIABLE_TOPIC_PATTERN.test(text)) return false;
+        // Photo count is ambiguous (API-capped) — drop any photo-related claim in that case,
+        // since we can't tell if the real count is 10 or 10,000.
+        if (place.photoCountIsApiCapped && LOW_PHOTO_CLAIM_PATTERN.test(text)) return false;
+        return true;
       });
     }
   });
