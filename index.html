@@ -16,7 +16,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
 .page{display:none}.page.active{display:block}
 
 /* HERO */
-.hero{background:linear-gradient(135deg,#f0f4ff,#fff8f0);padding:48px 20px 40px;text-align:center;border-bottom:1px solid var(--border)}
+.hero{background:linear-gradient(135deg,#f0f4ff,#fff8f0);padding:48px 20px 40px;text-align:center;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.hero>*{position:relative;z-index:1}
+.hero-blob{position:absolute;width:320px;height:320px;opacity:.16;filter:blur(2px);pointer-events:none;z-index:0}
+.hero-blob-l{left:-110px;top:-60px}
+.hero-blob-r{right:-110px;bottom:-80px}
+.wave-div{display:block;line-height:0;margin:0;background:transparent}
+.wave-div svg{display:block;width:100%;height:44px}
+@media(min-width:700px){.wave-div svg{height:60px}}
 .hbadge{display:inline-flex;align-items:center;gap:6px;background:#EEF4FF;color:var(--blue);font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:16px;border:1px solid #C7D9F8}
 .hero h1{font-size:24px;font-weight:800;line-height:1.25;color:var(--dark);margin-bottom:12px;max-width:520px;margin-left:auto;margin-right:auto}
 .hero h1 span{color:var(--red)}
@@ -220,6 +227,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
 <!-- LANDING -->
 <div class="page active" id="page-landing">
   <div class="hero">
+    <svg class="hero-blob hero-blob-l" viewBox="0 0 200 200" aria-hidden="true"><path fill="#E8342A" d="M52.6,-62.3C66.8,-51.6,75.8,-32.8,77.4,-13.7C79,5.4,73.2,24.8,61.4,39.6C49.6,54.4,31.8,64.6,12.4,69.3C-7,74,-28,73.2,-43.9,62.8C-59.8,52.4,-70.6,32.4,-73.1,11.5C-75.6,-9.4,-69.8,-31.2,-56.7,-43.6C-43.6,-56,-23.2,-59,-2.1,-58.6C19,-58.2,38.4,-73,52.6,-62.3Z" transform="translate(100 100)"/></svg>
+    <svg class="hero-blob hero-blob-r" viewBox="0 0 200 200" aria-hidden="true"><path fill="#2B6FD4" d="M44.7,-56.8C58.1,-47.6,68.8,-32.8,72.6,-16.1C76.4,0.6,73.3,19.2,63.7,33.6C54.1,48,38,58.2,20.2,63.5C2.4,68.8,-17.1,69.2,-33.5,61.8C-49.9,54.4,-63.2,39.2,-68.6,21.4C-74,3.6,-71.5,-16.7,-61.7,-32.1C-51.9,-47.5,-34.8,-58,-17.4,-63.8C0,-69.6,31.3,-66,44.7,-56.8Z" transform="translate(100 100)"/></svg>
     <div class="hbadge">✦ Free AI-Powered Google Business Profile Audit</div>
     <h1>Find Out How Optimised Your Google Business Profile <span>Really Is</span></h1>
     <p>Paste your Google Business Profile or Maps link and get a personalised AI audit showing exactly what's holding you back.</p>
@@ -244,6 +253,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
     </div>
   </div>
 
+  <div class="wave-div"><svg viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true"><path fill="#F4F4F6" d="M0,20 C240,55 480,0 720,18 C960,36 1200,5 1440,22 L1440,60 L0,60 Z"/></svg></div>
+
   <div class="checks-sec">
     <h2>What we check</h2>
     <p class="checks-sub">A complete AI audit across every dimension of your Google Business Profile</p>
@@ -256,6 +267,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
       <div class="check-card"><div class="check-icon" style="background:#FEF3F2">🛡️</div><div class="check-info"><h3>Trust Signals</h3><p>Completeness, consistency, credibility</p></div></div>
     </div>
   </div>
+
+  <div class="wave-div"><svg viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true"><path fill="#1A1A2E" d="M0,30 C240,0 480,55 720,28 C960,1 1200,45 1440,15 L1440,60 L0,60 Z"/></svg></div>
 
   <div class="tsec">
     <h2>Trusted by local businesses</h2>
@@ -270,6 +283,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
     <p style="text-align:center;margin-top:12px;font-size:10px;color:rgba(255,255,255,.3)">All reviews from Facebook recommendations · 90% recommend (14 reviews)</p>
   </div>
 
+  <div class="wave-div"><svg viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true"><path fill="#F4F4F6" d="M0,18 C240,48 480,5 720,25 C960,45 1200,8 1440,30 L1440,60 L0,60 Z"/></svg></div>
+
   <div class="psec" id="pricing-section">
     <div class="psec-head">
       <span class="stitle">Packages</span>
@@ -283,6 +298,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
       <div class="pcard smp"><div class="pbadge" style="background:#7C3AED">Add-On</div><div class="ptier">Social Media</div><div class="pname">Social Package</div><div class="pamt">£150<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:#7C3AED">✓</span>3 posts weekly</li><li><span class="pchk" style="color:#7C3AED">✓</span>3 platforms of your choice</li><li><span class="pchk" style="color:#7C3AED">✓</span>Group outreach & engagement</li><li><span class="pchk" style="color:#7C3AED">✓</span>Run boosted ads</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://www.gmbx.co.uk','_blank')">Get Started</button></div>
     </div>
   </div>
+
+  <div class="wave-div"><svg viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true"><path fill="#1A1A2E" d="M0,28 C240,2 480,50 720,24 C960,-2 1200,40 1440,18 L1440,60 L0,60 Z"/></svg></div>
 
   <div class="footer">
     <div class="footer-links">
