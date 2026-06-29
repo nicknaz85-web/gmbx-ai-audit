@@ -469,6 +469,14 @@ var TDATA=[
   {n:"John Alexander",d:"21 Jan 2025",av:"JA",c:"#1A9B6C",t:"Good service, takes time to understand client needs. Refreshing to work with someone who actually listens."}
 ];
 var VIS=3, tIdx=0;
+function getVisibleCount(){
+  var track=document.querySelector('.ttrack');
+  if(!track||!track.clientWidth) return VIS;
+  return Math.max(1,Math.min(TDATA.length,Math.round((track.clientWidth+12)/(200+12))));
+}
+function getMaxIdx(){
+  return Math.max(0,TDATA.length-getVisibleCount());
+}
 // ── SCROLL REVEAL ──
 var revealObserver=null;
 function setupRevealObserver(){
@@ -518,10 +526,11 @@ function buildT(){
     s.appendChild(c);
     reveal(c,(idx%VIS)*0.08);
   });
-  var pages=Math.ceil(TDATA.length/VIS);
+  var vis=getVisibleCount();
+  var pages=Math.ceil(TDATA.length/vis);
   for(var i=0;i<pages;i++){
     var dot=document.createElement('div');dot.className='tdot'+(i===0?' active':'');
-    (function(idx){dot.onclick=function(){tIdx=idx*VIS;updT();restartAutoplay();};})(i);
+    (function(idx){dot.onclick=function(){tIdx=Math.min(idx*getVisibleCount(),getMaxIdx());updT();restartAutoplay();};})(i);
     d.appendChild(dot);
   }
   updT();
@@ -529,11 +538,12 @@ function buildT(){
 }
 function updT(){
   document.getElementById('tslider').style.transform='translateX(-'+(tIdx*(200+12))+'px)';
-  var pg=Math.floor(tIdx/VIS);
+  var vis=getVisibleCount();
+  var pg=Math.floor(tIdx/vis);
   document.querySelectorAll('.tdot').forEach(function(d,i){d.classList.toggle('active',i===pg);});
 }
 function tSlide(dir){
-  var maxIdx=TDATA.length-VIS;
+  var maxIdx=getMaxIdx();
   tIdx+=dir;
   if(tIdx>maxIdx) tIdx=0;
   else if(tIdx<0) tIdx=maxIdx;
@@ -547,9 +557,15 @@ function startAutoplay(){
 }
 function stopAutoplay(){if(tAutoTimer){clearInterval(tAutoTimer);tAutoTimer=null;}}
 function restartAutoplay(){startAutoplay();}
+window.addEventListener('resize',function(){
+  var maxIdx=getMaxIdx();
+  if(tIdx>maxIdx) tIdx=maxIdx;
+  updT();
+});
 function tSlideAuto(){
-  var maxIdx=TDATA.length-VIS;
-  tIdx=tIdx+VIS>maxIdx?0:tIdx+VIS;
+  var maxIdx=getMaxIdx();
+  var vis=getVisibleCount();
+  tIdx=tIdx+vis>maxIdx?0:tIdx+vis;
   updT();
 }
 
