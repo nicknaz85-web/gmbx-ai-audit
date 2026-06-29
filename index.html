@@ -291,7 +291,7 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.14;
     <h2>Trusted by local businesses</h2>
     <p class="tsub2">Real reviews from real GMBX clients</p>
     <div class="srow"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
-    <div class="ttrack"><div class="tslider" id="tslider"></div></div>
+    <div class="ttrack" onmouseenter="stopAutoplay()" onmouseleave="startAutoplay()"><div class="tslider" id="tslider"></div></div>
     <div class="tctrl">
       <button class="tbtn" onclick="tSlide(-1)">‹</button>
       <div class="tdots" id="tdots"></div>
@@ -503,29 +503,55 @@ function initStaticReveals(){
   });
 }
 
+var PRAISE_WORDS=['amazing','excellent','fantastic','brilliant','professional','perfect','perfectly','great','reliable','responsive','best','exceptional','outstanding','wonderful','highly recommend','recommend','recommended','next level','pleasure','effective','effectively','quickly','results','impact','friendly','knows what he\'s doing','listened','delivering'];
+var PRAISE_RE=new RegExp('('+PRAISE_WORDS.map(function(w){return w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join('|')+')','gi');
+function boldifyPraise(text){
+  return text.replace(PRAISE_RE,'<strong>$1</strong>');
+}
+
 function buildT(){
   var s=document.getElementById('tslider'),d=document.getElementById('tdots');
   s.innerHTML='';d.innerHTML='';
   TDATA.forEach(function(t,idx){
     var c=document.createElement('div');c.className='tcard';
-    c.innerHTML='<div class="tcstars">★★★★★</div><div class="tctext">"'+t.t+'"</div><div class="tcauth"><div class="tcav" style="background:'+t.c+'">'+t.av.slice(0,2)+'</div><div><div class="tcname">'+t.n+'</div><div class="tcmeta">'+t.d+' · Facebook</div></div></div>';
+    c.innerHTML='<div class="tcstars">★★★★★</div><div class="tctext">"'+boldifyPraise(t.t)+'"</div><div class="tcauth"><div class="tcav" style="background:'+t.c+'">'+t.av.slice(0,2)+'</div><div><div class="tcname">'+t.n+'</div><div class="tcmeta">'+t.d+' · Facebook</div></div></div>';
     s.appendChild(c);
     reveal(c,(idx%VIS)*0.08);
   });
   var pages=Math.ceil(TDATA.length/VIS);
   for(var i=0;i<pages;i++){
     var dot=document.createElement('div');dot.className='tdot'+(i===0?' active':'');
-    (function(idx){dot.onclick=function(){tIdx=idx*VIS;updT();};})(i);
+    (function(idx){dot.onclick=function(){tIdx=idx*VIS;updT();restartAutoplay();};})(i);
     d.appendChild(dot);
   }
   updT();
+  startAutoplay();
 }
 function updT(){
   document.getElementById('tslider').style.transform='translateX(-'+(tIdx*(200+12))+'px)';
   var pg=Math.floor(tIdx/VIS);
   document.querySelectorAll('.tdot').forEach(function(d,i){d.classList.toggle('active',i===pg);});
 }
-function tSlide(dir){tIdx=Math.max(0,Math.min(tIdx+dir,TDATA.length-VIS));updT();}
+function tSlide(dir){
+  var maxIdx=TDATA.length-VIS;
+  tIdx+=dir;
+  if(tIdx>maxIdx) tIdx=0;
+  else if(tIdx<0) tIdx=maxIdx;
+  updT();
+  restartAutoplay();
+}
+var tAutoTimer=null;
+function startAutoplay(){
+  stopAutoplay();
+  tAutoTimer=setInterval(function(){tSlideAuto();},4000);
+}
+function stopAutoplay(){if(tAutoTimer){clearInterval(tAutoTimer);tAutoTimer=null;}}
+function restartAutoplay(){startAutoplay();}
+function tSlideAuto(){
+  var maxIdx=TDATA.length-VIS;
+  tIdx=tIdx+VIS>maxIdx?0:tIdx+VIS;
+  updT();
+}
 
 function showPage(id){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
