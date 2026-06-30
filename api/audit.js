@@ -3,12 +3,14 @@
 // 2. Pulls real signals (rating, review count, review text, photos, hours, categories, website).
 // 3. Sends ONLY that real data to Claude and asks it to score/summarize it — no invented numbers.
 
+import { Resend } from 'resend';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { url, updatesPerMonth, targetKeywords, serviceArea } = req.body || {};
+  const { url, email, updatesPerMonth, targetKeywords, serviceArea } = req.body || {};
   if (!url || typeof url !== 'string' || url.trim().length < 3) {
     return res.status(400).json({ error: 'Missing or invalid url' });
   }
@@ -40,11 +42,128 @@ export default async function handler(req, res) {
     }
 
     const report = await analyseWithClaude(place, ANTHROPIC_KEY);
+
+    // Send audit email — fire-and-forget so it never blocks or errors the audit response
+    if (email && typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      const RESEND_KEY = process.env.RESEND_API_KEY;
+      const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'GMBX Audit <onboarding@resend.dev>';
+      if (RESEND_KEY) {
+        sendAuditEmail({ email, businessName: place.name, report, resendKey: RESEND_KEY, fromEmail: FROM_EMAIL })
+          .catch(e => console.error('Audit email failed (non-fatal):', e.message));
+      }
+    }
+
     return res.status(200).json(report);
   } catch (err) {
     console.error('audit error:', err);
     return res.status(502).json({ error: 'Audit failed while analysing the profile. Please try again shortly.' });
   }
+}
+
+// ── Send branded audit results email via Resend ──
+async function sendAuditEmail({ email, businessName, report, resendKey, fromEmail }) {
+  const resend = new Resend(resendKey);
+  const score = report.score || 0;
+  const grade = report.grade || '';
+  const headline = report.headline || '';
+  const bad = Array.isArray(report.bad) ? report.bad.slice(0, 3) : [];
+
+  const scoreColor = score >= 70 ? '#10B981' : score >= 45 ? '#F59E0B' : '#EF4444';
+  const gradeBg = grade === 'EXCELLENT' ? '#D1FAE5' : grade === 'GOOD PROGRESS' ? '#FEF3C7' : '#FEE2E2';
+  const gradeColor = grade === 'EXCELLENT' ? '#065F46' : grade === 'GOOD PROGRESS' ? '#92400E' : '#991B1B';
+
+  const issuesHtml = bad.length ? `
+    <h2 style="font-size:14px;font-weight:700;color:#EF4444;margin:24px 0 12px">&#9888; Key Issues to Fix</h2>
+    ${bad.map(b => `
+      <div style="border-left:3px solid #EF4444;padding:10px 14px;margin-bottom:10px;background:#FFF5F5;border-radius:0 8px 8px 0">
+        <div style="font-size:13px;font-weight:700;color:#1A1A2E">${esc(b.title || '')}${b.tag ? ` <span style="font-size:10px;background:#FEE2E2;color:#DC2626;padding:2px 6px;border-radius:10px;font-weight:600">${esc(b.tag)}</span>` : ''}</div>
+        <div style="font-size:12px;color:#6B7280;margin-top:4px">${esc(b.body || '')}</div>
+      </div>`).join('')}` : '';
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:0;background:#F3F4F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif">
+<div style="max-width:600px;margin:0 auto;padding:32px 16px">
+  <div style="background:#1A1A2E;border-radius:12px 12px 0 0;padding:24px 32px;text-align:center">
+    <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.5px">GM<span style="color:#E63946">BX</span></div>
+    <div style="font-size:12px;color:#94A3B8;margin-top:4px;letter-spacing:1px;text-transform:uppercase">Google Business Profile Audit</div>
+  </div>
+  <div style="background:#fff;padding:32px;border:1px solid #E5E7EB;border-top:none">
+    <h1 style="margin:0 0 8px;font-size:22px;color:#1A1A2E;font-weight:800">Your Audit is Ready${businessName ? ` for ${esc(businessName)}` : ''}</h1>
+    <p style="margin:0 0 24px;color:#6B7280;font-size:14px">Here's a summary of your Google Business Profile performance.</p>
+    <div style="background:#F8F9FA;border-radius:12px;padding:28px;text-align:center;margin-bottom:24px">
+      <div style="font-size:64px;font-weight:800;color:${scoreColor};line-height:1">${score}</div>
+      <div style="font-size:12px;color:#9CA3AF;margin-top:4px">out of 100</div>
+      <div style="display:inline-block;background:${gradeBg};color:${gradeColor};font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;margin-top:12px;text-transform:uppercase;letter-spacing:0.5px">${esc(grade)}</div>
+      <div style="font-size:15px;font-weight:600;color:#1A1A2E;margin-top:14px;max-width:400px;margin-left:auto;margin-right:auto">${esc(headline)}</div>
+    </div>
+    ${issuesHtml}
+    <div style="background:#1A1A2E;border-radius:12px;padding:24px;text-align:center;margin:24px 0">
+      <h2 style="margin:0 0 6px;font-size:16px;font-weight:700;color:#fff">Let GMBX Fix Everything For You</h2>
+      <p style="margin:0 0 16px;font-size:13px;color:#94A3B8">Professional Google Business Profile management from just &#163;10/mo.</p>
+      <a href="https://gmbx-ai-audit.vercel.app" style="display:inline-block;background:#E63946;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:12px 28px;border-radius:8px">View All Packages &#8594;</a>
+    </div>
+    <h2 style="font-size:14px;font-weight:700;color:#1A1A2E;margin:0 0 12px">Choose Your Package</h2>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td width="25%" style="padding:4px;vertical-align:top">
+          <div style="border:2px solid #D1D5DB;border-radius:10px;padding:14px 8px;text-align:center">
+            <div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase">Starter</div>
+            <div style="font-size:11px;font-weight:800;color:#1A1A2E;margin:4px 0">Basic Opts</div>
+            <div style="font-size:20px;font-weight:800;color:#1A1A2E">&#163;10<span style="font-size:10px;font-weight:400;color:#6B7280">/mo</span></div>
+            <a href="https://buy.stripe.com/fZudRa1af5xI7X6ehl1kA00" style="display:block;background:#1A1A2E;color:#fff;text-decoration:none;font-size:11px;font-weight:700;padding:8px 4px;border-radius:6px;margin-top:10px">Get Started</a>
+          </div>
+        </td>
+        <td width="25%" style="padding:4px;vertical-align:top">
+          <div style="border:2px solid #2563EB;border-radius:10px;padding:14px 8px;text-align:center">
+            <div style="font-size:9px;background:#2563EB;color:#fff;border-radius:10px;padding:2px 6px;display:inline-block;margin-bottom:4px;font-weight:700">POPULAR</div>
+            <div style="font-size:10px;font-weight:700;color:#2563EB;text-transform:uppercase">Growth</div>
+            <div style="font-size:11px;font-weight:800;color:#1A1A2E;margin:4px 0">Medium Opts</div>
+            <div style="font-size:20px;font-weight:800;color:#1A1A2E">&#163;20<span style="font-size:10px;font-weight:400;color:#6B7280">/mo</span></div>
+            <a href="https://buy.stripe.com/7sY28saKPd0a1yI5KP1kA01" style="display:block;background:#2563EB;color:#fff;text-decoration:none;font-size:11px;font-weight:700;padding:8px 4px;border-radius:6px;margin-top:10px">Get Started</a>
+          </div>
+        </td>
+        <td width="25%" style="padding:4px;vertical-align:top">
+          <div style="border:2px solid #E63946;border-radius:10px;padding:14px 8px;text-align:center">
+            <div style="font-size:9px;background:#E63946;color:#fff;border-radius:10px;padding:2px 6px;display:inline-block;margin-bottom:4px;font-weight:700">BEST VALUE</div>
+            <div style="font-size:10px;font-weight:700;color:#E63946;text-transform:uppercase">Premium</div>
+            <div style="font-size:11px;font-weight:800;color:#1A1A2E;margin:4px 0">Max Opts</div>
+            <div style="font-size:20px;font-weight:800;color:#1A1A2E">&#163;30<span style="font-size:10px;font-weight:400;color:#6B7280">/mo</span></div>
+            <a href="https://buy.stripe.com/bJe14o1af7FQ4KU7SX1kA02" style="display:block;background:#E63946;color:#fff;text-decoration:none;font-size:11px;font-weight:700;padding:8px 4px;border-radius:6px;margin-top:10px">Get Started</a>
+          </div>
+        </td>
+        <td width="25%" style="padding:4px;vertical-align:top">
+          <div style="border:2px solid #7C3AED;border-radius:10px;padding:14px 8px;text-align:center">
+            <div style="font-size:10px;font-weight:700;color:#7C3AED;text-transform:uppercase">Social</div>
+            <div style="font-size:11px;font-weight:800;color:#1A1A2E;margin:4px 0">Social Pack</div>
+            <div style="font-size:20px;font-weight:800;color:#1A1A2E">&#163;150<span style="font-size:10px;font-weight:400;color:#6B7280">/mo</span></div>
+            <a href="https://buy.stripe.com/fZu7sMbOT9NY1yI4GL1kA03" style="display:block;background:#7C3AED;color:#fff;text-decoration:none;font-size:11px;font-weight:700;padding:8px 4px;border-radius:6px;margin-top:10px">Get Started</a>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+  <div style="background:#1A1A2E;border-radius:0 0 12px 12px;padding:20px 32px;text-align:center">
+    <div style="font-size:12px;color:#6B7280">&#169; 2025 GMBX &#183; Google Business Profile Management</div>
+    <div style="margin-top:8px">
+      <a href="https://www.gmbx.co.uk" style="color:#94A3B8;text-decoration:none;font-size:12px;margin:0 10px">gmbx.co.uk</a>
+      <a href="https://www.facebook.com/profile.php?id=61571653626007" style="color:#94A3B8;text-decoration:none;font-size:12px;margin:0 10px">Facebook</a>
+    </div>
+    <div style="font-size:11px;color:#4B5563;margin-top:10px">You received this because you requested a free GBP audit at gmbx-ai-audit.vercel.app</div>
+  </div>
+</div>
+</body></html>`;
+
+  await resend.emails.send({
+    from: fromEmail,
+    to: email,
+    subject: `Your Google Business Profile Audit — Score: ${score}/100`,
+    html
+  });
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ── Resolve a Google Maps/Business Profile URL to real place data ──

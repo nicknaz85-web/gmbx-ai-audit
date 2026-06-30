@@ -792,6 +792,7 @@ function callAuditAPI(){
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
       url:currentUrl,
+      email:currentEmail,
       updatesPerMonth:ctxUpdatesPerMonth,
       targetKeywords:ctxKeywords,
       serviceArea:ctxServiceArea
