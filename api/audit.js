@@ -388,7 +388,12 @@ function extractCategoriesNearAddress(payloadText, address) {
 
 function extractAccessibilityFeatures(payloadText) {
   const matches = payloadText.match(/"(?:Has |No )?[Ww]heelchair accessible [a-z]+"/g) || [];
-  return [...new Set(matches.map(s => s.replace(/^"|"$/g, '')))];
+  const all = [...new Set(matches.map(s => s.replace(/^"|"$/g, '')))];
+  // Remove contradicting pairs — when both "Has X" and "No X" exist the data is ambiguous
+  return all.filter(f => {
+    const opposite = f.startsWith('Has ') ? 'No ' + f.slice(4) : f.startsWith('No ') ? 'Has ' + f.slice(3) : null;
+    return !opposite || !all.includes(opposite);
+  });
 }
 
 // ── Send the real data to Claude for scoring/summarisation ──
