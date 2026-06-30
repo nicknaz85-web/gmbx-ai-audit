@@ -118,6 +118,67 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.14;
 .reveal.visible{opacity:1;transform:translateY(0)}
 @media (prefers-reduced-motion: reduce){.reveal{opacity:1;transform:none;transition:none}}
 
+/* ── RESPONSIVE ── */
+
+/* Tablet (≤768px) */
+@media(max-width:768px){
+  .nav{padding:10px 16px}
+  .nl[onclick="showAdminLogin()"]{display:none}
+  .hero{padding:36px 16px 32px}
+  .hero h1{font-size:22px}
+  .checks-grid{grid-template-columns:1fr 1fr}
+  .pgrid{grid-template-columns:repeat(2,1fr)}
+  .admin-stats{grid-template-columns:repeat(3,1fr)}
+  .shero{gap:14px}
+  .cgrid{grid-template-columns:repeat(2,1fr)}
+  .email-table-header,.email-row{grid-template-columns:1fr auto;font-size:11px}
+  .email-table-header .url-col,.email-row .url-val-wrap{display:none}
+  .rpage{padding:0 12px 40px}
+}
+
+/* Phone (≤480px) */
+@media(max-width:480px){
+  .nav{padding:8px 12px}
+  .nav-links{gap:8px}
+  .nl{font-size:11px}
+  .nc{padding:5px 10px;font-size:11px}
+  .hero{padding:28px 14px 28px}
+  .hero h1{font-size:20px}
+  .hero p{font-size:13px}
+  .hbadge{font-size:10px;padding:3px 10px}
+  .trow{gap:10px}
+  .ti{font-size:10px}
+  .checks-grid{grid-template-columns:1fr}
+  .tsec{padding:32px 14px}
+  .tcard{min-width:calc(100vw - 60px);max-width:calc(100vw - 60px)}
+  .pgrid{grid-template-columns:1fr 1fr}
+  .pcard{padding:16px 10px 12px}
+  .pamt{font-size:22px}
+  .psec{padding:28px 14px 36px}
+  .shero{flex-direction:column;align-items:center;text-align:center;padding:18px 14px}
+  .sinfo{min-width:unset;width:100%}
+  .spills{justify-content:center}
+  .cgrid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .rpage{padding:0 10px 36px}
+  .rheader{padding:14px 0 12px}
+  .ctasec{padding:18px 14px}
+  .ctasec h2{font-size:15px}
+  .admin-stats{grid-template-columns:repeat(3,1fr);gap:8px}
+  .stat-num{font-size:22px}
+  .stat-card{padding:12px 8px}
+  .admin-page{padding:16px 12px 40px}
+  .admin-header{margin-bottom:16px}
+  .admin-header h2{font-size:16px}
+  .email-table-header,.email-row{grid-template-columns:1fr auto;font-size:11px}
+  .bcopy,.bclear{padding:6px 10px;font-size:10px}
+  .lpage{padding:48px 16px}
+  .lsteps{max-width:100%}
+  .audit-form{max-width:100%}
+  .admin-pass-wrap{margin:40px auto;padding:24px 16px}
+  .wave-div svg{height:30px}
+  .side-blob{display:none}
+}
+
 /* LOADING */
 .lpage{padding:60px 20px;text-align:center;min-height:420px;background:var(--bg)}
 .lring{width:68px;height:68px;border:4px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 20px}
