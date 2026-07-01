@@ -615,40 +615,53 @@ function buildT(){
   updT();
   startAutoplay();
 }
-function setTransform(animate){
+function snapTo(idx){
+  // Instantly jump to a position with no animation
   var slider=document.getElementById('tslider');
   var w=getCardW();
-  if(!animate){
-    slider.style.transition='none';
-    slider.style.transform='translateX(-'+(tIdx*w)+'px)';
-    void slider.offsetWidth;
-    slider.style.transition='';
-  } else {
-    slider.style.transform='translateX(-'+(tIdx*w)+'px)';
-  }
+  slider.style.transition='none';
+  slider.style.transform='translateX(-'+(idx*w)+'px)';
+  void slider.offsetWidth; // force reflow so transition:none takes effect
 }
-function updT(){
-  setTransform(true);
+function slideTo(idx){
+  // Animate to a position
+  var slider=document.getElementById('tslider');
+  var w=getCardW();
+  slider.style.transition='';  // restore CSS transition
+  slider.style.transform='translateX(-'+(idx*w)+'px)';
+}
+function updateDots(){
   var vis=getVisibleCount();
   var pg=Math.floor((tIdx%TDATA.length)/vis);
   document.querySelectorAll('.tdot').forEach(function(d,i){d.classList.toggle('active',i===pg);});
 }
-function jumpTo(index){
-  tIdx=index;
-  setTransform(false);
-  var vis=getVisibleCount();
-  var pg=Math.floor((tIdx%TDATA.length)/vis);
-  document.querySelectorAll('.tdot').forEach(function(d,i){d.classList.toggle('active',i===pg);});
-}
+function updT(){slideTo(tIdx);updateDots();}
+function jumpTo(index){tIdx=index;snapTo(tIdx);updateDots();}
 var tSnapTimer=null;
 function advance(step){
-  // If a snap-back is already queued, complete it immediately before moving
-  if(tSnapTimer!==null){clearTimeout(tSnapTimer);tSnapTimer=null;tIdx=tIdx%TDATA.length;setTransform(false);}
+  if(tSnapTimer!==null){
+    clearTimeout(tSnapTimer);tSnapTimer=null;
+    // Instantly land on the real position, then schedule the animated step
+    var realIdx=tIdx%TDATA.length;
+    snapTo(realIdx);
+    tIdx=realIdx;
+    requestAnimationFrame(function(){requestAnimationFrame(function(){doAdvance(step);});});
+    return;
+  }
+  doAdvance(step);
+}
+function doAdvance(step){
   tIdx+=step;
-  if(tIdx<0){tIdx=TDATA.length-1;setTransform(false);return;}
-  setTransform(true);
+  if(tIdx<0){tIdx=TDATA.length-1;snapTo(tIdx);updateDots();return;}
+  slideTo(tIdx);
+  updateDots();
   if(tIdx>=TDATA.length){
-    tSnapTimer=setTimeout(function(){tSnapTimer=null;tIdx-=TDATA.length;setTransform(false);},420);
+    tSnapTimer=setTimeout(function(){
+      tSnapTimer=null;
+      var realIdx=tIdx-TDATA.length;
+      snapTo(realIdx);
+      tIdx=realIdx;
+    },420);
   }
 }
 function tSlide(dir){
