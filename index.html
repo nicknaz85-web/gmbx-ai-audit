@@ -531,10 +531,14 @@ var TDATA=[
   {n:"John Alexander",d:"21 Jan 2025",av:"JA",c:"#1A9B6C",t:"Good service, takes time to understand client needs. Refreshing to work with someone who actually listens."}
 ];
 var VIS=3, tIdx=0;
+function getCardW(){
+  var c=document.querySelector('.tcard');
+  return c ? c.offsetWidth+12 : 212;
+}
 function getVisibleCount(){
   var track=document.querySelector('.ttrack');
   if(!track||!track.clientWidth) return VIS;
-  return Math.max(1,Math.min(TDATA.length,Math.round((track.clientWidth+12)/(200+12))));
+  return Math.max(1,Math.min(TDATA.length,Math.round((track.clientWidth+12)/getCardW())));
 }
 function getMaxIdx(){
   return Math.max(0,TDATA.length-getVisibleCount());
@@ -612,13 +616,14 @@ function buildT(){
 }
 function setTransform(animate){
   var slider=document.getElementById('tslider');
+  var w=getCardW();
   if(!animate){
     slider.style.transition='none';
-    slider.style.transform='translateX(-'+(tIdx*(200+12))+'px)';
+    slider.style.transform='translateX(-'+(tIdx*w)+'px)';
     void slider.offsetWidth;
     slider.style.transition='';
   } else {
-    slider.style.transform='translateX(-'+(tIdx*(200+12))+'px)';
+    slider.style.transform='translateX(-'+(tIdx*w)+'px)';
   }
 }
 function updT(){
@@ -934,6 +939,7 @@ document.getElementById('user-email').addEventListener('keydown',function(e){if(
 
 buildT();
 initStaticReveals();
+window.addEventListener('resize',function(){setTransform(false);});
 </script>
 </body>
 </html>
