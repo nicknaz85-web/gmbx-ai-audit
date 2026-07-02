@@ -275,6 +275,15 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
 .footer-link{color:rgba(255,255,255,.65);font-size:12px;text-decoration:none}
 .footer-link:hover{color:#fff}
 .footer-copy{font-size:10px;color:rgba(255,255,255,.3)}
+.footer-legal{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:8px}
+.legal-page{max-width:720px;margin:0 auto;padding:40px 24px 60px}
+.legal-page h1{font-size:22px;font-weight:800;color:var(--dark);margin-bottom:6px}
+.legal-page .legal-meta{font-size:11px;color:var(--muted);margin-bottom:28px}
+.legal-page h2{font-size:14px;font-weight:700;color:var(--dark);margin:24px 0 6px}
+.legal-page p,.legal-page li{font-size:13px;color:var(--text);line-height:1.7;margin-bottom:6px}
+.legal-page ul{padding-left:18px;margin-bottom:8px}
+.legal-back{display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;margin-bottom:24px;font-family:inherit}
+.legal-back:hover{color:var(--dark)}
 .ai-note{background:#EEF4FF;border:1px solid #C7D9F8;border-radius:8px;padding:10px 14px;font-size:11px;color:var(--blue);margin-bottom:16px;text-align:center}
 
 /* ADMIN PAGE */
@@ -431,6 +440,122 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
       <a href="https://www.facebook.com/profile.php?id=61571653626007" target="_blank" class="footer-link">📘 GMBX on Facebook</a>
     </div>
     <div class="footer-copy">© 2025 GMBX · Google Business Profile Management</div>
+    <div class="footer-legal">
+      <button class="footer-link" onclick="showPage('privacy')" style="background:none;border:none;cursor:pointer;font-size:10px;color:rgba(255,255,255,.35);font-family:inherit">Privacy Policy</button>
+      <span style="color:rgba(255,255,255,.2);font-size:10px">·</span>
+      <button class="footer-link" onclick="showPage('terms')" style="background:none;border:none;cursor:pointer;font-size:10px;color:rgba(255,255,255,.35);font-family:inherit">Terms of Use</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRIVACY POLICY -->
+<div class="page" id="page-privacy">
+  <div class="legal-page">
+    <button class="legal-back" onclick="showPage('landing')">← Back</button>
+    <h1>Privacy Policy</h1>
+    <p class="legal-meta">Last updated: 1 July 2025 · GMBX, United Kingdom · info@gmbx.co.uk</p>
+
+    <h2>1. Who We Are</h2>
+    <p>GMBX ("we", "us", "our") provides an AI-powered Google Business Profile audit service at mbx-ai-audit.vercel.app and gmbx.co.uk. We are a UK-based business. Contact us at info@gmbx.co.uk.</p>
+
+    <h2>2. What Data We Collect</h2>
+    <ul>
+      <li><strong>Google Business Profile or Maps URL</strong> — provided by you to run the audit.</li>
+      <li><strong>Email address</strong> — provided by you to receive your audit report.</li>
+      <li><strong>Publicly visible Google Business Profile data</strong> — retrieved via the Google Places API (business name, address, phone, hours, reviews, photos, categories). We do not access any private or internal Google account data.</li>
+      <li><strong>Usage data</strong> — basic server logs retained by Vercel (our hosting provider) for security and diagnostics.</li>
+    </ul>
+
+    <h2>3. How We Use Your Data</h2>
+    <ul>
+      <li>To generate and deliver your AI-powered audit report.</li>
+      <li>To send your report to the email address you provided via Resend.</li>
+      <li>To store submitted leads in our secure admin dashboard for follow-up.</li>
+      <li>We do not sell, rent, or share your personal data with third parties for marketing purposes.</li>
+    </ul>
+
+    <h2>4. Third-Party Services</h2>
+    <ul>
+      <li><strong>Google Places API</strong> — used to retrieve publicly visible business profile data. Subject to Google's Privacy Policy.</li>
+      <li><strong>Anthropic Claude</strong> — AI model used to analyse profile data and generate recommendations. Data is processed via Anthropic's API and is subject to Anthropic's usage policies.</li>
+      <li><strong>Resend</strong> — used to deliver audit report emails. Subject to Resend's Privacy Policy.</li>
+      <li><strong>Vercel</strong> — cloud hosting and KV data storage. Subject to Vercel's Privacy Policy.</li>
+    </ul>
+
+    <h2>5. Legal Basis for Processing (UK GDPR)</h2>
+    <p>We process your data on the basis of <strong>legitimate interests</strong> (providing the audit service you requested) and <strong>consent</strong> (you voluntarily submit your details and tick the authorisation checkbox). You may withdraw consent at any time by contacting us.</p>
+
+    <h2>6. Data Retention</h2>
+    <p>Audit submissions are retained in our secure storage for up to 12 months. Email addresses are not used for ongoing marketing unless you separately opt in. You may request deletion of your data at any time.</p>
+
+    <h2>7. Your Rights (UK GDPR)</h2>
+    <p>You have the right to: access your data, correct inaccurate data, request erasure, restrict or object to processing, and data portability. To exercise any right, email us at info@gmbx.co.uk. You also have the right to lodge a complaint with the ICO (ico.org.uk).</p>
+
+    <h2>8. Cookies</h2>
+    <p>We do not use tracking or advertising cookies. No cookie consent banner is required. Basic session data may be stored in your browser's local storage solely for the purpose of delivering the audit service.</p>
+
+    <h2>9. Security</h2>
+    <p>All data is transmitted over HTTPS. Access to stored audit data is protected by password authentication. We take reasonable technical and organisational measures to protect your information.</p>
+
+    <h2>10. Changes to This Policy</h2>
+    <p>We may update this policy from time to time. The "last updated" date at the top will always reflect the current version. Continued use of the service constitutes acceptance of the updated policy.</p>
+
+    <h2>11. Contact</h2>
+    <p>For any privacy-related queries: <strong>info@gmbx.co.uk</strong></p>
+  </div>
+</div>
+
+<!-- TERMS OF USE -->
+<div class="page" id="page-terms">
+  <div class="legal-page">
+    <button class="legal-back" onclick="showPage('landing')">← Back</button>
+    <h1>Terms of Use</h1>
+    <p class="legal-meta">Last updated: 1 July 2025 · GMBX, United Kingdom · info@gmbx.co.uk</p>
+
+    <h2>1. Acceptance of Terms</h2>
+    <p>By using the GMBX audit tool ("Service") you agree to these Terms of Use. If you do not agree, do not use the Service.</p>
+
+    <h2>2. Description of Service</h2>
+    <p>GMBX provides a free AI-powered audit of publicly visible Google Business Profile data. The audit uses the Google Places API and Anthropic Claude AI to analyse your profile and generate a report with recommendations. We also offer paid monthly management packages.</p>
+
+    <h2>3. Eligibility and Authorisation</h2>
+    <p>By submitting a Google Business Profile URL, you confirm that you are authorised to request an audit of that profile — either as the business owner, an authorised representative, or with the profile owner's permission. You must not submit profiles belonging to third parties without their consent.</p>
+
+    <h2>4. Acceptable Use</h2>
+    <p>You agree not to:</p>
+    <ul>
+      <li>Submit URLs that are fraudulent, misleading, or belong to businesses you are not authorised to represent.</li>
+      <li>Use the Service to scrape, reverse-engineer, or extract data at scale.</li>
+      <li>Attempt to circumvent rate limits, authentication, or security measures.</li>
+      <li>Use the Service for any unlawful purpose.</li>
+    </ul>
+
+    <h2>5. AI-Generated Content Disclaimer</h2>
+    <p>Audit reports are generated using artificial intelligence and are provided for informational purposes only. Results are based on publicly available data at the time of the audit. GMBX does not guarantee the accuracy, completeness, or fitness for purpose of any AI-generated recommendations. You should exercise your own judgement before acting on any suggestion.</p>
+
+    <h2>6. Intellectual Property</h2>
+    <p>All content, branding, and software on this platform is the property of GMBX and protected by UK copyright law. You may not reproduce, distribute, or commercially exploit any part of the Service without written permission.</p>
+
+    <h2>7. Limitation of Liability</h2>
+    <p>To the fullest extent permitted by law, GMBX shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Service, including but not limited to loss of revenue, data, or business opportunity. Our total liability to you shall not exceed £100.</p>
+
+    <h2>8. Third-Party Services</h2>
+    <p>The Service relies on third-party APIs including Google, Anthropic, Resend, and Vercel. GMBX is not responsible for the availability, accuracy, or actions of these third-party services.</p>
+
+    <h2>9. Paid Packages</h2>
+    <p>Monthly management packages are billed via Stripe. Subscriptions may be cancelled at any time. Refunds are handled on a case-by-case basis — contact info@gmbx.co.uk within 7 days of billing for disputes.</p>
+
+    <h2>10. Termination</h2>
+    <p>We reserve the right to suspend or terminate access to the Service at any time, without notice, for conduct that violates these Terms or that we believe is harmful to us, other users, or third parties.</p>
+
+    <h2>11. Governing Law</h2>
+    <p>These Terms are governed by the laws of England and Wales. Any disputes shall be subject to the exclusive jurisdiction of the courts of England and Wales.</p>
+
+    <h2>12. Changes to Terms</h2>
+    <p>We may update these Terms at any time. The "last updated" date will reflect the current version. Continued use of the Service after changes constitutes acceptance.</p>
+
+    <h2>13. Contact</h2>
+    <p>For any questions regarding these Terms: <strong>info@gmbx.co.uk</strong></p>
   </div>
 </div>
 
