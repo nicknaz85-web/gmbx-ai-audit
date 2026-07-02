@@ -79,7 +79,7 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
 .srow span{color:var(--gold);font-size:16px}
 .ttrack{overflow:hidden}
 .tslider{display:flex;gap:12px;transition:transform .4s ease;padding:4px 0 6px}
-.tcard{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:14px;min-width:200px;max-width:200px;flex-shrink:0}
+.tcard{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:14px;min-width:200px;max-width:200px;flex-shrink:0;box-shadow:none}
 .tcstars{color:var(--gold);font-size:11px;margin-bottom:8px}
 .tctext{font-size:11px;color:rgba(255,255,255,.82);line-height:1.55;margin-bottom:10px}
 .tcauth{display:flex;align-items:center;gap:7px}
@@ -128,7 +128,9 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
 @media(max-width:768px){
   .nav{padding:10px 16px}
   .nl[onclick="showAdminLogin()"]{display:none}
-  .tcard{min-width:calc(100vw - 40px);max-width:calc(100vw - 40px);border:none !important}
+  .tcard{min-width:calc(100vw - 40px);max-width:calc(100vw - 40px);border:none !important;box-shadow:none !important;outline:none !important}
+  .wave-div{margin-bottom:-2px}
+  .hero,.checks-sec,.psec,.tsec,.contact-sec,.footer{border:none !important;outline:none !important}
   .hero{padding:36px 16px 32px}
   .hero h1{font-size:22px}
   .checks-grid{grid-template-columns:1fr 1fr}
