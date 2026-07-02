@@ -7,8 +7,9 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--red:#E8342A;--blue:#2B6FD4;--teal:#1A9B6C;--gold:#F5A623;--dark:#1A1A2E;--text:#2D3142;--muted:#6B7280;--border:#E5E7EB;--wh:#fff;--bg:#F4F4F6}
 body,html{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);background:var(--bg);overflow-x:hidden;max-width:100vw}
-.nav{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:#1A1A2E;border-bottom:none;position:sticky;top:0;z-index:100;overflow:visible}
-.nav-wave{width:100%;line-height:0;margin-top:-1px;position:sticky;top:57px;z-index:99}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:#1A1A2E;border-bottom:none;overflow:visible}
+.nav-wrap{position:sticky;top:0;z-index:100}
+.nav-wave{width:100%;line-height:0;margin-top:-1px}
 .nav-wave svg{display:block;width:100%;height:50px}
 .logo{display:flex;align-items:center;gap:10px;cursor:pointer}
 .lw{font-size:20px;font-weight:800;color:#fff}
@@ -306,6 +307,7 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
 </head>
 <body>
 <div class="app">
+<div class="nav-wrap">
 <nav class="nav">
   <div class="logo" onclick="showPage('landing')">
     <img src="/logo.png" alt="GMBX" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
@@ -321,6 +323,7 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
   </div>
 </nav>
 <div class="nav-wave"><svg viewBox="0 0 1440 50" preserveAspectRatio="none" aria-hidden="true"><path fill="#1A1A2E" d="M0,30 C360,50 720,10 1080,32 C1260,42 1380,18 1440,14 L1440,0 L0,0 Z"/></svg></div>
+</div>
 
 <!-- LANDING -->
 <div class="page active" id="page-landing">
