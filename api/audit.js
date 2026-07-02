@@ -220,7 +220,10 @@ async function resolvePlace(rawUrl, placesKey) {
   if (!placeId) {
     const queryText = extractSearchText(url);
     if (!queryText) return null;
-    placeId = await findPlaceId(queryText, placesKey);
+    // Extract lat/lng from Maps URL for location-biased search (far more accurate)
+    const latLng = extractLatLng(url);
+    console.log('DEBUG latLng from url:', latLng);
+    placeId = await findPlaceId(queryText, placesKey, latLng);
     if (!placeId) return null;
   }
 
@@ -311,24 +314,46 @@ function extractSearchText(url) {
   return null;
 }
 
-async function findPlaceId(queryText, placesKey) {
-  // Try findplacefromtext first — fast but misses some local businesses
+function extractLatLng(url) {
+  // !3d<lat>!4d<lng> in Maps data parameter (most precise — actual business coords)
+  const m1 = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if (m1) return { lat: parseFloat(m1[1]), lng: parseFloat(m1[2]) };
+  // @lat,lng in Maps path
+  const m2 = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m2) return { lat: parseFloat(m2[1]), lng: parseFloat(m2[2]) };
+  return null;
+}
+
+async function findPlaceId(queryText, placesKey, latLng) {
+  // With location — use nearbysearch which is extremely accurate when we have coords
+  if (latLng) {
+    const p0 = new URLSearchParams({ location: `${latLng.lat},${latLng.lng}`, radius: '500', name: queryText, key: placesKey });
+    const r0 = await fetch(`https://maps.googleapis.com/maps/api/place/nearbysearch/json?${p0}`);
+    const d0 = await r0.json();
+    console.log('DEBUG nearbysearch status:', d0.status, 'results:', d0.results ? d0.results.length : 0);
+    if (d0.status === 'OK' && d0.results && d0.results[0]) return d0.results[0].place_id;
+
+    // Also try textsearch with location bias
+    const p1b = new URLSearchParams({ query: queryText, location: `${latLng.lat},${latLng.lng}`, radius: '1000', key: placesKey });
+    const r1b = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?${p1b}`);
+    const d1b = await r1b.json();
+    console.log('DEBUG textsearch+location status:', d1b.status, 'results:', d1b.results ? d1b.results.length : 0);
+    if (d1b.status === 'OK' && d1b.results && d1b.results[0]) return d1b.results[0].place_id;
+  }
+
+  // Try findplacefromtext — fast but misses some local businesses
   const p1 = new URLSearchParams({ input: queryText, inputtype: 'textquery', fields: 'place_id', key: placesKey });
   const r1 = await fetch(`https://maps.googleapis.com/maps/api/place/findplacefromtext/json?${p1}`);
   const d1 = await r1.json();
   console.log('DEBUG findplacefromtext status:', d1.status, 'candidates:', d1.candidates ? d1.candidates.length : 0);
-  if (d1.status === 'OK' && d1.candidates && d1.candidates[0]) {
-    return d1.candidates[0].place_id;
-  }
+  if (d1.status === 'OK' && d1.candidates && d1.candidates[0]) return d1.candidates[0].place_id;
 
-  // Fall back to textsearch — broader, finds more local/niche businesses
+  // Fall back to textsearch without location
   const p2 = new URLSearchParams({ query: queryText, key: placesKey });
   const r2 = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?${p2}`);
   const d2 = await r2.json();
   console.log('DEBUG textsearch status:', d2.status, 'results:', d2.results ? d2.results.length : 0);
-  if (d2.status === 'OK' && d2.results && d2.results[0]) {
-    return d2.results[0].place_id;
-  }
+  if (d2.status === 'OK' && d2.results && d2.results[0]) return d2.results[0].place_id;
 
   return null;
 }
