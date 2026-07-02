@@ -235,60 +235,43 @@ async function resolvePlace(rawUrl, placesKey) {
   return place;
 }
 
+function fetchWithTimeout(url, opts, ms) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), ms);
+  return fetch(url, { ...opts, signal: ac.signal }).finally(() => clearTimeout(t));
+}
+
 // Resolve a Google Search URL (from share.google redirect) to a ChIJ place ID.
-// Tries three approaches in order: scrape the search page HTML, fetch the Maps kgmid URL, New Places API.
 async function resolveViaKgmid(searchUrl, placesKey) {
-  const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   const kgmidMatch = searchUrl.match(/[?&]kgmid=(\/g\/[^&\s]+)/);
   const qMatch = searchUrl.match(/[?&]q=([^&]+)/);
   const kgmid = kgmidMatch ? decodeURIComponent(kgmidMatch[1]) : null;
   const qText = qMatch ? decodeURIComponent(qMatch[1].replace(/\+/g, ' ')) : null;
 
-  // 1. Fetch the Google Search page HTML — the knowledge panel embeds ChIJ place IDs in the source
-  try {
-    const sResp = await fetch(searchUrl, {
-      method: 'GET', redirect: 'follow',
-      headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml', 'Accept-Language': 'en-GB,en;q=0.9' }
-    });
-    const html = await sResp.text();
-    // ChIJ strings appear in JSON-LD, data attributes, and Maps embed URLs
-    const allChij = html.match(/ChIJ[A-Za-z0-9_\-]{10,60}/g) || [];
-    if (allChij.length) {
-      const freq = {};
-      allChij.forEach(id => { freq[id] = (freq[id] || 0) + 1; });
-      const best = Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
-      console.log('DEBUG ChIJ from search HTML:', best, 'count:', freq[best]);
-      return best;
-    }
-  } catch (e) { console.error('Search HTML scrape failed:', e.message); }
-
-  // 2. Fetch google.com/maps?kgmid=... — may redirect to the full Maps URL
-  if (kgmid) {
+  // 1. Try kgmid directly as place_id in the Places Details API (works for many GBP listings)
+  if (kgmid && placesKey) {
     try {
-      const mResp = await fetch(`https://www.google.com/maps?kgmid=${encodeURIComponent(kgmid)}`, {
-        method: 'GET', redirect: 'follow',
-        headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml' }
-      });
-      console.log('DEBUG maps kgmid final url:', mResp.url);
-      const fromUrl = extractPlaceId(mResp.url || '');
-      if (fromUrl) return fromUrl;
-      const mHtml = await mResp.text().catch(() => '');
-      const chij2 = (mHtml.match(/ChIJ[A-Za-z0-9_\-]{10,60}/g) || []);
-      if (chij2.length) return chij2[0];
-    } catch (e) { console.error('Maps kgmid fetch failed:', e.message); }
+      const r = await fetchWithTimeout(
+        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(kgmid)}&fields=place_id,name&key=${placesKey}`,
+        {}, 5000
+      );
+      const d = await r.json();
+      console.log('DEBUG kgmid as place_id:', d.status, d.result ? d.result.name : '');
+      if (d.status === 'OK' && d.result) return kgmid;
+    } catch (e) { console.error('kgmid place_id attempt failed:', e.message); }
   }
 
-  // 3. New Places API (v1) — more capable than legacy text search
+  // 2. New Places API (v1) text search — more capable than legacy endpoints
   if (qText && placesKey) {
     try {
-      const nResp = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      const r = await fetchWithTimeout('https://places.googleapis.com/v1/places:searchText', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': placesKey, 'X-Goog-FieldMask': 'places.id,places.displayName' },
         body: JSON.stringify({ textQuery: qText })
-      });
-      const nData = await nResp.json();
-      console.log('DEBUG new Places API:', nResp.status, JSON.stringify(nData).slice(0, 200));
-      if (nData.places && nData.places[0] && nData.places[0].id) return nData.places[0].id;
+      }, 5000);
+      const d = await r.json();
+      console.log('DEBUG new Places API:', r.status, JSON.stringify(d).slice(0, 200));
+      if (d.places && d.places[0] && d.places[0].id) return d.places[0].id;
     } catch (e) { console.error('New Places API failed:', e.message); }
   }
 
