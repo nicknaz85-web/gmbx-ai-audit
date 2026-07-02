@@ -248,25 +248,19 @@ async function resolveViaKgmid(searchUrl, placesKey) {
   const kgmid = kgmidMatch ? decodeURIComponent(kgmidMatch[1]) : null;
   const qText = qMatch ? decodeURIComponent(qMatch[1].replace(/\+/g, ' ')) : null;
 
-  // 1. Extract kgs= (hex CID) from search URL and fetch the Maps CID page to get place_id
-  const kgsMatch = searchUrl.match(/[?&]kgs=([0-9a-f]{8,16})/i);
-  if (kgsMatch) {
+  // 1. Try kgmid via Geocoding API — accepts kgmid as place_id and returns ChIJ place_id
+  if (kgmid && placesKey) {
     try {
-      const decimalCid = BigInt('0x' + kgsMatch[1]).toString(10);
-      const cidUrl = `https://www.google.com/maps?cid=${decimalCid}`;
-      console.log('DEBUG trying CID url:', cidUrl);
-      const cidResp = await fetchWithTimeout(cidUrl, {
-        method: 'GET', redirect: 'follow',
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
-      }, 5000);
-      console.log('DEBUG CID final url:', cidResp.url);
-      const fromCid = extractPlaceId(cidResp.url || '');
-      if (fromCid) return fromCid;
-      // Also scan body for ChIJ
-      const cidHtml = await cidResp.text().catch(() => '');
-      const chijCid = cidHtml.match(/ChIJ[A-Za-z0-9_\-]{10,60}/);
-      if (chijCid) { console.log('DEBUG ChIJ from CID page:', chijCid[0]); return chijCid[0]; }
-    } catch (e) { console.error('CID lookup failed:', e.message); }
+      const geoResp = await fetchWithTimeout(
+        `https://maps.googleapis.com/maps/api/geocode/json?place_id=${encodeURIComponent(kgmid)}&key=${placesKey}`,
+        {}, 5000
+      );
+      const geoData = await geoResp.json();
+      console.log('DEBUG geocode kgmid:', geoData.status, geoData.results ? geoData.results.length : 0);
+      if (geoData.status === 'OK' && geoData.results && geoData.results[0]) {
+        return geoData.results[0].place_id;
+      }
+    } catch (e) { console.error('Geocode kgmid failed:', e.message); }
   }
 
   // 2. New Places API (v1) text search
