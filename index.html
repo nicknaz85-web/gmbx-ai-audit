@@ -581,8 +581,11 @@ var TDATA=[
 ];
 var VIS=3, tIdx=0;
 function getCardW(){
-  // Mobile CSS sets cards to calc(100vw - 60px); desktop cards are 200px fixed
-  if(window.innerWidth<=768) return window.innerWidth-40+12;
+  if(window.innerWidth<=768){
+    var track=document.querySelector('.ttrack');
+    var tw=track&&track.clientWidth>0?track.clientWidth:window.innerWidth-40;
+    return tw+12;
+  }
   return 212;
 }
 function getVisibleCount(){
