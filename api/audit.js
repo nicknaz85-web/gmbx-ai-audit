@@ -248,20 +248,8 @@ async function resolveViaKgmid(searchUrl, placesKey) {
   const kgmid = kgmidMatch ? decodeURIComponent(kgmidMatch[1]) : null;
   const qText = qMatch ? decodeURIComponent(qMatch[1].replace(/\+/g, ' ')) : null;
 
-  // 1. Try kgmid directly as place_id in the Places Details API (works for many GBP listings)
-  if (kgmid && placesKey) {
-    try {
-      const r = await fetchWithTimeout(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(kgmid)}&fields=place_id,name&key=${placesKey}`,
-        {}, 5000
-      );
-      const d = await r.json();
-      console.log('DEBUG kgmid as place_id:', d.status, d.result ? d.result.name : '');
-      if (d.status === 'OK' && d.result) return kgmid;
-    } catch (e) { console.error('kgmid place_id attempt failed:', e.message); }
-  }
-
-  // 2. New Places API (v1) text search — more capable than legacy endpoints
+  // New Places API (v1) text search — more capable than legacy endpoints
+  // Requires "Places API (New)" to be enabled in Google Cloud Console for the API key
   if (qText && placesKey) {
     try {
       const r = await fetchWithTimeout('https://places.googleapis.com/v1/places:searchText', {
