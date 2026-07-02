@@ -248,8 +248,28 @@ async function resolveViaKgmid(searchUrl, placesKey) {
   const kgmid = kgmidMatch ? decodeURIComponent(kgmidMatch[1]) : null;
   const qText = qMatch ? decodeURIComponent(qMatch[1].replace(/\+/g, ' ')) : null;
 
-  // New Places API (v1) text search — more capable than legacy endpoints
-  // Requires "Places API (New)" to be enabled in Google Cloud Console for the API key
+  // 1. Extract kgs= (hex CID) from search URL and fetch the Maps CID page to get place_id
+  const kgsMatch = searchUrl.match(/[?&]kgs=([0-9a-f]{8,16})/i);
+  if (kgsMatch) {
+    try {
+      const decimalCid = BigInt('0x' + kgsMatch[1]).toString(10);
+      const cidUrl = `https://www.google.com/maps?cid=${decimalCid}`;
+      console.log('DEBUG trying CID url:', cidUrl);
+      const cidResp = await fetchWithTimeout(cidUrl, {
+        method: 'GET', redirect: 'follow',
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+      }, 5000);
+      console.log('DEBUG CID final url:', cidResp.url);
+      const fromCid = extractPlaceId(cidResp.url || '');
+      if (fromCid) return fromCid;
+      // Also scan body for ChIJ
+      const cidHtml = await cidResp.text().catch(() => '');
+      const chijCid = cidHtml.match(/ChIJ[A-Za-z0-9_\-]{10,60}/);
+      if (chijCid) { console.log('DEBUG ChIJ from CID page:', chijCid[0]); return chijCid[0]; }
+    } catch (e) { console.error('CID lookup failed:', e.message); }
+  }
+
+  // 2. New Places API (v1) text search
   if (qText && placesKey) {
     try {
       const r = await fetchWithTimeout('https://places.googleapis.com/v1/places:searchText', {
