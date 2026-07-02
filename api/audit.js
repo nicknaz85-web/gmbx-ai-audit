@@ -196,9 +196,23 @@ async function resolvePlace(rawUrl, placesKey) {
 }
 
 function extractPlaceId(url) {
-  // ?query_place_id=... or ?place_id=... or .../place/.../data=...!1s<placeId>... patterns
+  // ?query_place_id=... or ?place_id=...
   const m1 = url.match(/[?&](?:query_)?place_id=([^&]+)/);
   if (m1) return decodeURIComponent(m1[1]);
+
+  // data=...!1s<placeId>... embedded in full Maps URLs (e.g. after following share.google links)
+  // The place ID is encoded in the data path segment as !1sChIJ... and ends at the next !
+  const dataParam = url.match(/[?&/]data=([^?&\s#]+)/);
+  if (dataParam) {
+    const decoded = decodeURIComponent(dataParam[1]);
+    const pid = decoded.match(/!1s(ChIJ[^!&]+)/);
+    if (pid) return pid[1];
+  }
+
+  // ftid= parameter used in some Maps share formats
+  const ftid = url.match(/[?&]ftid=(ChIJ[^&]+)/);
+  if (ftid) return decodeURIComponent(ftid[1]);
+
   return null;
 }
 
