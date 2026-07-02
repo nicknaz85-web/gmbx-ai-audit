@@ -767,7 +767,7 @@ function initStaticReveals(){
 }
 
 var PRAISE_WORDS=['amazing','excellent','fantastic','brilliant','professional','perfect','perfectly','great','reliable','responsive','best','exceptional','outstanding','wonderful','highly recommend','recommend','recommended','next level','pleasure','effective','effectively','quickly','results','impact','friendly','knows what he\'s doing','listened','delivering'];
-var PRAISE_RE=new RegExp('('+PRAISE_WORDS.map(function(w){return w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join('|')+')','gi');
+var PRAISE_RE=new RegExp('('+PRAISE_WORDS.slice().sort(function(a,b){return b.length-a.length;}).map(function(w){return w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join('|')+')','gi');
 function boldifyPraise(text){
   return text.replace(PRAISE_RE,'<strong>$1</strong>');
 }
