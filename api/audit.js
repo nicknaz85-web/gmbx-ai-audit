@@ -233,7 +233,6 @@ function extractPlaceId(url) {
   if (m1) return decodeURIComponent(m1[1]);
 
   // data=...!1s<placeId>... embedded in full Maps URLs (e.g. after following share.google links)
-  // The place ID is encoded in the data path segment as !1sChIJ... and ends at the next !
   const dataParam = url.match(/[?&/]data=([^?&\s#]+)/);
   if (dataParam) {
     const decoded = decodeURIComponent(dataParam[1]);
@@ -244,6 +243,11 @@ function extractPlaceId(url) {
   // ftid= parameter used in some Maps share formats
   const ftid = url.match(/[?&]ftid=(ChIJ[^&]+)/);
   if (ftid) return decodeURIComponent(ftid[1]);
+
+  // kgmid= in Google Search URLs — share.google links redirect to google.com/search?kgmid=...
+  // The kgmid (/g/XXXXX) is Google's Knowledge Graph ID and is accepted by Places Details API
+  const kgmid = url.match(/[?&]kgmid=(\/g\/[^&\s]+)/);
+  if (kgmid) return decodeURIComponent(kgmid[1]);
 
   return null;
 }
