@@ -262,12 +262,19 @@ async function resolveViaKgmid(searchUrl, placesKey) {
       }, 5000);
       const mUrl = mResp.url || '';
       console.log('DEBUG maps kgmid url:', mUrl.slice(0, 120));
-      const latLng = extractLatLng(mUrl);
       const pidFromUrl = extractPlaceId(mUrl);
       if (pidFromUrl) return pidFromUrl;
-      if (latLng) {
-        console.log('DEBUG kgmid maps latLng:', latLng);
-        const pid = await findPlaceId(qText, placesKey, latLng);
+      // Read body — Maps page may contain coords or ChIJ IDs in server-rendered HTML
+      const mHtml = await mResp.text().catch(() => '');
+      const latLngInBody = extractLatLng(mUrl) || (() => {
+        const m = mHtml.match(/"lat":(-?\d+\.\d+),"lng":(-?\d+\.\d+)/);
+        return m ? { lat: parseFloat(m[1]), lng: parseFloat(m[2]) } : null;
+      })();
+      const chijInBody = (mHtml.match(/ChIJ[A-Za-z0-9_\-]{10,60}/g) || []);
+      console.log('DEBUG maps body chij count:', chijInBody.length, 'latLng:', latLngInBody);
+      if (chijInBody.length) return chijInBody[0];
+      if (latLngInBody) {
+        const pid = await findPlaceId(qText, placesKey, latLngInBody);
         if (pid) return pid;
       }
     } catch (e) { console.error('Maps kgmid fetch failed:', e.message); }
@@ -279,7 +286,7 @@ async function resolveViaKgmid(searchUrl, placesKey) {
       const r = await fetchWithTimeout('https://places.googleapis.com/v1/places:searchText', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': placesKey, 'X-Goog-FieldMask': 'places.id,places.displayName' },
-        body: JSON.stringify({ textQuery: qText })
+        body: JSON.stringify({ textQuery: qText, regionCode: 'GB', languageCode: 'en' })
       }, 5000);
       const d = await r.json();
       console.log('DEBUG new Places API:', r.status, JSON.stringify(d).slice(0, 200));
