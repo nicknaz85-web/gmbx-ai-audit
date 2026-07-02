@@ -244,11 +244,6 @@ function extractPlaceId(url) {
   const ftid = url.match(/[?&]ftid=(ChIJ[^&]+)/);
   if (ftid) return decodeURIComponent(ftid[1]);
 
-  // kgmid= in Google Search URLs — share.google links redirect to google.com/search?kgmid=...
-  // The kgmid (/g/XXXXX) is Google's Knowledge Graph ID and is accepted by Places Details API
-  const kgmid = url.match(/[?&]kgmid=(\/g\/[^&\s]+)/);
-  if (kgmid) return decodeURIComponent(kgmid[1]);
-
   return null;
 }
 
