@@ -182,23 +182,30 @@ async function resolvePlace(rawUrl, placesKey) {
       }
     });
     if (resp.url && resp.url !== rawUrl) url = resp.url;
+    console.log('DEBUG after redirect: url=', url, 'status=', resp.status);
 
     // If the followed URL is still a short/share URL, read the body and look for
     // an embedded full Maps URL (og:url, canonical, or raw URL in the HTML).
     if (/share\.google|maps\.app\.goo\.gl|goo\.gl/i.test(url)) {
       const body = await resp.text();
+      console.log('DEBUG body snippet:', body.slice(0, 500));
       // og:url is the most reliable signal
       const ogUrl = body.match(/property="og:url"\s+content="([^"]+)"/i)
                  || body.match(/content="([^"]+)"\s+property="og:url"/i);
       if (ogUrl && /google\.com\/maps/i.test(ogUrl[1])) {
         url = ogUrl[1];
+        console.log('DEBUG extracted og:url:', url);
       } else {
         // Fall back to any raw Maps URL present in the page source
         const mapsUrl = body.match(/(https:\/\/(?:www\.)?google\.com\/maps\/(?:place|search)\/[^\s"'<>\\]+)/);
         if (mapsUrl) url = mapsUrl[1].replace(/\\u003d/g, '=').replace(/\\u0026/g, '&');
+        console.log('DEBUG extracted fallback mapsUrl:', url);
       }
     }
   } catch (e) { console.error('URL expansion failed (non-fatal):', e.message); }
+  console.log('DEBUG final url:', url);
+  console.log('DEBUG extractPlaceId:', extractPlaceId(url));
+  console.log('DEBUG extractSearchText:', extractSearchText(url));
 
   let placeId = extractPlaceId(url);
 
