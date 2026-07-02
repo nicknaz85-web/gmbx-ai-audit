@@ -251,19 +251,26 @@ async function resolveViaKgmid(searchUrl, placesKey) {
   const kgmid = kgmidMatch ? decodeURIComponent(kgmidMatch[1]) : null;
   const qText = qMatch ? decodeURIComponent(qMatch[1].replace(/\+/g, ' ')) : null;
 
-  // 1. Try kgmid via Geocoding API — accepts kgmid as place_id and returns ChIJ place_id
-  if (kgmid && placesKey) {
+  // 1. Fetch google.com/maps?kgmid=... — may resolve to a Maps URL with lat/lng embedded,
+  //    which lets us do an accurate nearbysearch to find the ChIJ place_id
+  if (kgmid && qText && placesKey) {
     try {
-      const geoResp = await fetchWithTimeout(
-        `https://maps.googleapis.com/maps/api/geocode/json?place_id=${encodeURIComponent(kgmid)}&key=${placesKey}`,
-        {}, 5000
-      );
-      const geoData = await geoResp.json();
-      console.log('DEBUG geocode kgmid:', geoData.status, geoData.results ? geoData.results.length : 0);
-      if (geoData.status === 'OK' && geoData.results && geoData.results[0]) {
-        return geoData.results[0].place_id;
+      const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      const mResp = await fetchWithTimeout(`https://www.google.com/maps?kgmid=${encodeURIComponent(kgmid)}`, {
+        method: 'GET', redirect: 'follow',
+        headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml', 'Accept-Language': 'en-GB,en;q=0.9' }
+      }, 5000);
+      const mUrl = mResp.url || '';
+      console.log('DEBUG maps kgmid url:', mUrl.slice(0, 120));
+      const latLng = extractLatLng(mUrl);
+      const pidFromUrl = extractPlaceId(mUrl);
+      if (pidFromUrl) return pidFromUrl;
+      if (latLng) {
+        console.log('DEBUG kgmid maps latLng:', latLng);
+        const pid = await findPlaceId(qText, placesKey, latLng);
+        if (pid) return pid;
       }
-    } catch (e) { console.error('Geocode kgmid failed:', e.message); }
+    } catch (e) { console.error('Maps kgmid fetch failed:', e.message); }
   }
 
   // 2. New Places API (v1) text search
