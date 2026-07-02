@@ -168,12 +168,37 @@ function esc(str) {
 
 // ── Resolve a Google Maps/Business Profile URL to real place data ──
 async function resolvePlace(rawUrl, placesKey) {
-  // Expand short links (maps.app.goo.gl, goo.gl/maps) to the full URL first.
+  // Expand short/share links to the full Maps URL.
+  // share.google and maps.app.goo.gl may serve an HTML page (JS redirect) rather than
+  // an HTTP redirect, so we must read the body and extract the real Maps URL from it.
   let url = rawUrl;
   try {
-    const head = await fetch(rawUrl, { method: 'GET', redirect: 'follow' });
-    if (head.url) url = head.url;
-  } catch (e) { /* fall back to raw url */ }
+    const resp = await fetch(rawUrl, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+      }
+    });
+    if (resp.url && resp.url !== rawUrl) url = resp.url;
+
+    // If the followed URL is still a short/share URL, read the body and look for
+    // an embedded full Maps URL (og:url, canonical, or raw URL in the HTML).
+    if (/share\.google|maps\.app\.goo\.gl|goo\.gl/i.test(url)) {
+      const body = await resp.text();
+      // og:url is the most reliable signal
+      const ogUrl = body.match(/property="og:url"\s+content="([^"]+)"/i)
+                 || body.match(/content="([^"]+)"\s+property="og:url"/i);
+      if (ogUrl && /google\.com\/maps/i.test(ogUrl[1])) {
+        url = ogUrl[1];
+      } else {
+        // Fall back to any raw Maps URL present in the page source
+        const mapsUrl = body.match(/(https:\/\/(?:www\.)?google\.com\/maps\/(?:place|search)\/[^\s"'<>\\]+)/);
+        if (mapsUrl) url = mapsUrl[1].replace(/\\u003d/g, '=').replace(/\\u0026/g, '&');
+      }
+    }
+  } catch (e) { console.error('URL expansion failed (non-fatal):', e.message); }
 
   let placeId = extractPlaceId(url);
 
