@@ -209,6 +209,14 @@ async function resolvePlace(rawUrl, placesKey) {
 
   let placeId = extractPlaceId(url);
 
+  // share.google links resolve to a Google Search URL (google.com/search?kgmid=...)
+  // rather than a Maps URL. Use the kgmid to fetch the actual Maps listing, which
+  // contains the real ChIJ place ID or CID in its URL/HTML.
+  if (!placeId && /google\.com\/search/i.test(url)) {
+    placeId = await resolveViaKgmid(url);
+    console.log('DEBUG resolveViaKgmid result:', placeId);
+  }
+
   if (!placeId) {
     const queryText = extractSearchText(url);
     if (!queryText) return null;
@@ -225,6 +233,52 @@ async function resolvePlace(rawUrl, placesKey) {
     place.accessibilityFeatures = enrichment.accessibilityFeatures;
   }
   return place;
+}
+
+// Resolve a Google Search URL (from share.google redirect) to a ChIJ place ID.
+// Fetches google.com/maps?kgmid=... which redirects to or serves the Maps listing
+// containing the real place ID or CID in the URL/HTML.
+async function resolveViaKgmid(searchUrl) {
+  try {
+    const kgmid = (searchUrl.match(/[?&]kgmid=(\/g\/[^&\s]+)/) || [])[1];
+    if (!kgmid) return null;
+    const decoded = decodeURIComponent(kgmid);
+    const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+    // Fetch the Maps kgmid URL — it should redirect to the real Maps listing
+    const resp = await fetch(`https://www.google.com/maps?kgmid=${encodeURIComponent(decoded)}`, {
+      method: 'GET', redirect: 'follow',
+      headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml' }
+    });
+    const finalUrl = resp.url || '';
+    console.log('DEBUG kgmid Maps URL resolved to:', finalUrl);
+
+    // Try to get place ID from the final URL
+    const fromUrl = extractPlaceId(finalUrl);
+    if (fromUrl) return fromUrl;
+
+    // If the URL has a CID, convert it: fetch the Maps?cid= page to get a place_id
+    const cidMatch = finalUrl.match(/[?&]cid=(\d+)/) || finalUrl.match(/0x[0-9a-f]+:(0x[0-9a-f]+)/i);
+    if (cidMatch) {
+      const cidUrl = cidMatch[1].startsWith('0x')
+        ? `https://www.google.com/maps?cid=${BigInt(cidMatch[1]).toString(10)}`
+        : `https://www.google.com/maps?cid=${cidMatch[1]}`;
+      const cidResp = await fetch(cidUrl, { method: 'GET', redirect: 'follow', headers: { 'User-Agent': UA } });
+      const fromCidUrl = extractPlaceId(cidResp.url || '');
+      if (fromCidUrl) return fromCidUrl;
+    }
+
+    // Last resort: scan the response HTML for any ChIJ place ID
+    const body = await resp.text().catch(() => '');
+    const chij = body.match(/\\?"place_id\\?":\\?"(ChIJ[^"\\]+)\\?"/i)
+               || body.match(/"(ChIJ[A-Za-z0-9_\-]{10,50})"/);
+    if (chij) return chij[1];
+
+    return null;
+  } catch (e) {
+    console.error('resolveViaKgmid failed:', e.message);
+    return null;
+  }
 }
 
 function extractPlaceId(url) {
