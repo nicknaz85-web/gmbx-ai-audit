@@ -213,7 +213,7 @@ async function resolvePlace(rawUrl, placesKey) {
   // rather than a Maps URL. Use the kgmid to fetch the actual Maps listing, which
   // contains the real ChIJ place ID or CID in its URL/HTML.
   if (!placeId && /google\.com\/search/i.test(url)) {
-    placeId = await resolveViaKgmid(url);
+    placeId = await resolveViaKgmid(url, placesKey);
     console.log('DEBUG resolveViaKgmid result:', placeId);
   }
 
@@ -236,49 +236,63 @@ async function resolvePlace(rawUrl, placesKey) {
 }
 
 // Resolve a Google Search URL (from share.google redirect) to a ChIJ place ID.
-// Fetches google.com/maps?kgmid=... which redirects to or serves the Maps listing
-// containing the real place ID or CID in the URL/HTML.
-async function resolveViaKgmid(searchUrl) {
+// Tries three approaches in order: scrape the search page HTML, fetch the Maps kgmid URL, New Places API.
+async function resolveViaKgmid(searchUrl, placesKey) {
+  const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  const kgmidMatch = searchUrl.match(/[?&]kgmid=(\/g\/[^&\s]+)/);
+  const qMatch = searchUrl.match(/[?&]q=([^&]+)/);
+  const kgmid = kgmidMatch ? decodeURIComponent(kgmidMatch[1]) : null;
+  const qText = qMatch ? decodeURIComponent(qMatch[1].replace(/\+/g, ' ')) : null;
+
+  // 1. Fetch the Google Search page HTML — the knowledge panel embeds ChIJ place IDs in the source
   try {
-    const kgmid = (searchUrl.match(/[?&]kgmid=(\/g\/[^&\s]+)/) || [])[1];
-    if (!kgmid) return null;
-    const decoded = decodeURIComponent(kgmid);
-    const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-
-    // Fetch the Maps kgmid URL — it should redirect to the real Maps listing
-    const resp = await fetch(`https://www.google.com/maps?kgmid=${encodeURIComponent(decoded)}`, {
+    const sResp = await fetch(searchUrl, {
       method: 'GET', redirect: 'follow',
-      headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml' }
+      headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml', 'Accept-Language': 'en-GB,en;q=0.9' }
     });
-    const finalUrl = resp.url || '';
-    console.log('DEBUG kgmid Maps URL resolved to:', finalUrl);
-
-    // Try to get place ID from the final URL
-    const fromUrl = extractPlaceId(finalUrl);
-    if (fromUrl) return fromUrl;
-
-    // If the URL has a CID, convert it: fetch the Maps?cid= page to get a place_id
-    const cidMatch = finalUrl.match(/[?&]cid=(\d+)/) || finalUrl.match(/0x[0-9a-f]+:(0x[0-9a-f]+)/i);
-    if (cidMatch) {
-      const cidUrl = cidMatch[1].startsWith('0x')
-        ? `https://www.google.com/maps?cid=${BigInt(cidMatch[1]).toString(10)}`
-        : `https://www.google.com/maps?cid=${cidMatch[1]}`;
-      const cidResp = await fetch(cidUrl, { method: 'GET', redirect: 'follow', headers: { 'User-Agent': UA } });
-      const fromCidUrl = extractPlaceId(cidResp.url || '');
-      if (fromCidUrl) return fromCidUrl;
+    const html = await sResp.text();
+    // ChIJ strings appear in JSON-LD, data attributes, and Maps embed URLs
+    const allChij = html.match(/ChIJ[A-Za-z0-9_\-]{10,60}/g) || [];
+    if (allChij.length) {
+      const freq = {};
+      allChij.forEach(id => { freq[id] = (freq[id] || 0) + 1; });
+      const best = Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
+      console.log('DEBUG ChIJ from search HTML:', best, 'count:', freq[best]);
+      return best;
     }
+  } catch (e) { console.error('Search HTML scrape failed:', e.message); }
 
-    // Last resort: scan the response HTML for any ChIJ place ID
-    const body = await resp.text().catch(() => '');
-    const chij = body.match(/\\?"place_id\\?":\\?"(ChIJ[^"\\]+)\\?"/i)
-               || body.match(/"(ChIJ[A-Za-z0-9_\-]{10,50})"/);
-    if (chij) return chij[1];
-
-    return null;
-  } catch (e) {
-    console.error('resolveViaKgmid failed:', e.message);
-    return null;
+  // 2. Fetch google.com/maps?kgmid=... — may redirect to the full Maps URL
+  if (kgmid) {
+    try {
+      const mResp = await fetch(`https://www.google.com/maps?kgmid=${encodeURIComponent(kgmid)}`, {
+        method: 'GET', redirect: 'follow',
+        headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml' }
+      });
+      console.log('DEBUG maps kgmid final url:', mResp.url);
+      const fromUrl = extractPlaceId(mResp.url || '');
+      if (fromUrl) return fromUrl;
+      const mHtml = await mResp.text().catch(() => '');
+      const chij2 = (mHtml.match(/ChIJ[A-Za-z0-9_\-]{10,60}/g) || []);
+      if (chij2.length) return chij2[0];
+    } catch (e) { console.error('Maps kgmid fetch failed:', e.message); }
   }
+
+  // 3. New Places API (v1) — more capable than legacy text search
+  if (qText && placesKey) {
+    try {
+      const nResp = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': placesKey, 'X-Goog-FieldMask': 'places.id,places.displayName' },
+        body: JSON.stringify({ textQuery: qText })
+      });
+      const nData = await nResp.json();
+      console.log('DEBUG new Places API:', nResp.status, JSON.stringify(nData).slice(0, 200));
+      if (nData.places && nData.places[0] && nData.places[0].id) return nData.places[0].id;
+    } catch (e) { console.error('New Places API failed:', e.message); }
+  }
+
+  return null;
 }
 
 function extractPlaceId(url) {
