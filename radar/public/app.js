@@ -698,8 +698,8 @@ function renderVenue(v) {
   <div class="vc-body">
     ${v.liveBusyness != null ? `<div class="live-busy"><span class="lb-dot"></span><b>${v.liveBusyness}%</b> ${v.liveSource === 'live' ? 'busy right now' : "typical for now"} · <span class="lb-src">BestTime</span></div>` : ''}
     <div class="stat-grid">
-      <div class="stat"><div class="k">Hot score</div><div class="v">${v.hot}</div>
-        <div class="vs">Est. ${v.fullness.low}–${v.fullness.high}% full</div></div>
+      <div class="stat"><div class="k">How full</div><div class="v">${v.fullness.est}%</div>
+        <div class="vs">Est. ${v.fullness.low}–${v.fullness.high}% capacity</div></div>
       <div class="stat"><div class="k">Momentum</div><div class="v ${mc}">${momDir ? '+' : ''}${v.momentum.M}</div>
         <div class="mom-meter"><div class="mom-fill" style="${momDir ? 'left:50%' : 'right:50%;left:auto'};width:${momPct}%;background:${momDir ? 'var(--green)' : 'var(--red)'}"></div></div></div>
       <div class="stat"><div class="k">Queue</div><div class="v">${queueText(v.queue || 'none')}</div></div>
