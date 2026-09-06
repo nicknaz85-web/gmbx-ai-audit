@@ -260,7 +260,12 @@ class RadarMap {
       if (!this._labelById) this._labelById = {};
       if (!this._clusterById) this._clusterById = {};
       const z = this.map.getZoom();
-      const clusterMode = z < 6;
+      // cluster/pin switch with hysteresis: a dead zone [5.7, 6.3] so slow zooming
+      // near the boundary doesn't flicker bubbles and pins in and out.
+      if (this._clusterMode === undefined) this._clusterMode = z < 6;
+      if (this._clusterMode && z > 6.3) this._clusterMode = false;
+      else if (!this._clusterMode && z < 5.7) this._clusterMode = true;
+      const clusterMode = this._clusterMode;
 
       // ---- count bubbles (clusters) per city ----
       const wantC = {};
