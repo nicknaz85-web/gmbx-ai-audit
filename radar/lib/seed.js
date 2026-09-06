@@ -251,6 +251,20 @@ const NEIGHBORHOODS = [
   { id: 'zagreb',      name: 'Zagreb',         city: 'Zagreb',       center: { lat: 45.8100, lng: 15.9780 }, radius: 480, bestFor: ['Techno', 'Dancing'] },
   // LGBTQ+ districts
   { id: 'tokyo-nichome', name: 'Shinjuku Ni-chōme', city: 'Tokyo',   center: { lat: 35.6940, lng: 139.7080 }, radius: 460, bestFor: ['Dancing', 'Late Night'] },
+
+  // ============ EXPANSION: RUSSIA / C.ASIA / MORE AFRICA / BRAZIL COAST / CHINA ============
+  { id: 'moscow',      name: 'Moscow',          city: 'Moscow',            center: { lat: 55.7558, lng: 37.6173 }, radius: 540, bestFor: ['Techno', 'Dancing'] },
+  { id: 'spb',         name: 'Saint Petersburg',city: 'Saint Petersburg',  center: { lat: 59.9343, lng: 30.3351 }, radius: 520, bestFor: ['Techno', 'Late Night'] },
+  { id: 'tashkent',    name: 'Tashkent',        city: 'Tashkent',          center: { lat: 41.2995, lng: 69.2401 }, radius: 500, bestFor: ['Dancing', 'Commercial'] },
+  { id: 'almaty',      name: 'Almaty',          city: 'Almaty',            center: { lat: 43.2380, lng: 76.9450 }, radius: 500, bestFor: ['Dancing', 'Techno'] },
+  { id: 'baku',        name: 'Baku',            city: 'Baku',              center: { lat: 40.4093, lng: 49.8671 }, radius: 500, bestFor: ['Dancing', 'Commercial'] },
+  { id: 'yerevan',     name: 'Yerevan',         city: 'Yerevan',           center: { lat: 40.1792, lng: 44.4991 }, radius: 480, bestFor: ['Dancing', 'Live'] },
+  { id: 'dakar',       name: 'Dakar',           city: 'Dakar',             center: { lat: 14.6928, lng: -17.4467 }, radius: 500, bestFor: ['Afrobeats', 'Dancing'] },
+  { id: 'casablanca',  name: 'Casablanca',      city: 'Casablanca',        center: { lat: 33.5731, lng: -7.5898 }, radius: 520, bestFor: ['Dancing', 'Commercial'] },
+  { id: 'addis',       name: 'Addis Ababa',     city: 'Addis Ababa',       center: { lat: 9.0300,  lng: 38.7400 }, radius: 500, bestFor: ['Live', 'Dancing'] },
+  { id: 'durban',      name: 'Durban',          city: 'Durban',            center: { lat: -29.8587, lng: 31.0218 }, radius: 500, bestFor: ['House', 'Dancing'] },
+  { id: 'shenzhen',    name: 'Shenzhen',        city: 'Shenzhen',          center: { lat: 22.5431, lng: 114.0579 }, radius: 520, bestFor: ['Techno', 'Dancing'] },
+  { id: 'camboriu',    name: 'Balneário Camboriú', city: 'Camboriú',       center: { lat: -26.9906, lng: -48.6350 }, radius: 540, bestFor: ['House', 'Dancing'] },
 ];
 
 // Per-venue tuning:
@@ -882,6 +896,61 @@ const VENUE_DEFS = [
   ['Stonewall Hotel',     'sydney', 'Dancing', 'Club', 500, 1.2, 14, 0, { mult: 1.0, trend: 0.6 }, true, true, 'stonewallhotel'],
   ['The Peel',            'melbourne', 'Dancing', 'Club', 400, 1.4, 13, 0, { mult: 1.0, trend: 0.6 }, false, true],
   ['Crew Bar',            'capetown', 'Dancing', 'Club', 400, 1.6, 13, 10, { mult: 1.0, trend: 0.7 }, true, true, 'crewbarcapetown'],
+
+  // ============ EXPANSION: RUSSIA / C.ASIA / MORE AFRICA / BRAZIL COAST / CHINA / EE / SA ============
+  // Russia
+  ['Mutabor',             'moscow', 'Dancing', 'Club', 2000, 2.4, 22, 20, { mult: 1.2,  trend: 0.9 }, true],
+  ['Propaganda',          'moscow', 'Dancing', 'Club', 500, 1.8, 14, 12, { mult: 1.05, trend: 0.7 }, false],
+  ['Blank',               'spb', 'Dancing', 'Club', 700, 2.4, 15, 12, { mult: 1.1,  trend: 0.9 }, true],
+  ['Griboedov',           'spb', 'Dancing', 'Club', 400, 1.8, 13, 10, { mult: 1.0,  trend: 0.8 }, false],
+  // Central Asia + Caucasus
+  ['Ministerstvo',        'tashkent', 'Dancing', 'Club', 500, 1.6, 14, 12, { mult: 1.05, trend: 0.7 }, true],
+  ['Chocolate Club',      'tashkent', 'Dancing', 'Club', 400, 1.4, 12, 10, { mult: 1.0,  trend: 0.6 }, false],
+  ['Esperanza',           'almaty', 'Dancing', 'Club', 600, 1.6, 14, 12, { mult: 1.05, trend: 0.7 }, true],
+  ['Barmaley',            'almaty', 'Bars',    'Bar', 250, 0.6, 11, 0, { mult: 0.9,  trend: 0.5 }, false],
+  ['Otto Baku',           'baku', 'Bars',    'Bar', 300, 0.8, 12, 10, { mult: 0.95, trend: 0.5 }, true],
+  ['Eleven Club',         'baku', 'Dancing', 'Club', 500, 1.6, 14, 15, { mult: 1.05, trend: 0.6 }, false],
+  ['Poligraph',           'yerevan', 'Dancing', 'Club', 400, 1.8, 13, 10, { mult: 1.05, trend: 0.8 }, true],
+  ['Pinta Pub',           'yerevan', 'Bars',    'Bar', 250, 0.6, 11, 0, { mult: 0.9,  trend: 0.5 }, false],
+  // Africa (more)
+  ['Duplex Dakar',        'dakar', 'Dancing', 'Club', 600, 1.6, 15, 12, { mult: 1.05, trend: 0.8 }, true],
+  ['La Villa',            'dakar', 'Bars',    'Bar', 300, 0.8, 12, 8, { mult: 0.9,  trend: 0.5 }, false],
+  ['Le Living',           'casablanca', 'Dancing', 'Club', 700, 1.4, 16, 20, { mult: 1.1,  trend: 0.7 }, true],
+  ['Cabana Beach',        'casablanca', 'Bars',    'Bar', 500, -0.4, 13, 15, { mult: 0.95, trend: 0.4 }, false],
+  ['Gaslight',            'addis', 'Dancing', 'Club', 500, 1.6, 14, 12, { mult: 1.05, trend: 0.7 }, true],
+  ['Flirt Lounge',        'addis', 'Bars',    'Bar', 300, 0.8, 12, 8, { mult: 0.9,  trend: 0.5 }, false],
+  ['Origin Nightclub',    'durban', 'Dancing', 'Club', 600, 1.6, 15, 12, { mult: 1.05, trend: 0.8 }, true],
+  ['The Winston',         'durban', 'Live',    'Venue', 300, 0.8, 12, 8, { mult: 0.9,  trend: 0.5 }, false],
+  // China (more)
+  ['Oil Club',            'shenzhen', 'Dancing', 'Club', 600, 2.0, 15, 18, { mult: 1.1,  trend: 0.9 }, true],
+  ['Pepper Club',         'shenzhen', 'Dancing', 'Club', 700, 1.4, 16, 20, { mult: 1.05, trend: 0.6 }, false],
+  ['Arkham',              'shanghai', 'Dancing', 'Club', 500, 2.0, 14, 18, { mult: 1.05, trend: 0.9 }, true],
+  ['Zhao Dai',            'beijing', 'Dancing', 'Club', 400, 2.2, 13, 15, { mult: 1.05, trend: 0.9 }, true],
+  // Brazil coast — world-famous
+  ['Green Valley',        'camboriu', 'Dancing', 'Club', 8000, 1.2, 30, 40, { mult: 1.2, trend: 0.9 }, true],
+  ['Warung Beach Club',   'camboriu', 'Dancing', 'Club', 3000, 0.8, 24, 35, { mult: 1.15, trend: 0.8 }, true],
+  // South America (more, existing cities)
+  ['Cine Joia',           'sao-paulo', 'Live',    'Venue', 900, 0.8, 16, 15, { mult: 1.0,  trend: 0.6 }, false],
+  ['The Week Rio',        'rio-lapa', 'Dancing', 'Club', 2000, 1.8, 22, 25, { mult: 1.15, trend: 0.8 }, true, true, 'theweekbrasil'],
+  ['Leviano Bar',         'rio-lapa', 'Live',    'Venue', 400, 0.8, 13, 10, { mult: 0.95, trend: 0.6 }, false],
+  ['Bahrein',             'ba-palermo', 'Dancing', 'Club', 700, 2.0, 16, 15, { mult: 1.1,  trend: 0.8 }, true],
+  ['Jet BA',              'ba-palermo', 'Dancing', 'Club', 900, 1.4, 16, 18, { mult: 1.05, trend: 0.6 }, false],
+  ['Kaputt',              'bogota-chap', 'Dancing', 'Club', 500, 1.8, 14, 14, { mult: 1.05, trend: 0.8 }, true],
+  ['Armando Records',     'bogota-chap', 'Dancing', 'Club', 600, 1.4, 15, 14, { mult: 1.05, trend: 0.6 }, false],
+  ['Calle 9+1',           'medellin-pob', 'Dancing', 'Club', 500, 1.8, 14, 12, { mult: 1.05, trend: 0.8 }, true],
+  ['Club Chocolate',      'santiago-bel', 'Dancing', 'Club', 600, 1.6, 15, 12, { mult: 1.05, trend: 0.7 }, true],
+  // Eastern Europe (more, existing cities)
+  ['Jasna 1',             'srodmiescie', 'Dancing', 'Club', 500, 2.0, 15, 12, { mult: 1.1,  trend: 0.9 }, true],
+  ['Tama',                'krakow-stare', 'Dancing', 'Club', 600, 1.6, 15, 10, { mult: 1.05, trend: 0.8 }, true],
+  ['Ankali',              'stare-mesto-prg', 'Dancing', 'Club', 500, 2.2, 14, 10, { mult: 1.1,  trend: 0.9 }, true],
+  ['Lärm',                'erzsebetvaros', 'Dancing', 'Club', 400, 2.2, 13, 10, { mult: 1.1,  trend: 0.9 }, true],
+  ['Guesthouse',          'lipscani', 'Dancing', 'Club', 400, 1.8, 13, 8, { mult: 1.05, trend: 0.8 }, true],
+  ['Kvaka 22',            'savamala', 'Dancing', 'Club', 400, 2.0, 13, 8, { mult: 1.05, trend: 0.9 }, true],
+  ['Otel',                'kyiv', 'Dancing', 'Club', 500, 2.2, 14, 10, { mult: 1.1,  trend: 0.9 }, true],
+  // Latvia + Estonia (more)
+  ['Nabaklab',            'riga-lv', 'Bars',    'Bar', 300, 1.0, 12, 6, { mult: 0.95, trend: 0.6 }, false],
+  ['Depo',                'riga-lv', 'Dancing', 'Club', 500, 1.8, 14, 8, { mult: 1.05, trend: 0.8 }, true],
+  ['Club Hollywood',      'tallinn', 'Dancing', 'Club', 700, 1.4, 15, 12, { mult: 1.05, trend: 0.6 }, false],
 ];
 
 function jitter(center, seed, spreadM = 140) {
@@ -956,6 +1025,10 @@ const SEASONAL = {
 // London clubs ~1 AM, Madrid ~3 AM, rooftops ~9 PM). Hours per city relative to a
 // standard-European baseline; everything not listed = 0 (standard).
 const CITY_NIGHT = {
+  // Russia / Central Asia / Caucasus / more Africa / Brazil coast
+  Moscow: 1, 'Saint Petersburg': 1, 'Camboriú': 1,
+  Tashkent: 0.5, Almaty: 0.5, Baku: 0.5, Yerevan: 0.5,
+  Dakar: 0.5, Casablanca: 0.5, 'Addis Ababa': 0.5, Durban: 0.5,
   // hyper-late techno
   Berlin: 2.5, Leipzig: 2.5,
   // late (Germany / South & SE Europe / Caucasus)

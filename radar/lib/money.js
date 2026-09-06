@@ -44,7 +44,7 @@ const CURRENCY_BY_CITY = {
   Sydney: 'AUD', Melbourne: 'AUD', 'Cape Town': 'ZAR',
   // India / China / rest of Asia
   Mumbai: 'INR', Delhi: 'INR', Bangalore: 'INR', Goa: 'INR',
-  Shanghai: 'CNY', Beijing: 'CNY', Chengdu: 'CNY', 'Hong Kong': 'HKD',
+  Shanghai: 'CNY', Beijing: 'CNY', Chengdu: 'CNY', Shenzhen: 'CNY', 'Hong Kong': 'HKD',
   Taipei: 'TWD', 'Kuala Lumpur': 'MYR', Manila: 'PHP', Jakarta: 'IDR',
   // Middle East / Africa
   Beirut: 'USD', Cairo: 'EGP', Lagos: 'NGN', Nairobi: 'KES', Marrakech: 'MAD',
@@ -58,6 +58,13 @@ const CURRENCY_BY_CITY = {
   Brisbane: 'AUD', Perth: 'AUD', Auckland: 'NZD',
   // Europe (more) — Iceland/Georgia/Ukraine (Zagreb is euro, default)
   Reykjavik: 'ISK', Tbilisi: 'GEL', Kyiv: 'UAH',
+  // Russia + Central Asia + Caucasus
+  Moscow: 'RUB', 'Saint Petersburg': 'RUB', Tashkent: 'UZS', Almaty: 'KZT',
+  Baku: 'AZN', Yerevan: 'AMD',
+  // Africa (more) — Casablanca/Durban already MAD/ZAR
+  Dakar: 'XOF', 'Addis Ababa': 'ETB',
+  // South America (more) — Camboriú is real (BRL)
+  'Camboriú': 'BRL',
 };
 
 // symbol · pre (symbol before the number?) · rate (EUR→local) · step (rounding)
@@ -114,6 +121,13 @@ const CUR = {
   ISK: { code: 'ISK', symbol: 'kr',  pre: false, rate: 150,   step: 500 },
   GEL: { code: 'GEL', symbol: '₾',   pre: true,  rate: 2.9,   step: 5 },
   UAH: { code: 'UAH', symbol: '₴',   pre: true,  rate: 45,    step: 50 },
+  RUB: { code: 'RUB', symbol: '₽',   pre: false, rate: 95,    step: 100 },
+  UZS: { code: 'UZS', symbol: 'soʻm',pre: false, rate: 13500, step: 10000 },
+  KZT: { code: 'KZT', symbol: '₸',   pre: true,  rate: 540,   step: 500 },
+  AZN: { code: 'AZN', symbol: '₼',   pre: true,  rate: 1.85,  step: 5 },
+  AMD: { code: 'AMD', symbol: '֏',   pre: true,  rate: 420,   step: 500 },
+  XOF: { code: 'XOF', symbol: 'CFA ',pre: true,  rate: 656,   step: 500 },
+  ETB: { code: 'ETB', symbol: 'Br',  pre: false, rate: 135,   step: 50 },
 };
 
 export function currencyInfo(city) {

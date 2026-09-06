@@ -57,6 +57,14 @@ const CITY_OFFSET = {
   'Montevideo': -3, 'Cartagena': -5, 'Havana': -4, 'San Juan': -4,
   // Europe (more)
   'Reykjavik': 0, 'Kyiv': 3,
+  // Russia + Central Asia + Caucasus
+  'Moscow': 3, 'Saint Petersburg': 3, 'Tashkent': 5, 'Almaty': 5, 'Baku': 4, 'Yerevan': 4,
+  // Africa (more)
+  'Dakar': 0, 'Casablanca': 1, 'Addis Ababa': 3, 'Durban': 2,
+  // China (more)
+  'Shenzhen': 8,
+  // South America (more)
+  'Camboriú': -3,
 };
 export function cityTz(city) {
   if (CITY_OFFSET[city] !== undefined) return CITY_OFFSET[city];
