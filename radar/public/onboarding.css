@@ -167,8 +167,8 @@ button{font-family:inherit;color:inherit;border:none;background:none;cursor:poin
 
 /* ---------- cards (gender / frequency) ---------- */
 .cards{display:flex;flex-direction:column;gap:12px;margin-top:22px}
-/* line the helper text up with the option labels (which are inset 18px in the card) */
-.cards + .sub{padding-left:18px}
+/* centre the helper text under the option cards */
+.cards + .sub{text-align:center;margin-left:auto;margin-right:auto;padding-left:0}
 .opt{display:flex;align-items:center;gap:14px;width:100%;text-align:left;
   padding:17px 18px;border-radius:16px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line);
   transition:transform .13s var(--ease),box-shadow .15s,background .15s;color:var(--txt)}
