@@ -71,8 +71,10 @@ export function isClubLike(venue) {
 }
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-// Nights a club is typically open (the evening it belongs to): Thu, Fri, Sat.
-const CLUB_NIGHTS = new Set([4, 5, 6]);
+// Nights a club is typically open when we DON'T have its real Google hours —
+// Wed–Sun (closed Mon/Tue). This is a fallback estimate; real per-venue hours
+// override it once baked in.
+const CLUB_NIGHTS = new Set([0, 3, 4, 5, 6]);
 
 // Opening window [open, close] in local night-hours (close may exceed 24).
 function scheduleFor(venue) {

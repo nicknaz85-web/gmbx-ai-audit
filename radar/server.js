@@ -44,9 +44,11 @@ loadSnapshot();
 ensureMediaDir();
 seed();
 startSimulation();
-// background: resolve every venue's real Google location so map pins are exact
-if (gpEnabled()) gpWarmAll(db.venues).catch(() => {});
-// background: pre-resolve every venue's Instagram profile (throttled)
+// Coordinates, ratings, reviews and hours are BAKED IN (lib/resolved.js,
+// baked-places.js), so we no longer sweep Google Places on boot — that sweep
+// burned the daily API quota (and then failed). Set PLACES_LIVE=1 to re-enable.
+if (gpEnabled() && process.env.PLACES_LIVE) gpWarmAll(db.venues).catch(() => {});
+// background: pre-resolve every venue's Instagram profile (throttled; not Google quota)
 gpWarmIG(db.venues).catch(() => {});
 
 // ---- helpers ----
@@ -250,9 +252,9 @@ async function api(req, res, url) {
         photo: ((s.media || []).find((m) => m.type === 'image') || {}).url || null,
       };
     });
-    // warm real open/closed + ratings for a few stale venues in the background
-    // (capped, non-blocking — the response goes out immediately)
-    if (gpEnabled()) gpRefreshStale(db.venues, 8).catch(() => {});
+    // (baked data covers ratings/hours; live refresh gated behind PLACES_LIVE to
+    // avoid burning the daily Google quota)
+    if (gpEnabled() && process.env.PLACES_LIVE) gpRefreshStale(db.venues, 8).catch(() => {});
     const areas = db.neighborhoods.map((h) => areaSnapshot(h, ref));
     const cities = new Set(db.venues.map((v) => v.city));
     return send(res, 200, {
@@ -283,7 +285,7 @@ async function api(req, res, url) {
     const v = venueById(seg[2]);
     if (!v) return send(res, 404, { error: 'not found' });
     if (btEnabled()) { try { await btRefresh(v); } catch (e) {} } // opportunistic real busyness
-    if (gpEnabled()) { try { await gpRefresh(v); } catch (e) {} }  // authoritative open/closed + rating
+    if (gpEnabled() && process.env.PLACES_LIVE) { try { await gpRefresh(v); } catch (e) {} }  // baked data covers this; live gated
     return send(res, 200, venueSnapshot(v, now()));
   }
 
