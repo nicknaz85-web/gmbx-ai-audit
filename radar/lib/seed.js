@@ -7,6 +7,7 @@ import {
   now, MIN, anonHash, seededRand, nightHour, dayOfWeek, nightCurve, randId,
 } from './util.js';
 import { formatMoney } from './money.js';
+import { RESOLVED } from './resolved.js'; // real Google coords baked in (accurate pins)
 
 // Athens nightlife districts. `center` drives the stylized map projection and
 // the 400m cluster/proximity maths; the model is city-agnostic — add rows for
@@ -473,7 +474,6 @@ const VENUE_DEFS = [
   // BELGIUM — Brussels
   ['Fuse',             'brussels', 'Dancing', 'Club', 700, 2.0, 17, 14, { mult: 1.1,  trend: 0.9 }, true],
   ['C12',              'brussels', 'Dancing', 'Club', 500, 2.0, 14, 14, { mult: 1.05, trend: 0.8 }, false],
-  ['Spirito',          'brussels', 'Dancing', 'Club', 900, 1.4, 15, 16, { mult: 1.0,  trend: 0.6 }, false],
   // BELGIUM — Antwerp
   ['Ampere',           'antwerp', 'Dancing', 'Club', 500, 1.8, 14, 13, { mult: 1.05, trend: 0.8 }, true],
   ["Cafe d'Anvers",    'antwerp', 'Dancing', 'Club', 600, 1.8, 15, 13, { mult: 1.05, trend: 0.8 }, false],
@@ -994,7 +994,7 @@ export function seed() {
       // fallback position only — a real Google location overrides this for
       // matched venues. Keep it tight around the (on-land) district centre so
       // unmatched pins don't scatter into rivers or the sea.
-      coords: jitter(n.center, name, 120),
+      coords: RESOLVED[id] || jitter(n.center, name, 120),
       sim,
     };
   });

@@ -196,6 +196,7 @@ class RadarMap {
     }
     el.addEventListener('click', (ev) => { ev.stopPropagation(); openVenue(v.id); });
     const wrap = document.createElement('div'); wrap.className = 'pin-wrap'; wrap.appendChild(el);
+    wrap.style.zIndex = '4'; // venue pins sit ABOVE neighbourhood labels
     const marker = new maplibregl.Marker({ element: wrap, anchor: 'bottom', opacityWhenCovered: '0' }).setLngLat([v.coords.lng, v.coords.lat]);
     marker._lng = v.coords.lng; marker._lat = v.coords.lat; marker._el = el; marker._vid = v.id;
     return marker;
@@ -212,6 +213,7 @@ class RadarMap {
     const band = bandKey(a.nightScore);
     const el = document.createElement('div');
     el.className = 'hz-label';
+    el.style.zIndex = '1'; // neighbourhood labels sit BEHIND venue pins
     el.innerHTML = `<div class="area-name">${esc(a.name)}</div><div class="area-badge bg-${band}">${a.hotzone ? '🔥 ' : ''}${esc(a.label)} · ${a.nightScore}</div>`;
     el.addEventListener('click', (ev) => { ev.stopPropagation(); openArea(a.id); });
     return new maplibregl.Marker({ element: el, anchor: 'center', opacityWhenCovered: '0' }).setLngLat([a.center.lng, a.center.lat]);

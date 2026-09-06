@@ -313,6 +313,8 @@ export async function warmInstagram(venues, delayMs = 1200) {
 // Verified Instagram handles for venues whose generic names defeat auto-search
 // (mostly the LGBTQ+ additions). Keyed by exact venue name; these always win.
 const IG_HANDLES = {
+  // Hamburg
+  'Uebel & Gefährlich': 'uebel_und_gefaehrlich', 'Docks': 'docks.hamburg', 'PAL': 'pal.hamburg',
   'Heaven': 'heavenlgbtclub', 'Sodade 2': 'sodade2', 'BeQueer': 'bequeer_athens',
   "JackieO' Mykonos": 'jackieomykonos', 'Babylon Mykonos': 'babylon.mykonos',
   'SchwuZ': 'schwuz', 'Lab.oratory': '_lab_oratory_', 'Le Dépôt': 'ledepotparis',
