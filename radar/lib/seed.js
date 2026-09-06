@@ -950,12 +950,59 @@ const SEASONAL = {
   'PK Cocktail Bar':     { from: 5, to: 10, label: 'Summer only' },
 };
 
+// ---- Peak-time model -------------------------------------------------------
+// Peak "night hour" (24 = midnight, 26 = 2 AM, 28 = 4 AM). Real peak times track
+// the venue TYPE and the local NIGHTLIFE CULTURE (Berlin techno peaks ~4 AM,
+// London clubs ~1 AM, Madrid ~3 AM, rooftops ~9 PM). Hours per city relative to a
+// standard-European baseline; everything not listed = 0 (standard).
+const CITY_NIGHT = {
+  // hyper-late techno
+  Berlin: 2.5, Leipzig: 2.5,
+  // late (Germany / South & SE Europe / Caucasus)
+  Munich: 1.5, Hamburg: 1.5, Cologne: 1.5, Frankfurt: 1.5,
+  Athens: 1.5, Thessaloniki: 1.5, Mykonos: 1.5, Santorini: 1.5, Heraklion: 1.5,
+  Chania: 1.5, Patras: 1.5, Rhodes: 1.5, Corfu: 1.5,
+  Madrid: 1.5, Barcelona: 1.5, Valencia: 1.5, Seville: 1.5, Ibiza: 1.5,
+  Belgrade: 1.5, Tbilisi: 1.5,
+  // +1 (Italy / Portugal / Balkans / Turkey / Middle East / East Asia / Caribbean)
+  Rome: 1, Milan: 1, Lisbon: 1, Porto: 1, Budva: 1, Sarajevo: 1, Zagreb: 1,
+  Ljubljana: 1, Bucharest: 1, Sofia: 1, Tirana: 1, Pristina: 1, 'Chișinău': 1,
+  Istanbul: 1, Beirut: 1, 'Tel Aviv': 1, Tokyo: 1, Osaka: 1, Seoul: 1,
+  Havana: 1, 'San Juan': 1, Lagos: 1,
+  // Latin America (very late in BA)
+  'Buenos Aires': 2, 'São Paulo': 1, 'Rio de Janeiro': 1, 'Bogotá': 1,
+  'Medellín': 1, Lima: 1, Santiago: 1, Montevideo: 1, Cartagena: 1,
+  // slightly late
+  Mumbai: 0.5, Delhi: 0.5, Bangalore: 0.5, Goa: 0.5, Dubai: 0.5,
+  'Mexico City': 0.5, 'Cancún': 0.5, Tulum: 0.5, 'Panama City': 0.5, 'San José': 0.5,
+  'Cape Town': 0.5, Johannesburg: 0.5, Nairobi: 0.5, Marrakech: 0.5, Cairo: 0.5, Accra: 0.5,
+  // earlier close (UK / Ireland / North America / Oceania)
+  London: -0.5, Manchester: -0.5, Glasgow: -0.5, Leeds: -0.5, Birmingham: -0.5,
+  Liverpool: -0.5, Bristol: -0.5, Newcastle: -0.5, Edinburgh: -0.5, Sheffield: -0.5,
+  Cardiff: -0.5, Belfast: -0.5, Dublin: -0.5,
+  'New York': -0.5, Miami: -0.5, 'Los Angeles': -0.5, 'Las Vegas': -0.5, Chicago: -0.5,
+  'San Francisco': -0.5, Detroit: -0.5, Washington: -0.5, Austin: -0.5,
+  'New Orleans': -0.5, Atlanta: -0.5, Montreal: -0.5, Toronto: -0.5, Vancouver: -0.5,
+  Sydney: -0.5, Melbourne: -0.5, Brisbane: -0.5, Perth: -0.5, Auckland: -0.5,
+};
+function peakHourFor(kind, category, city, seedOffset) {
+  // strongly-early seed venues (open-air / sunset / beach day parties) stay early
+  if (seedOffset <= -0.7) return 20.5; // ~8:30 PM
+  const base = category === 'Late Night' ? 26.5
+    : kind === 'Club' ? 25.5     // ~1:30 AM
+    : kind === 'Rooftop' ? 21.0  // ~9 PM
+    : kind === 'Venue' ? 22.0    // live gigs earlier
+    : kind === 'Wine Bar' ? 22.5
+    : 23.5;                      // Bar / Cocktails ~11:30 PM
+  return Math.min(29, Math.max(20, base + (CITY_NIGHT[city] || 0)));
+}
+
 export function seed() {
   db.neighborhoods = NEIGHBORHOODS.map((n) => ({ ...n }));
   const seenIds = new Set();
   db.venues = VENUE_DEFS.map(([name, hood, category, kind, capacity, peakOffset, peakRate, price, sim, verified, lgbtq, ig], i) => {
     const n = NEIGHBORHOODS.find((x) => x.id === hood);
-    const peakHour = 24.5 + peakOffset; // ~00:30 baseline, offset per venue
+    const peakHour = peakHourFor(kind, category, n.city, peakOffset); // culture + type aware
     // stable id from name+hood so adding/removing venues never shifts other ids
     let id = slugify(name) + '_' + hood;
     while (seenIds.has(id)) id += '_2';
