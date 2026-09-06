@@ -10,6 +10,7 @@ import { formatMoney } from './money.js';
 import { RESOLVED } from './resolved.js'; // real Google coords baked in (accurate pins)
 import { BAKED_PLACES } from './baked-places.js'; // real ratings + reviews + descriptions
 import { BAKED_INSTAGRAM } from './baked-instagram.js'; // resolved Instagram profile URLs
+import { BAKED_HOURS } from './baked-hours.js'; // real weekly opening-hours schedules
 
 // Athens nightlife districts. `center` drives the stylized map projection and
 // the 400m cluster/proximity maths; the model is city-agnostic — add rows for
@@ -1113,6 +1114,15 @@ export function seed() {
   for (const v of db.venues) {
     const b = BAKED_PLACES[v.id];
     if (b && !db.places[v.id]) db.places[v.id] = { ...b, confident: true, resolvedTs: t0, detailsTs: 0 };
+  }
+  // real weekly opening hours → the app computes open/closed live from these
+  // periods + city timezone (correct at any hour), instead of the schedule guess
+  for (const v of db.venues) {
+    const hrs = BAKED_HOURS[v.id];
+    if (!hrs) continue;
+    if (!db.places[v.id]) db.places[v.id] = { confident: true, resolvedTs: t0, detailsTs: t0 };
+    if (Array.isArray(hrs.periods)) db.places[v.id].periods = hrs.periods;
+    if (hrs.businessStatus) db.places[v.id].businessStatus = hrs.businessStatus;
   }
   // real Instagram URLs so the button links straight to the profile (no scraping)
   for (const v of db.venues) {

@@ -139,6 +139,46 @@ function scheduleOpen(venue, ref) {
   return { open, source: 'schedule', opensLabel, closesLabel: fmtHour(closeH) };
 }
 
+const WEEK_MIN = 7 * 1440;
+// Open/closed computed from real Google weekly periods (baked in), evaluated in
+// the venue's local time. `periods` = [{ open:{day,hour,minute}, close:{...} }],
+// day 0=Sunday. Empty periods + operational = open 24/7.
+function openFromPeriods(periods, venue, ref) {
+  const tz = cityTz(venue.city);
+  const d = new Date(ref + tz * 3600 * 1000);
+  const dow = d.getUTCDay();
+  const nowWM = dow * 1440 + d.getUTCHours() * 60 + d.getUTCMinutes();
+
+  if (!periods.length) { // Google returns no periods for always-open venues
+    return { open: true, source: 'google', opensLabel: null, closesLabel: null };
+  }
+
+  let open = false, curCloseWM = null;
+  let next = null; // soonest upcoming open: { delta, day, hour }
+  for (const p of periods) {
+    if (!p.open) continue;
+    const oWM = p.open.day * 1440 + p.open.hour * 60 + (p.open.minute || 0);
+    let cWM = p.close
+      ? p.close.day * 1440 + p.close.hour * 60 + (p.close.minute || 0)
+      : oWM + 1440;
+    if (cWM <= oWM) cWM += WEEK_MIN; // wraps past midnight / end of week
+    for (const t of [nowWM, nowWM + WEEK_MIN]) {
+      if (t >= oWM && t < cWM) { open = true; curCloseWM = cWM; }
+    }
+    const delta = ((oWM - nowWM) % WEEK_MIN + WEEK_MIN) % WEEK_MIN;
+    if (!next || delta < next.delta) next = { delta, day: p.open.day, hour: p.open.hour + (p.open.minute || 0) / 60 };
+  }
+
+  if (open) {
+    return { open: true, source: 'google', opensLabel: null, closesLabel: fmtHour((curCloseWM % 1440) / 60) };
+  }
+  // closed now → label the next opening (prefix the weekday when it's not today)
+  const opensLabel = next
+    ? (next.day !== dow ? DAY_NAMES[next.day] + ' ' : '') + fmtHour(next.hour)
+    : null;
+  return { open: false, source: 'google', opensLabel, closesLabel: null };
+}
+
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'];
 // Local calendar month (1–12) for the venue's city.
@@ -167,6 +207,15 @@ export function resolveOpen(venue, ref, place) {
       closesLabel: null,
     };
   }
+  // permanently/temporarily closed per Google → never open
+  if (place && (place.businessStatus === 'CLOSED_PERMANENTLY' || place.businessStatus === 'CLOSED_TEMPORARILY')) {
+    return { open: false, source: 'closed', opensLabel: 'permanently closed', closesLabel: null, permanentlyClosed: true };
+  }
+  // real weekly hours (baked or live) → compute open/closed from the schedule
+  if (place && Array.isArray(place.periods)) {
+    return openFromPeriods(place.periods, venue, ref);
+  }
+  // live openNow snapshot (only from a fresh confident live fetch)
   if (place && place.confident && typeof place.openNow === 'boolean') {
     const sched = scheduleFor(venue);
     return {
