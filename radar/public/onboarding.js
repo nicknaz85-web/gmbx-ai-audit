@@ -91,6 +91,7 @@
   function faceSrc() {
     if (D.gender === 'Woman') return '/clubbit-face-f.png';
     if (D.gender === 'Man') return '/clubbit-face-m.png';
+    if (D.gender === 'Non-binary') return '/clubbit-face-nb.png';
     return mascotSrc();
   }
   // Corner mascots now alternate man/woman per step (set in the HTML), so we no

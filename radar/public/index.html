@@ -104,7 +104,7 @@
   <script src="/app.js"></script>
   <script>/* carry the Clubbit onboarding photo (or the gender-matched mascot) into the header avatar */
   try{var _p=JSON.parse(localStorage.getItem('clubbit_profile'));if(_p){var _a=document.querySelector('.avatar img');
-    var _src=_p.profilePhoto||(_p.gender==='Woman'?'/clubbit-face-f.png':_p.gender==='Man'?'/clubbit-face-m.png':null);
+    var _src=_p.profilePhoto||(_p.gender==='Woman'?'/clubbit-face-f.png':_p.gender==='Man'?'/clubbit-face-m.png':_p.gender==='Non-binary'?'/clubbit-face-nb.png':null);
     if(_a&&_src)_a.src=_src;}}catch(e){}</script>
 </body>
 </html>

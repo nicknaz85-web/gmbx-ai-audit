@@ -1299,7 +1299,7 @@ function editProfile() {
     // header avatar may switch if gender changed and there's no photo
     if (!next.profilePhoto) {
       const hdr = document.querySelector('.avatar img');
-      if (hdr) hdr.src = gender === 'Woman' ? '/clubbit-face-f.png' : gender === 'Man' ? '/clubbit-face-m.png' : '/clubbit-mascot.png';
+      if (hdr) hdr.src = gender === 'Woman' ? '/clubbit-face-f.png' : gender === 'Man' ? '/clubbit-face-m.png' : gender === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png';
     }
     close(); toast('Profile updated ✓'); renderProfile();
   };
@@ -1317,7 +1317,7 @@ async function renderProfile() {
   const media = me.media || [];
   const p = loadLocalProfile();
   const name = p.firstName || 'You';
-  const ava = p.profilePhoto || (p.gender === 'Woman' ? '/clubbit-face-f.png' : p.gender === 'Man' ? '/clubbit-face-m.png' : '/clubbit-mascot.png');
+  const ava = p.profilePhoto || (p.gender === 'Woman' ? '/clubbit-face-f.png' : p.gender === 'Man' ? '/clubbit-face-m.png' : p.gender === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png');
   const subBits = [];
   if (p.calculatedAge) subBits.push(p.calculatedAge);
   if (p.gender) subBits.push(profGender(p.gender));
@@ -1365,7 +1365,7 @@ async function renderProfile() {
     if (prof.public) prof.public.profilePhoto = null;
     saveProfileEverywhere(prof);
     const hdr = document.querySelector('.avatar img');
-    if (hdr) hdr.src = prof.gender === 'Woman' ? '/clubbit-face-f.png' : prof.gender === 'Man' ? '/clubbit-face-m.png' : '/clubbit-mascot.png';
+    if (hdr) hdr.src = prof.gender === 'Woman' ? '/clubbit-face-f.png' : prof.gender === 'Man' ? '/clubbit-face-m.png' : prof.gender === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png';
     toast('Photo reset to default ✓');
     renderProfile();
   };
