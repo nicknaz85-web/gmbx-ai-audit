@@ -231,6 +231,8 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
   else if (owner) fullnessFrac = clamp(0.55 * ((OWNER_NUM[owner.status] ?? 55) / 100) + 0.45 * clamp(load));
   else if (bt) fullnessFrac = clamp(0.65 * (bt.busyness / 100) + 0.35 * clamp(load));
   else fullnessFrac = clamp(0.7 * clamp(load) + 0.3 * expFrac);
+  // A closed venue is empty — don't claim a shut club is 63% full.
+  if (closed) fullnessFrac = 0;
   const fullnessEst = round(fullnessFrac * 100);
 
   // QUEUE — blend a reported queue (community/owner) with an estimate from how full
@@ -298,7 +300,7 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     hot,
     momentum, // {M,state,label,arrow}
     pct,
-    fullness: { est: fullnessEst, low: clamp(fullnessEst - 8, 0, 100), high: clamp(fullnessEst + 7, 0, 100) },
+    fullness: { est: fullnessEst, low: closed ? 0 : clamp(fullnessEst - 8, 0, 100), high: closed ? 0 : clamp(fullnessEst + 7, 0, 100) },
     vibe: closed ? 'closed' : (consensus?.vibe || vibeFromFullness(fullnessEst)),
     source,
     open: openState.open,
