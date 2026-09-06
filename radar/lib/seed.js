@@ -9,6 +9,7 @@ import {
 import { formatMoney } from './money.js';
 import { RESOLVED } from './resolved.js'; // real Google coords baked in (accurate pins)
 import { BAKED_PLACES } from './baked-places.js'; // real ratings + reviews + descriptions
+import { BAKED_INSTAGRAM } from './baked-instagram.js'; // resolved Instagram profile URLs
 
 // Athens nightlife districts. `center` drives the stylized map projection and
 // the 400m cluster/proximity maths; the model is city-agnostic — add rows for
@@ -1112,6 +1113,13 @@ export function seed() {
   for (const v of db.venues) {
     const b = BAKED_PLACES[v.id];
     if (b && !db.places[v.id]) db.places[v.id] = { ...b, confident: true, resolvedTs: t0, detailsTs: 0 };
+  }
+  // real Instagram URLs so the button links straight to the profile (no scraping)
+  for (const v of db.venues) {
+    const ig = BAKED_INSTAGRAM[v.id];
+    if (!ig) continue;
+    if (!db.places[v.id]) db.places[v.id] = { confident: false, resolvedTs: t0, detailsTs: t0 };
+    db.places[v.id].instagram = ig;
   }
 
   // Only backfill if we have no persisted signals (fresh boot / empty snapshot).

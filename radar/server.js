@@ -269,13 +269,18 @@ async function api(req, res, url) {
     });
   }
 
-  // GET /api/ig/:id — resolve the venue's real Instagram profile (cached) and
-  // 302-redirect straight to it; fall back to a web search if we can't resolve.
+  // GET /api/ig/:id — 302-redirect to the venue's Instagram profile. Baked/pinned
+  // handles resolve instantly; otherwise a short live lookup, then a name-based
+  // handle guess so it ALWAYS lands on Instagram (never a Google search).
   if (method === 'GET' && seg[1] === 'ig' && seg[2]) {
     const v = venueById(seg[2]);
     let url = null;
-    if (v && gpEnabled()) { try { url = await gpEnsureIG(v); } catch (e) {} }
-    if (!url) url = 'https://www.google.com/search?q=' + encodeURIComponent(`${v ? v.name + ' ' + v.city : ''} instagram`);
+    if (v) { try { url = await Promise.race([gpEnsureIG(v), new Promise((r) => setTimeout(() => r(null), 2500))]); } catch (e) {} }
+    if (!url && v) {
+      const h = String(v.name).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '');
+      if (h) url = 'https://www.instagram.com/' + h + '/';
+    }
+    if (!url) url = 'https://www.instagram.com/';
     res.writeHead(302, { Location: url });
     return res.end();
   }
