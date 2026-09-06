@@ -348,9 +348,7 @@ const VENUE_DEFS = [
 
   // ITALY — Milan & Rome
   ['Amnesia Milano',  'navigli',  'Dancing', 'Club', 500, 1.6, 18, 18, { mult: 1.1,  trend: 0.8 }, true],
-  ['Volt',            'navigli',  'Dancing', 'Club', 350, 1.4, 14, 15, { mult: 0.95, trend: 0.7 }, false],
-  ['Goa Club',        'ostiense', 'Dancing', 'Club', 400, 1.8, 16, 15, { mult: 1.05, trend: 0.8 }, true],
-  ['Shari Vari',      'ostiense', 'Dancing', 'Club', 300, 1.0, 13, 15, { mult: 0.95, trend: 0.6 }, false],
+  ['Volt',            'navigli',  'Dancing', 'Club', 350, 1.4, 14, 15, { mult: 0.95, trend: 0.7 }, false],  ['Shari Vari',      'ostiense', 'Dancing', 'Club', 300, 1.0, 13, 15, { mult: 0.95, trend: 0.6 }, false],
 
   // FRANCE — Paris
   ['Rex Club',        'oberkampf', 'Dancing', 'Club', 450, 1.8, 17, 15, { mult: 1.05, trend: 0.9 }, true],
@@ -390,7 +388,6 @@ const VENUE_DEFS = [
   ['Bubble Pub',          'pristina', 'Bars',     'Bar',  250, 0.2, 12, 0,  { mult: 0.9,  trend: 0.5 }, false],
 
   // ALBANIA — Tirana (Blloku)
-  ['Folie Terrace',   'blloku', 'Rooftops', 'Rooftop', 600, 1.0, 16, 15, { mult: 1.05, trend: 0.7 }, true],
   ['Lollipop',        'blloku', 'Dancing',  'Club',    400, 1.4, 14, 12, { mult: 1.0,  trend: 0.7 }, false],
 
   // HUNGARY — Budapest (District VII)
@@ -442,9 +439,7 @@ const VENUE_DEFS = [
   // GERMANY — more Berlin & Munich
   ['KitKatClub',       'kreuzberg',      'Dancing', 'Club', 700, 2.2, 18, 20, { mult: 1.1,  trend: 0.9 }, true],
   ['://about blank',   'friedrichshain', 'Dancing', 'Club', 800, 2.2, 19, 15, { mult: 1.1,  trend: 0.9 }, false],
-  ['Kater Blau',       'friedrichshain', 'Dancing', 'Club', 700, 2.0, 17, 15, { mult: 1.05, trend: 0.9 }, true],
-  ['Harry Klein',      'sonnenstrasse',  'Dancing', 'Club', 400, 1.8, 14, 12, { mult: 1.0,  trend: 0.8 }, true],
-  ['Rote Sonne',       'sonnenstrasse',  'Dancing', 'Club', 400, 1.8, 13, 12, { mult: 1.0,  trend: 0.8 }, false],
+  ['Kater Blau',       'friedrichshain', 'Dancing', 'Club', 700, 2.0, 17, 15, { mult: 1.05, trend: 0.9 }, true],  ['Rote Sonne',       'sonnenstrasse',  'Dancing', 'Club', 400, 1.8, 13, 12, { mult: 1.0,  trend: 0.8 }, false],
   // GERMANY — Hamburg
   ['Uebel & Gefährlich','hamburg-stpauli','Dancing','Club', 600, 1.6, 16, 12, { mult: 1.05, trend: 0.8 }, true],
   ['PAL',              'hamburg-stpauli', 'Dancing', 'Club', 400, 1.8, 14, 12, { mult: 1.0,  trend: 0.8 }, false],
@@ -463,9 +458,7 @@ const VENUE_DEFS = [
   ['Djoon',            'oberkampf', 'Dancing', 'Club', 400, 1.6, 14, 15, { mult: 1.0,  trend: 0.7 }, false],
   ['Glazart',          'pigalle',   'Dancing', 'Club', 600, 1.4, 14, 12, { mult: 1.0,  trend: 0.7 }, false],
   // FRANCE — Lyon
-  ['Le Sucre',         'lyon', 'Dancing', 'Club', 600, 1.2, 16, 14, { mult: 1.05, trend: 0.8 }, true],
-  ['DV1 Club',         'lyon', 'Dancing', 'Club', 500, 1.6, 14, 12, { mult: 1.0,  trend: 0.7 }, false],
-  // FRANCE — Marseille
+  ['Le Sucre',         'lyon', 'Dancing', 'Club', 600, 1.2, 16, 14, { mult: 1.05, trend: 0.8 }, true],  // FRANCE — Marseille
   ['R2 Rooftop',       'marseille', 'Rooftops', 'Rooftop', 500, -0.5, 14, 12, { mult: 0.95, trend: 0.4 }, true],
   ['Le Trolleybus',    'marseille', 'Dancing',  'Club',    500, 1.4,  13, 10, { mult: 1.0,  trend: 0.7 }, false],
   // FRANCE — Nice
@@ -578,9 +571,7 @@ const VENUE_DEFS = [
   // DENMARK — Copenhagen
   ['Culture Box',     'copenhagen', 'Dancing', 'Club', 500, 2.0, 15, 15, { mult: 1.05, trend: 0.8 }, true],
   ['Rust',            'copenhagen', 'Dancing', 'Club', 600, 1.6, 15, 14, { mult: 1.05, trend: 0.7 }, false],
-  ['VEGA',            'copenhagen', 'Live',    'Venue',1500,0.8, 17, 15, { mult: 1.0,  trend: 0.5 }, true],
-  ['KB18',            'copenhagen', 'Dancing', 'Club', 300, 2.2, 12, 12, { mult: 1.0,  trend: 0.9 }, false],
-  // BULGARIA — Sofia
+  ['VEGA',            'copenhagen', 'Live',    'Venue',1500,0.8, 17, 15, { mult: 1.0,  trend: 0.5 }, true],  // BULGARIA — Sofia
   ['Yalta Club',      'sofia', 'Dancing', 'Club', 700, 1.8, 16, 12, { mult: 1.1,  trend: 0.8 }, true],
   ['Chervilo',        'sofia', 'Dancing', 'Club', 600, 1.6, 15, 10, { mult: 1.05, trend: 0.7 }, false],
   ['Bedroom Premium', 'sofia', 'Dancing', 'Club', 500, 1.4, 14, 12, { mult: 1.0,  trend: 0.6 }, false],
@@ -639,9 +630,7 @@ const VENUE_DEFS = [
   // HUNGARY — Budapest
   ['AlterEgo',         'erzsebetvaros', 'Dancing', 'Club', 300, 1.6, 13, 10, { mult: 1.0, trend: 0.7 }, true,  true],
   // POLAND — Warsaw & Kraków
-  ['Ramona',           'srodmiescie', 'Bars', 'Bar', 250, 0.6, 12, 0, { mult: 0.95, trend: 0.6 }, false, true],
-  ['Cocon',            'krakow-stare', 'Dancing', 'Club', 300, 1.6, 12, 10, { mult: 1.0, trend: 0.7 }, true, true],
-  // GERMANY — Munich, Hamburg, Frankfurt
+  ['Ramona',           'srodmiescie', 'Bars', 'Bar', 250, 0.6, 12, 0, { mult: 0.95, trend: 0.6 }, false, true],  // GERMANY — Munich, Hamburg, Frankfurt
   ['NY.Club',          'sonnenstrasse', 'Dancing', 'Club', 350, 1.6, 12, 10, { mult: 1.0, trend: 0.7 }, true, true],
   ['Wunderbar',        'hamburg-stpauli', 'Bars', 'Bar', 180, 0.4, 11, 0, { mult: 0.9, trend: 0.5 }, false, true],
   ["Lucky's Manhattan", 'frankfurt-city', 'Bars', 'Bar', 180, 0.4, 11, 0, { mult: 0.9, trend: 0.5 }, false, true],
@@ -652,9 +641,7 @@ const VENUE_DEFS = [
   // FRANCE — Nice & Marseille
   ['Le Glam',          'nice', 'Dancing', 'Club', 300, 1.6, 12, 10, { mult: 1.0, trend: 0.7 }, true, true],
   ['MP Bar',           'marseille', 'Bars', 'Bar', 200, 0.5, 11, 0, { mult: 0.9, trend: 0.6 }, true, true],
-  // NETHERLANDS — Amsterdam
-  ['Reality Bar',      'amsterdam', 'Bars', 'Bar', 180, 0.4, 11, 0, { mult: 0.9, trend: 0.6 }, false, true],
-  // SLOVENIA — Ljubljana
+  // NETHERLANDS — Amsterdam  // SLOVENIA — Ljubljana
   ['Klub Tiffany',     'ljubljana', 'Dancing', 'Club', 300, 1.6, 12, 8, { mult: 1.0, trend: 0.7 }, true, true],
 
   // ============ WORLDWIDE ============
@@ -718,9 +705,7 @@ const VENUE_DEFS = [
   ['Club La Feria',       'santiago-bel', 'Dancing', 'Club', 500, 2.0, 14, 14, { mult: 1.05, trend: 0.8 }, true],
   ['Blondie',             'santiago-bel', 'Dancing', 'Club', 700, 1.6, 15, 12, { mult: 1.05, trend: 0.7 }, false],
   // Asia — Thailand
-  ['Sing Sing Theater',   'bangkok-sukh', 'Dancing', 'Club', 500, 1.6, 15, 15, { mult: 1.05, trend: 0.8 }, true],
-  ['Beam',                'bangkok-sukh', 'Dancing', 'Club', 500, 2.0, 15, 15, { mult: 1.1,  trend: 0.9 }, true],
-  ['Levels Club',         'bangkok-sukh', 'Dancing', 'Club', 700, 1.6, 16, 18, { mult: 1.05, trend: 0.7 }, false],
+  ['Sing Sing Theater',   'bangkok-sukh', 'Dancing', 'Club', 500, 1.6, 15, 15, { mult: 1.05, trend: 0.8 }, true],  ['Levels Club',         'bangkok-sukh', 'Dancing', 'Club', 700, 1.6, 16, 18, { mult: 1.05, trend: 0.7 }, false],
   // Asia — Japan
   ['WOMB',                'tokyo-shibuya', 'Dancing', 'Club', 1000, 2.0, 18, 25, { mult: 1.15, trend: 0.9 }, true],
   ['Sound Museum Vision', 'tokyo-shibuya', 'Dancing', 'Club', 1500, 1.8, 20, 25, { mult: 1.1, trend: 0.8 }, true],
