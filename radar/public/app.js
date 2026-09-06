@@ -702,7 +702,8 @@ function renderVenue(v) {
         <div class="vs">Est. ${v.fullness.low}–${v.fullness.high}% capacity</div></div>
       <div class="stat"><div class="k">Momentum</div><div class="v ${mc}">${momDir ? '+' : ''}${v.momentum.M}</div>
         <div class="mom-meter"><div class="mom-fill" style="${momDir ? 'left:50%' : 'right:50%;left:auto'};width:${momPct}%;background:${momDir ? 'var(--green)' : 'var(--red)'}"></div></div></div>
-      <div class="stat"><div class="k">Queue</div><div class="v">${queueText(v.queue || 'none')}</div></div>
+      <div class="stat"><div class="k">Queue</div><div class="v">${queueText(v.queue || 'none')}</div>
+        <div class="vs">${v.open === false ? 'closed now' : (v.queueEstimated ? 'estimated · varies by night' : 'reported')}</div></div>
       <div class="stat"><div class="k">Entry</div><div class="v">${entryText(v)}</div>
         ${v.special ? `<div class="vs c-busy">${esc(v.special)}</div>` : `<div class="vs">${v.entryEstimated ? 'typical · varies by night' : 'reported'}</div>`}</div>
       <div class="stat"><div class="k">Music</div><div class="v" style="font-size:15px">${esc(v.music || '—')}</div></div>

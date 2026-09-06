@@ -121,6 +121,29 @@ function vibeFromFullness(f) {
   return 'dead';
 }
 
+// Estimated door queue when nobody has reported one. Grows non-linearly with how
+// full the room is, scaled by "door pressure" — clubs, pricier/selective doors and
+// big popular rooms build lines; a quiet bar rarely does. Returns a bucket that
+// matches the reported-queue vocabulary plus a rough minute estimate.
+function estimateQueue(venue, fullnessFrac) {
+  const f = clamp(fullnessFrac);
+  let door = 0;
+  const isClub = venue.kind === 'Club' || venue.category === 'Dancing';
+  if (isClub) door += 1;
+  if ((venue.price || 0) >= 15) door += 0.6;
+  if ((venue.price || 0) >= 25) door += 0.7;
+  if (venue.peakRate >= 14) door += 0.5;   // popular room
+  if (venue.peakRate >= 20) door += 0.5;   // marquee room
+  const mins = Math.round((f ** 1.6) * (10 + door * 12));
+  let bucket;
+  if (mins < 4) bucket = 'none';
+  else if (mins < 12) bucket = '<10';
+  else if (mins < 22) bucket = '10-20';
+  else if (mins < 32) bucket = '20-30';
+  else bucket = '30+';
+  return { bucket, mins };
+}
+
 // ---- the full derived snapshot for one venue ----
 export function venueSnapshot(venue, ref = now(), opts = {}) {
   if (typeof venue === 'string') venue = venueById(venue);
@@ -210,6 +233,13 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
   else fullnessFrac = clamp(0.7 * clamp(load) + 0.3 * expFrac);
   const fullnessEst = round(fullnessFrac * 100);
 
+  // QUEUE — prefer a reported queue (community/owner); otherwise estimate one from
+  // how full the room is + door pressure, so busy clubs don't all read "No queue".
+  const reportedQueue = consensus?.queue || owner?.queue || null;
+  const queueEst = estimateQueue(venue, fullnessFrac);
+  const queue = closed ? 'none' : (reportedQueue || queueEst.bucket);
+  const queueEstimated = !closed && !reportedQueue;
+
   // recent signals (fresh check-ins + reports + pulses)
   const recentCheckins = db.checkins.filter((c) => c.venueId === venue.id && c.accepted && isFresh(ageMinutes(c.ts, ref))).length;
   const recentReports = freshReports(venue.id, ref).length;
@@ -273,7 +303,9 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     recentCheckins,
     report: consensus,
     owner: owner ? { ...owner, ageMin: round(ageMinutes(owner.ts, ref)) } : null,
-    queue: consensus?.queue || owner?.queue || null,
+    queue,
+    queueEstimated,
+    queueEstMin: queueEstimated ? queueEst.mins : null,
     entry: consensus?.entry ?? (venue.price || 0),
     entryLabel: formatMoney(consensus?.entry ?? (venue.price || 0), venue.city),
     currency: currencyInfo(venue.city),
