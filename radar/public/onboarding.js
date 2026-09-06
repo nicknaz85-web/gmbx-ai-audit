@@ -66,7 +66,9 @@
   // browser back → step back instead of leaving the app
   function history_pushState(name) { window.history.pushState({ cb: name }, ''); }
   window.addEventListener('popstate', () => {
-    if (current !== 'welcome' && history.length) { back(); window.history.pushState({}, ''); }
+    // signin sub-steps can go back even with no screen history to pop
+    const inAuthSub = (current === 'signin' && AUTH_BACK[currentAuthStep()]);
+    if (inAuthSub || (current !== 'welcome' && history.length)) { handleBack(); window.history.pushState({}, ''); }
     else window.history.pushState({}, '');
   });
 
@@ -131,7 +133,20 @@
   $$('[data-act="start"], [data-act="start2"]').forEach((b) => b.addEventListener('click', () => { haptic(); go('signin'); }));
 
   // ---- BACK buttons ----
-  $$('[data-act="back"]').forEach((b) => b.addEventListener('click', () => { haptic(8); back(); }));
+  // On the sign-in screen the sub-steps (choose → email → code/password) are
+  // toggled in place, so a plain back() would jump all the way out to welcome.
+  // Step back through those sub-steps first, then fall through to real nav.
+  const AUTH_BACK = { authEmail: 'authChoose', authCode: 'authEmail', authNew: 'authCode', authSignin: 'authEmail' };
+  const AUTH_FOCUS = { authEmail: '#emailInput', authCode: '#codeInput', authSignin: '#siPass' };
+  function currentAuthStep() { return AUTH_STEPS.find((s) => { const el = $('#' + s); return el && !el.hidden; }); }
+  function handleBack() {
+    if (current === 'signin') {
+      const prev = AUTH_BACK[currentAuthStep()];
+      if (prev) { showAuthStep(prev, AUTH_FOCUS[prev] || null); return; }
+    }
+    back();
+  }
+  $$('[data-act="back"]').forEach((b) => b.addEventListener('click', () => { haptic(8); handleBack(); }));
 
   // ---- SIGN IN (email + password with email verification) ----
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
