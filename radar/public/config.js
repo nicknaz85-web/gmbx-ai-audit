@@ -8,7 +8,7 @@
      e.g.  window.CLUBBIT_API = 'https://api.clubbit.app';
    Set it once here before running `npx cap sync`.
    ============================================================ */
-window.CLUBBIT_API = window.CLUBBIT_API || '';
+window.CLUBBIT_API = window.CLUBBIT_API || 'https://clubbit.onrender.com';
 
 (function () {
   var base = (window.CLUBBIT_API || '').replace(/\/+$/, '');
