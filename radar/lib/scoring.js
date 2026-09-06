@@ -233,12 +233,22 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
   else fullnessFrac = clamp(0.7 * clamp(load) + 0.3 * expFrac);
   const fullnessEst = round(fullnessFrac * 100);
 
-  // QUEUE — prefer a reported queue (community/owner); otherwise estimate one from
-  // how full the room is + door pressure, so busy clubs don't all read "No queue".
+  // QUEUE — blend a reported queue (community/owner) with an estimate from how full
+  // the room is + door pressure. A reported "none" must not mask a busy-room line, so
+  // we take whichever wait is LONGER; a real reported wait (>none) is otherwise kept.
+  const QORDER = { none: 0, '<10': 1, '10-20': 2, '20-30': 3, '30+': 4 };
   const reportedQueue = consensus?.queue || owner?.queue || null;
   const queueEst = estimateQueue(venue, fullnessFrac);
-  const queue = closed ? 'none' : (reportedQueue || queueEst.bucket);
-  const queueEstimated = !closed && !reportedQueue;
+  let queue, queueEstimated;
+  if (closed) {
+    queue = 'none'; queueEstimated = false;
+  } else if (reportedQueue === 'guestlist') {
+    queue = 'guestlist'; queueEstimated = false;
+  } else if (reportedQueue && (QORDER[reportedQueue] ?? 0) >= QORDER[queueEst.bucket]) {
+    queue = reportedQueue; queueEstimated = false;          // reported wait is real and ≥ estimate
+  } else {
+    queue = queueEst.bucket; queueEstimated = true;         // estimate (covers reported "none" at a busy room)
+  }
 
   // recent signals (fresh check-ins + reports + pulses)
   const recentCheckins = db.checkins.filter((c) => c.venueId === venue.id && c.accepted && isFresh(ageMinutes(c.ts, ref))).length;
