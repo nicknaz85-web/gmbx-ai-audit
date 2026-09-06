@@ -588,9 +588,9 @@ function feedRows() {
       <div class="feed-ic" style="background:${BAND_COLOR[bandKey(v.radar.score)].core}">${emoji}</div>
       <div class="feed-txt"><b>${esc(text)}</b>
         <div class="fsub">${esc(sub)}</div>
-        <button class="feed-ig" onclick="event.stopPropagation();openInsta('${v.id}')">
+        ${v.instagram ? `<button class="feed-ig" onclick="event.stopPropagation();openInsta('${v.id}')">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/></svg>
-          What's on tonight</button></div>
+          What's on tonight</button>` : ''}</div>
     </div>`);
   };
   const openV = vs.filter((v) => v.open).sort((a, b) => b.radar.score - a.radar.score);
@@ -749,9 +749,9 @@ function renderVenue(v) {
       <button class="btn btn-primary full" onclick="takeMeThere('${v.id}')">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
         Take me there</button>
-      <button class="btn btn-ig full" onclick="openInsta('${v.id}')">
+      ${v.instagram ? `<button class="btn btn-ig full" onclick="openInsta('${v.id}')">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>
-        Instagram</button>
+        Instagram</button>` : ''}
       <button class="btn btn-save full${isSaved(v.id) ? ' on' : ''}" onclick="toggleSave('${v.id}')">${isSaved(v.id) ? '★ Saved' : '☆ Save for later'}</button>
       <button class="btn btn-ghost" onclick="startReport('${v.id}')">Report</button>
       <button class="btn btn-here" id="hereBtn" onclick="checkIn('${v.id}')">I'm here</button>

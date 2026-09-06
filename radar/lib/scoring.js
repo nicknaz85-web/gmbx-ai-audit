@@ -14,6 +14,12 @@ import {
   decayWeight, isFresh, nightHour, nightCurve, fmtHour, relevanceLabel,
 } from './util.js';
 
+// Cities where Instagram is blocked — no IG button for these venues.
+const NO_INSTAGRAM = new Set([
+  'Moscow', 'Saint Petersburg',                 // Russia
+  'Shanghai', 'Beijing', 'Chengdu', 'Shenzhen', // mainland China (Hong Kong is fine)
+]);
+
 const VIBE_NUM = { dead: 12, chill: 42, popping: 78, packed: 96 };
 const VIBE_ORDER = ['dead', 'chill', 'popping', 'packed'];
 const OWNER_NUM = { quiet: 20, busy: 55, popping: 80, packed: 95 };
@@ -149,7 +155,9 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
   // otherwise an Instagram search for the venue so the button always works.
   // Route Instagram through a server endpoint that resolves the real profile
   // on-demand (cached) and 302-redirects — so mobile lands on the actual page.
-  const instagram = '/api/ig/' + venue.id;
+  // Skipped where Instagram is blocked (Russia, mainland China) — venues there
+  // don't use it, so no button is shown.
+  const instagram = NO_INSTAGRAM.has(venue.city) ? null : '/api/ig/' + venue.id;
 
   // correct the category/kind from Google's real place type
   const rt = refineType(venue.category, venue.kind, place?.primaryType);
