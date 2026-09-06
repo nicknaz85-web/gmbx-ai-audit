@@ -120,13 +120,14 @@
   // show the gender-matched mascot as the default profile-picture preview
   // (until the user picks a real photo)
   function fillPhotoPreview() {
-    if (D.profilePhoto) { preview.innerHTML = `<img src="${D.profilePhoto}" alt="Your photo" />`; return; }
+    if (D.profilePhoto) { preview.innerHTML = `<img src="${D.profilePhoto}" alt="Your photo" />`; updatePhotoCta(); return; }
     // gendered faces are close-up portraits → let them fill the ring (cover);
     // the fallback standing mascot keeps its shrunk-and-contained look
     const gendered = (D.gender === 'Woman' || D.gender === 'Man' || D.gender === 'Non-binary');
     preview.innerHTML = gendered
       ? `<img src="${faceSrc()}" alt="Default avatar" />`
       : `<img class="ph-mascot" src="${faceSrc()}" alt="Default avatar" />`;
+    updatePhotoCta();
   }
 
   // ---- WELCOME ----
@@ -464,7 +465,15 @@
   // ============================================================
   const preview = $('#photoPreview');
   $('[data-act="choosePhoto"]').addEventListener('click', () => { haptic(); $('#fileChoose').click(); });
-  $('[data-act="skipPhoto"]').addEventListener('click', () => { haptic(); D.profilePhoto = null; persist(); go('done'); });
+  // single button: "Skip for now" until a photo is chosen, then "Continue"
+  $('[data-act="photoNext"]').addEventListener('click', () => {
+    haptic();
+    if (!D.profilePhoto) { D.profilePhoto = null; persist(); }
+    go('done');
+  });
+  function updatePhotoCta() {
+    const b = $('#photoCta'); if (b) b.textContent = D.profilePhoto ? 'Continue' : 'Skip for now';
+  }
   $('#fileChoose').addEventListener('change', onFile);
   function onFile(e) {
     const f = e.target.files && e.target.files[0]; e.target.value = '';
@@ -524,6 +533,7 @@
       const url = c.toDataURL('image/jpeg', 0.88);
       D.profilePhoto = url; persist();
       preview.innerHTML = `<img src="${url}" alt="Your photo" />`;
+      updatePhotoCta();
       crop.classList.remove('open'); cst = null; haptic(); toast('Looking good ✨');
     };
     im.src = cst.src;
