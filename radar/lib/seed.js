@@ -8,6 +8,7 @@ import {
 } from './util.js';
 import { formatMoney } from './money.js';
 import { RESOLVED } from './resolved.js'; // real Google coords baked in (accurate pins)
+import { BAKED_PLACES } from './baked-places.js'; // real ratings + reviews + descriptions
 
 // Athens nightlife districts. `center` drives the stylized map projection and
 // the 400m cluster/proximity maths; the model is city-agnostic — add rows for
@@ -983,6 +984,15 @@ export function seed() {
       sim,
     };
   });
+
+  // Seed the baked Google data (real ratings + review pros/cons + descriptions) so
+  // the app shows reviews without live resolution. Only where nothing is cached yet,
+  // so a live refresh (when the Places key works) can still improve it.
+  const t0 = now();
+  for (const v of db.venues) {
+    const b = BAKED_PLACES[v.id];
+    if (b && !db.places[v.id]) db.places[v.id] = { ...b, confident: true, resolvedTs: t0, detailsTs: 0 };
+  }
 
   // Only backfill if we have no persisted signals (fresh boot / empty snapshot).
   if (db.checkins.length === 0 && db.reports.length === 0) backfill();

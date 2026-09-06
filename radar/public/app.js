@@ -310,7 +310,18 @@ class RadarMap {
     } catch (e) { console.warn('marker sync failed', e); }
   }
   _buildMarkers() { this._syncMarkers(); }             // alias (filter/first build re-eval all)
-  _syncSoon() { clearTimeout(this._syncT); this._syncT = setTimeout(() => this._syncMarkers(), 120); }
+  // Throttle (not debounce): update markers WHILE zooming/panning so pins appear as
+  // you move, instead of only ~120ms after you stop.
+  _syncSoon() {
+    const t = Date.now();
+    if (this._lastSync && t - this._lastSync < 90) {
+      clearTimeout(this._syncT);
+      this._syncT = setTimeout(() => { this._lastSync = Date.now(); this._syncMarkers(); }, 90);
+      return;
+    }
+    this._lastSync = t;
+    this._syncMarkers();
+  }
   _updateLabelVis() { this._syncSoon(); }
   // When zoomed out, venue pins pile on top of each other. Fan any overlapping
   // cluster into a lollipop bouquet: every stem stays pinned to the SAME point
@@ -610,17 +621,29 @@ async function openVenue(id) {
 }
 function closeVenue() { $('#venueOverlay').hidden = true; S.activeVenue = null; S.activeVenueData = null; map.selected = null; map.refreshSelection && map.refreshSelection(); }
 
-// "What people say" — Google editorial blurb + pros/cons distilled from reviews
+// A short "what this place is" line, used when Google has no editorial blurb.
+function venueBlurb(v) {
+  const kindWord = { Club: 'nightclub', Bar: 'bar', Rooftop: 'rooftop bar', 'Wine Bar': 'wine bar', Venue: 'live-music venue' }[v.kind] || 'nightlife spot';
+  const music = (v.music && typeof v.music === 'string') ? v.music : null;
+  const g = v.lgbtq ? 'LGBTQ+ ' : '';
+  let s = `A ${g}${kindWord} in ${v.neighborhoodName}, ${v.city}`;
+  s += music ? ` — expect ${music}.` : (v.category === 'Dancing' ? ' for late-night dancing.' : '.');
+  return s;
+}
+// Description ("what it is") + "what people say" pros/cons distilled from Google reviews.
 function reviewsBlock(v) {
   const g = v.google, r = g && g.review;
-  if (!r || (!r.summary && !(r.pros || []).length && !(r.cons || []).length)) return '';
-  const meta = g.rating ? '★ ' + g.rating : '';
+  const desc = (r && r.summary) ? r.summary : venueBlurb(v);
+  const meta = g && g.rating ? `★ ${g.rating}${g.ratings ? ` (${g.ratings})` : ''}` : '';
+  const pros = (r && r.pros) || [], cons = (r && r.cons) || [];
+  const hasReviews = pros.length || cons.length;
   return `<div class="reviews">
-    <div class="section-h"><h3>What people say</h3><span class="count">${esc(meta)}</span></div>
-    ${r.summary ? `<div class="rev-sum">${esc(r.summary)}</div>` : ''}
-    ${(r.pros || []).length ? `<ul class="rev-list rev-pros">${r.pros.map(p => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}
-    ${(r.cons || []).length ? `<ul class="rev-list rev-cons">${r.cons.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
-    <div class="rev-src">Summarised from Google reviews</div>
+    <div class="section-h"><h3>About</h3>${meta ? `<span class="count">${esc(meta)}</span>` : ''}</div>
+    <div class="rev-sum">${esc(desc)}</div>
+    ${hasReviews ? `<div class="rev-people">What people say</div>` : ''}
+    ${pros.length ? `<ul class="rev-list rev-pros">${pros.map(p => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}
+    ${cons.length ? `<ul class="rev-list rev-cons">${cons.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
+    ${hasReviews ? `<div class="rev-src">Summarised from Google reviews</div>` : ''}
   </div>`;
 }
 
