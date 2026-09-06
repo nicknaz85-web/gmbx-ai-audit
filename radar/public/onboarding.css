@@ -279,7 +279,7 @@ button{font-family:inherit;color:inherit;border:none;background:none;cursor:poin
 
 /* compact corner mascot for card-heavy screens — sits BELOW the full-width
    progress bar, to the right of the heading */
-.mascot-corner{position:absolute;top:calc(70px + env(safe-area-inset-top));right:12px;width:78px;z-index:3;pointer-events:none}
+.mascot-corner{position:absolute;top:calc(46px + env(safe-area-inset-top));right:12px;width:78px;z-index:3;pointer-events:none}
 .mascot-corner img{filter:drop-shadow(0 8px 12px rgba(0,0,0,.45))}
 /* keep the heading clear of the mascot; the progress bar runs the full width */
 .screen:has(.mascot-corner) .h1{padding-right:84px}
