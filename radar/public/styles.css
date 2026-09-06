@@ -131,6 +131,15 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 
 /* pin markers (MapLibre sets position:absolute via .maplibregl-marker — don't override it) */
 .pin{cursor:pointer}
+/* zoomed-out count bubble (how many venues in a city) */
+.cluster{cursor:pointer;display:flex;align-items:center;justify-content:center;
+  min-width:34px;height:34px;padding:0 9px;border-radius:999px;
+  background:radial-gradient(circle at 35% 30%, #a78bfa, #7c3aed 70%);
+  border:2px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.45);
+  color:#fff;font:800 14px/1 'DM Sans',sans-serif;letter-spacing:.3px;
+  transition:transform .12s}
+.cluster:active{transform:scale(.9)}
+.cl-count{pointer-events:none}
 .pin-body{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
   background:var(--pc,#1a73e8);border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.35);
   display:flex;align-items:center;justify-content:center;transition:transform .12s}

@@ -277,11 +277,11 @@ button{font-family:inherit;color:inherit;border:none;background:none;cursor:poin
   opacity:0;transition:all .25s var(--ease);box-shadow:0 8px 24px rgba(0,0,0,.5);pointer-events:none;max-width:88vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* compact corner mascot for card-heavy screens */
-.mascot-corner{position:absolute;top:calc(6px + env(safe-area-inset-top));right:12px;width:74px;z-index:3;pointer-events:none}
+/* compact corner mascot for card-heavy screens — sits BELOW the full-width
+   progress bar, to the right of the heading */
+.mascot-corner{position:absolute;top:calc(70px + env(safe-area-inset-top));right:12px;width:78px;z-index:3;pointer-events:none}
 .mascot-corner img{filter:drop-shadow(0 8px 12px rgba(0,0,0,.45))}
-/* on screens that carry the corner mascot, keep the step count + heading clear of it */
-.screen:has(.mascot-corner) .topbar{padding-right:76px}
-.screen:has(.mascot-corner) .h1{padding-right:78px}
+/* keep the heading clear of the mascot; the progress bar runs the full width */
+.screen:has(.mascot-corner) .h1{padding-right:84px}
 /* female variant: match the shine mask to the female mascot silhouette */
 .mascot-corner.fem .shine{-webkit-mask-image:url('/clubbit-mascot-f.png');mask-image:url('/clubbit-mascot-f.png')}

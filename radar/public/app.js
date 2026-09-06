@@ -228,43 +228,62 @@ class RadarMap {
     } catch (e) { return () => true; }
   }
   // One representative venue per city (highest Party Radar score wins) — a light,
-  // globally-spread set for the zoomed-out globe.
-  _cityReps(list) {
-    const byCity = {};
-    for (const v of list) {
-      const s = (v.radar && v.radar.score) || 0;
-      const cur = byCity[v.city];
-      if (!cur || s > cur.s) byCity[v.city] = { v, s };
-    }
-    return Object.values(byCity).map((o) => o.v);
-  }
-  // Which venues should currently have pins, given the zoom (level-of-detail).
-  _wantedVenues(z) {
+  // Venues currently in view (viewport-culled). Used when zoomed in (z>=6).
+  _wantedVenues() {
     const matching = this.venues.filter(venueMatches);
-    if (z >= 6) {
-      const inView = this._inViewFn();
-      const vis = matching.filter((v) => inView(v.coords));
-      // safety net: if getBounds glitched and culled everything, fall back to reps
-      return vis.length ? vis : this._cityReps(matching);
-    }
-    return this._cityReps(matching);
+    const inView = this._inViewFn();
+    const vis = matching.filter((v) => inView(v.coords));
+    return vis.length ? vis : matching; // fallback if getBounds glitches
   }
-  // Sync markers to the current viewport: add pins that entered view, remove pins that
-  // left, refresh live state in place. Only on-screen markers stay on the map — a big
-  // win with hundreds of global venues — and existing markers are never re-added, so
-  // globe-occluded pins never flash on refresh.
+  // A count "cluster" bubble marker for a city — shows how many venues are there.
+  _clusterFor(w) {
+    const el = document.createElement('div');
+    el.className = 'cluster';
+    el.innerHTML = `<span class="cl-count">${w.n}</span>`;
+    el.title = `${w.name} · ${w.n} venue${w.n === 1 ? '' : 's'}`;
+    el.addEventListener('click', (ev) => { ev.stopPropagation(); if (this.map) this.map.flyTo({ center: [w.center.lng, w.center.lat], zoom: 11.8, duration: 900 }); });
+    const m = new maplibregl.Marker({ element: el, anchor: 'center', opacityWhenCovered: '0' }).setLngLat([w.center.lng, w.center.lat]);
+    m._el = el; return m;
+  }
+  // Sync markers to the current view. Two modes:
+  //   • zoomed OUT (z<6): one COUNT bubble per city ("how many venues are there"),
+  //     which also keeps the globe light and smooth to spin.
+  //   • zoomed IN  (z>=6): individual venue pins for whatever is in view.
+  // Markers are added/removed by delta and never re-added, so occluded pins on the
+  // far side of the globe never flash.
   _syncMarkers() {
     if (!this.map || !this._ready) return;
     try {
       if (!this._markerById) this._markerById = {};
       if (!this._labelById) this._labelById = {};
+      if (!this._clusterById) this._clusterById = {};
       const z = this.map.getZoom();
-      // ---- venue pins with level-of-detail ----
-      // Zoomed in (z>=6, viewport reliable): show every matching venue in view.
-      // Zoomed out to the globe/continents: one representative pin per city, so every
-      // city still shows a pin but the map stays light enough to spin smoothly.
+      const clusterMode = z < 6;
+
+      // ---- count bubbles (clusters) per city ----
+      const wantC = {};
+      if (clusterMode) {
+        const g = {};
+        for (const v of this.venues) {
+          if (!venueMatches(v)) continue;
+          const c = v.city || '?';
+          (g[c] || (g[c] = { lat: 0, lng: 0, n: 0, name: c }));
+          g[c].lat += v.coords.lat; g[c].lng += v.coords.lng; g[c].n++;
+        }
+        for (const c in g) wantC[c] = { name: c, n: g[c].n, center: { lat: g[c].lat / g[c].n, lng: g[c].lng / g[c].n } };
+      }
+      for (const id of Object.keys(this._clusterById)) {
+        if (!wantC[id]) { this._clusterById[id].remove(); delete this._clusterById[id]; }
+      }
+      for (const id in wantC) {
+        const w = wantC[id]; let m = this._clusterById[id];
+        if (!m) { m = this._clusterFor(w); m.addTo(this.map); this._clusterById[id] = m; }
+        else { const b = m._el.querySelector('.cl-count'); if (b) b.textContent = w.n; m.setLngLat([w.center.lng, w.center.lat]); }
+      }
+
+      // ---- individual venue pins (only when zoomed in) ----
       const wanted = {};
-      for (const v of this._wantedVenues(z)) wanted[v.id] = v;
+      if (!clusterMode) for (const v of this._wantedVenues()) wanted[v.id] = v;
       for (const id of Object.keys(this._markerById)) {
         if (!wanted[id]) { this._markerById[id].remove(); delete this._markerById[id]; }
       }
@@ -274,6 +293,7 @@ class RadarMap {
         this._applyPinState(m._el, wanted[id]);
       }
       this._markers = Object.values(this._markerById);
+
       // ---- neighbourhood labels (only when zoomed into a city) ----
       const inView = this._inViewFn();
       const wantA = {};

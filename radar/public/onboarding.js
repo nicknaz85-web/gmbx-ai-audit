@@ -93,14 +93,10 @@
     if (D.gender === 'Man') return '/clubbit-face-m.png';
     return mascotSrc();
   }
-  // swap every corner mascot (and its shine) to match the selected gender
-  function applyMascotGender() {
-    const fem = D.gender === 'Woman';
-    $$('.mascot-corner').forEach((m) => {
-      m.classList.toggle('fem', fem);
-      const img = m.querySelector('img'); if (img) img.src = mascotSrc();
-    });
-  }
+  // Corner mascots now alternate man/woman per step (set in the HTML), so we no
+  // longer override them by gender. The gendered image still drives the avatar
+  // (done screen / photo / profile) via faceSrc().
+  function applyMascotGender() { /* intentionally no-op — see note above */ }
   // play a one-shot reaction then return to a base state
   function reactMascot(el, base = 'idle') {
     if (!el) return;
@@ -440,10 +436,8 @@
   // ============================================================
   const preview = $('#photoPreview');
   $('[data-act="choosePhoto"]').addEventListener('click', () => { haptic(); $('#fileChoose').click(); });
-  $('[data-act="takePhoto"]').addEventListener('click', () => { haptic(); $('#fileCamera').click(); });
   $('[data-act="skipPhoto"]').addEventListener('click', () => { haptic(); D.profilePhoto = null; persist(); go('done'); });
   $('#fileChoose').addEventListener('change', onFile);
-  $('#fileCamera').addEventListener('change', onFile);
   function onFile(e) {
     const f = e.target.files && e.target.files[0]; e.target.value = '';
     if (!f) return;
