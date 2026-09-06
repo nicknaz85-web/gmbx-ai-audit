@@ -112,7 +112,19 @@
   // ============================================================
   function onEnter(name) {
     if (name === 'dob') buildWheelsOnce();
+    if (name === 'photo') fillPhotoPreview();
     if (name === 'done') fillDone();
+  }
+  // show the gender-matched mascot as the default profile-picture preview
+  // (until the user picks a real photo)
+  function fillPhotoPreview() {
+    if (D.profilePhoto) { preview.innerHTML = `<img src="${D.profilePhoto}" alt="Your photo" />`; return; }
+    // gendered faces are close-up portraits → let them fill the ring (cover);
+    // the fallback standing mascot keeps its shrunk-and-contained look
+    const gendered = (D.gender === 'Woman' || D.gender === 'Man' || D.gender === 'Non-binary');
+    preview.innerHTML = gendered
+      ? `<img src="${faceSrc()}" alt="Default avatar" />`
+      : `<img class="ph-mascot" src="${faceSrc()}" alt="Default avatar" />`;
   }
 
   // ---- WELCOME ----
