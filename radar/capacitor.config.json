@@ -1,0 +1,19 @@
+{
+  "appId": "com.clubbit.app",
+  "appName": "Clubbit",
+  "webDir": "public",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https"
+  },
+  "ios": {
+    "contentInset": "always"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#120a22",
+      "showSpinner": false
+    }
+  }
+}

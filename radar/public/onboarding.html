@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<script src="/config.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#120a22" />
+<title>Clubbit — Welcome</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/onboarding.css" />
+<link rel="apple-touch-icon" href="/clubbit-icon.png" />
+<script src="https://accounts.google.com/gsi/client" async></script>
+</head>
+<body>
+  <div class="stars" id="stars" aria-hidden="true"></div>
+
+  <div class="app" id="app">
+
+    <!-- ============ 1 · WELCOME ============ -->
+    <section class="screen welcome" data-screen="welcome">
+      <div class="spacer"></div>
+      <div class="duo" aria-hidden="true">
+        <div class="mascot walk-l"><div class="shine"></div><img src="/clubbit-mascot.png" alt="" /></div>
+        <div class="mascot walk-r alt"><div class="shine shine-f"></div><img src="/clubbit-mascot-f.png" alt="" /></div>
+      </div>
+      <div class="brand"><img src="/clubbit-logo-trim.png" alt="Clubbit" /></div>
+      <p class="sub" style="text-align:center;margin:12px auto 0">See where the night is actually happening.</p>
+      <div class="spacer"></div>
+      <button class="cta" data-act="start">I'm Ready</button>
+    </section>
+
+    <!-- ============ 2 · SIGN IN ============ -->
+    <section class="screen" data-screen="signin">
+      <div class="topbar"><button class="back" data-act="back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><div style="flex:1"></div></div>
+      <div class="body">
+        <div class="spacer"></div>
+        <div class="mini-mascot mascot m-wave" aria-hidden="true"><div class="shine"></div><img src="/clubbit-mascot.png" alt="" /></div>
+        <h1 class="h1" style="text-align:center">Join Clubbit</h1>
+        <p class="sub" style="text-align:center;margin-left:auto;margin-right:auto">Your night starts here.</p>
+        <!-- step: choose provider -->
+        <div class="socials" id="authChoose">
+          <button class="sbtn google" data-auth="google">
+            <svg class="gi" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            Continue with Google</button>
+          <button class="sbtn email" data-auth="email">
+            <svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/></svg>
+            Continue with email</button>
+        </div>
+
+        <!-- step: enter email -->
+        <div class="authstep" id="authEmail" hidden>
+          <div class="field"><input type="email" id="emailInput" placeholder="you@email.com" autocomplete="email" inputmode="email" enterkeyhint="go" /><div class="err" id="emailErr"></div></div>
+          <button class="cta" id="emailGo" style="margin-top:14px">Send code</button>
+        </div>
+
+        <!-- step: verify code -->
+        <div class="authstep" id="authCode" hidden>
+          <p class="authnote">Enter the 6-digit code sent to <b id="codeEmail"></b></p>
+          <div class="field"><input type="text" id="codeInput" placeholder="• • • • • •" inputmode="numeric" autocomplete="one-time-code" maxlength="6" style="text-align:center;letter-spacing:8px" /><div class="err" id="codeErr"></div></div>
+          <button class="cta" id="codeGo" style="margin-top:14px" disabled>Verify</button>
+          <button class="ghost" id="codeResend">Resend code</button>
+        </div>
+
+        <!-- step: create password (new user) -->
+        <div class="authstep" id="authNew" hidden>
+          <p class="authnote">Create a password for <b id="newEmail"></b></p>
+          <div class="field"><input type="password" id="newPass" placeholder="Password (min 6 characters)" autocomplete="new-password" /></div>
+          <div class="field" style="margin-top:10px"><input type="password" id="newPass2" placeholder="Confirm password" autocomplete="new-password" enterkeyhint="done" /><div class="err" id="newErr"></div></div>
+          <button class="cta" id="newGo" style="margin-top:14px" disabled>Create account</button>
+        </div>
+
+        <!-- step: sign in (returning user) -->
+        <div class="authstep" id="authSignin" hidden>
+          <p class="authnote">Welcome back — enter your password for <b id="siEmail"></b></p>
+          <div class="field"><input type="password" id="siPass" placeholder="Password" autocomplete="current-password" enterkeyhint="go" /><div class="err" id="siErr"></div></div>
+          <button class="cta" id="siGo" style="margin-top:14px" disabled>Sign in</button>
+        </div>
+
+        <div class="spacer"></div>
+      </div>
+    </section>
+
+    <!-- ============ 3 · NAME (1/5) ============ -->
+    <section class="screen" data-screen="name">
+      <div class="topbar">
+        <button class="back" data-act="back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="progress"><div class="progress-fill"></div></div><div class="step-count">1/5</div>
+      </div>
+      <div class="body">
+        <div class="card-head">
+          <div class="mascot m-idle" aria-hidden="true"><div class="shine"></div><img src="/clubbit-mascot.png" alt="" /></div>
+          <div><h1 class="h1">What should we call you?</h1></div>
+        </div>
+        <p class="sub">This is how you'll appear on Clubbit.</p>
+        <div class="field"><input type="text" id="nameInput" placeholder="First name" autocomplete="given-name" maxlength="24" enterkeyhint="done" /></div>
+        <div class="spacer"></div>
+        <button class="cta" id="nameGo" data-act="next" disabled>Continue</button>
+      </div>
+    </section>
+
+    <!-- ============ 4 · GENDER (2/5) ============ -->
+    <section class="screen" data-screen="gender">
+      <div class="topbar">
+        <button class="back" data-act="back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="progress"><div class="progress-fill"></div></div><div class="step-count">2/5</div>
+      </div>
+      <div class="mascot mascot-corner m-idle" aria-hidden="true"><div class="shine"></div><img src="/clubbit-mascot.png" alt="" /></div>
+      <div class="body">
+        <h1 class="h1">How do you identify?</h1>
+        <div class="cards" data-group="gender">
+          <button class="opt" data-val="Man"><span class="lab">Man</span><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></button>
+          <button class="opt" data-val="Woman"><span class="lab">Woman</span><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></button>
+          <button class="opt" data-val="Non-binary"><span class="lab">Non-binary</span><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></button>
+          <button class="opt" data-val="Prefer not to say"><span class="lab">Prefer not to say</span><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></button>
+        </div>
+        <p class="sub">This helps personalise your Clubbit experience. It stays private.</p>
+        <div class="spacer"></div>
+        <button class="cta" id="genderGo" data-act="next" disabled>Continue</button>
+      </div>
+    </section>
+
+    <!-- ============ 5 · DOB (3/5) ============ -->
+    <section class="screen" data-screen="dob">
+      <div class="topbar">
+        <button class="back" data-act="back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="progress"><div class="progress-fill"></div></div><div class="step-count">3/5</div>
+      </div>
+      <div class="mascot mascot-corner m-idle" aria-hidden="true"><div class="shine"></div><img src="/clubbit-mascot.png" alt="" /></div>
+      <div class="body">
+        <h1 class="h1">When were you born?</h1>
+        <p class="sub">You must be 18 or older to use Clubbit.</p>
+        <div class="wheels-wrap" style="margin-top:8px">
+          <div style="flex:1"><div class="wcol-label">Day</div><div class="wheel-frame"><div class="wheel" id="wDay"></div></div></div>
+          <div style="flex:1.4"><div class="wcol-label">Month</div><div class="wheel-frame"><div class="wheel" id="wMonth"></div></div></div>
+          <div style="flex:1.2"><div class="wcol-label">Year</div><div class="wheel-frame"><div class="wheel" id="wYear"></div></div></div>
+        </div>
+        <div class="err" id="dobErr" style="text-align:center"></div>
+        <div class="spacer"></div>
+        <button class="cta" id="dobGo" data-act="next" disabled>Continue</button>
+      </div>
+    </section>
+
+    <!-- ============ 6 · FREQUENCY (4/5) ============ -->
+    <section class="screen" data-screen="frequency">
+      <div class="topbar">
+        <button class="back" data-act="back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="progress"><div class="progress-fill"></div></div><div class="step-count">4/5</div>
+      </div>
+      <div class="mascot mascot-corner m-idle" aria-hidden="true"><div class="shine"></div><img src="/clubbit-mascot.png" alt="" /></div>
+      <div class="body">
+        <h1 class="h1">How often do you go out?</h1>
+        <p class="sub">Help us understand your nightlife style.</p>
+        <div class="cards" data-group="frequency">
+          <button class="opt" data-val="Less than once a month"><span class="lab">Less than once a month</span><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></button>
+          <button class="opt" data-val="1–2 times a month"><span class="lab">1–2 times a month</span><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></button>
+          <button class="opt" data-val="3–5 times a month"><span class="lab">3–5 times a month</span><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></button>
+          <button class="opt" data-val="6–10 times a month"><span class="lab">6–10 times a month</span><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></button>
+          <button class="opt" data-val="More than 10 times a month"><span class="lab">More than 10 times a month</span><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></button>
+        </div>
+        <div class="spacer"></div>
+        <button class="cta" id="freqGo" data-act="next" disabled>Continue</button>
+      </div>
+    </section>
+
+    <!-- ============ 7 · PROFILE PHOTO (5/5) ============ -->
+    <section class="screen" data-screen="photo">
+      <div class="topbar">
+        <button class="back" data-act="back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="progress"><div class="progress-fill"></div></div><div class="step-count">5/5</div>
+      </div>
+      <div class="body">
+        <h1 class="h1">Make it yours.</h1>
+        <p class="sub">Add a profile picture so your friends can recognise you.</p>
+        <div class="photo-wrap">
+          <div class="photo-ring"><div class="photo-inner" id="photoPreview"><img class="ph-mascot" src="/clubbit-mascot.png" alt="Default avatar" /></div></div>
+          <div class="photo-actions">
+            <button class="cta" data-act="choosePhoto">Choose photo</button>
+            <button class="cta secondary" data-act="takePhoto">Take photo</button>
+          </div>
+        </div>
+        <div class="spacer"></div>
+        <button class="cta" data-act="next">Continue</button>
+        <button class="ghost" data-act="skipPhoto">Skip for now</button>
+      </div>
+      <input type="file" id="fileChoose" accept="image/*" hidden />
+      <input type="file" id="fileCamera" accept="image/*" capture="user" hidden />
+    </section>
+
+    <!-- ============ 8 · DONE ============ -->
+    <section class="screen done" data-screen="done">
+      <div class="confetti" id="confetti" aria-hidden="true"></div>
+      <div class="spacer"></div>
+      <div class="mascot m-celebrate" aria-hidden="true"><div class="shine"></div><img src="/clubbit-mascot.png" alt="" /></div>
+      <div class="mascot-shadow" aria-hidden="true"></div>
+      <h1 class="h1 big">You're in.</h1>
+      <p class="sub" style="margin-left:auto;margin-right:auto">Clubbit is ready to find your night.</p>
+      <div class="pcard" id="profileCard">
+        <div class="pc-ava" id="pcAva"><img src="/clubbit-mascot.png" alt="" /></div>
+        <div><div class="pc-name" id="pcName">You</div><div class="pc-meta" id="pcMeta"></div></div>
+      </div>
+      <div class="spacer"></div>
+      <button class="cta" id="finishBtn" data-act="finish">Find what's popping</button>
+    </section>
+
+  </div>
+
+  <!-- crop overlay -->
+  <div class="crop" id="crop">
+    <h3>Position your photo</h3>
+    <div class="crop-stage"><div class="crop-circle" id="cropCircle"><img id="cropImg" alt="" /></div></div>
+    <div class="crop-zoom">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#b9aee0" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6M21 21l-4.3-4.3"/></svg>
+      <input type="range" id="cropZoom" min="1" max="3" step="0.01" value="1" />
+    </div>
+    <div class="crop-btns"><button class="cta secondary" data-act="cropCancel">Cancel</button><button class="cta" data-act="cropSave">Use photo</button></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/onboarding.js"></script>
+</body>
+</html>

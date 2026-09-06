@@ -1,0 +1,17 @@
+# Node / Capacitor tooling
+node_modules/
+
+# Runtime data (accounts, media, snapshots) — never commit
+.data/
+
+# Local secrets — set these as host env vars instead
+.env
+
+# Capacitor build output (the ios/ and android/ native projects ARE committed;
+# their build artifacts are not)
+ios/App/build/
+ios/App/Pods/
+android/.gradle/
+android/app/build/
+android/build/
+*.log

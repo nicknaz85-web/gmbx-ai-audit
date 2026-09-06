@@ -1,0 +1,287 @@
+/* ============================================================
+   CLUBBIT — onboarding. Modern premium mobile UI + pixel mascot.
+   ============================================================ */
+:root{
+  --violet:#7c3aed; --violet-2:#8b5cf6; --violet-d:#5b21b6; --violet-dd:#3b1a78;
+  --gold:#f6c944; --ink:#0e0b16; --paper:#ffffff;
+  --bg-0:#120a22; --bg-1:#1a0f33; --card:rgba(255,255,255,.06); --card-solid:#1e1330;
+  --line:rgba(255,255,255,.12); --txt:#f6f2ff; --txt-dim:#b9aee0; --txt-faint:#8a7fb0;
+  --radius:20px; --radius-sm:14px;
+  --font:'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'Space Mono',ui-monospace,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{
+  font-family:var(--font);color:var(--txt);overflow:hidden;
+  background:
+    radial-gradient(120% 80% at 50% -10%, #2a1550 0%, rgba(42,21,80,0) 60%),
+    radial-gradient(90% 60% at 80% 110%, #3a1a6e 0%, rgba(58,26,110,0) 55%),
+    linear-gradient(180deg,var(--bg-1),var(--bg-0));
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- app shell ---------- */
+.app{position:fixed;inset:0;display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+
+/* pixel-star night background (subtle, non-distracting) */
+.stars{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.stars i{position:absolute;width:3px;height:3px;background:#fff;opacity:.0;border-radius:1px;
+  animation:tw 4s ease-in-out infinite}
+@keyframes tw{0%,100%{opacity:0;transform:scale(.6)}50%{opacity:.55;transform:scale(1)}}
+
+/* ---------- screens ---------- */
+.screen{position:absolute;inset:0;z-index:1;display:none;flex-direction:column;
+  padding:14px 22px calc(22px + env(safe-area-inset-bottom));opacity:0;overflow:hidden}
+.screen.active{display:flex;animation:screenIn .42s var(--ease) both}
+.screen.leaving{display:flex;animation:screenOut .30s var(--ease) both;z-index:2}
+@keyframes screenIn{from{opacity:0;transform:translateY(14px) scale(.99)}to{opacity:1;transform:none}}
+@keyframes screenOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-10px) scale(.99)}}
+
+/* ---------- top bar (back + progress) ---------- */
+.topbar{display:flex;align-items:center;gap:12px;height:40px;flex:0 0 auto}
+.back{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:var(--txt);background:rgba(255,255,255,.07);transition:transform .12s,background .15s;flex:0 0 auto}
+.back:active{transform:scale(.9);background:rgba(255,255,255,.14)}
+.back svg{width:20px;height:20px}
+.back[hidden]{display:none}
+.progress{flex:1;height:6px;border-radius:6px;background:rgba(255,255,255,.10);overflow:hidden}
+.progress-fill{height:100%;width:0;border-radius:6px;
+  background:linear-gradient(90deg,var(--violet-2),var(--gold));transition:width .5s var(--ease)}
+.step-count{font:600 12px/1 var(--mono);color:var(--txt-faint);letter-spacing:.5px;flex:0 0 auto;min-width:34px;text-align:right}
+
+/* ---------- content ---------- */
+.body{flex:1;display:flex;flex-direction:column;min-height:0}
+.spacer{flex:1 1 auto}
+.h1{font-size:30px;font-weight:800;line-height:1.1;letter-spacing:-.5px;margin-top:6px}
+.h1.big{font-size:36px}
+.sub{font-size:15.5px;color:var(--txt-dim);line-height:1.45;margin-top:10px;max-width:340px}
+.pixhint{font:700 11px/1 var(--mono);letter-spacing:2px;color:var(--gold);text-transform:uppercase}
+/* pixel accent line (e.g. "popping venues") on its own row */
+.pixel-accent{display:block;font-family:'Pixelify Sans',var(--font);font-weight:700;
+  color:var(--gold);letter-spacing:1px;line-height:1.05;margin-top:10px;
+  text-shadow:0 3px 0 rgba(0,0,0,.25)}
+
+/* ---------- primary / ghost buttons ---------- */
+.cta{width:100%;height:58px;border-radius:16px;font-size:17px;font-weight:700;color:#fff;
+  background:linear-gradient(180deg,var(--violet-2),var(--violet));
+  box-shadow:0 10px 26px rgba(124,58,237,.45),inset 0 1px 0 rgba(255,255,255,.25);
+  display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .11s var(--ease),filter .15s;flex:0 0 auto}
+.cta:active{transform:scale(.97);filter:brightness(1.05)}
+.cta:disabled{background:rgba(255,255,255,.09);color:var(--txt-faint);box-shadow:none;cursor:default}
+.cta.secondary{background:rgba(255,255,255,.08);color:var(--txt);box-shadow:inset 0 0 0 1px var(--line)}
+.ghost{width:100%;height:52px;border-radius:14px;font-size:15px;font-weight:600;color:var(--txt-dim);
+  background:transparent;transition:transform .11s}
+.ghost:active{transform:scale(.98)}
+.linkline{text-align:center;font-size:14px;color:var(--txt-faint);margin-top:16px}
+.linkline b{color:var(--violet-2)}
+
+/* ---------- mascot component ---------- */
+.mascot{position:relative;display:inline-block;will-change:transform;transform-origin:50% 92%}
+.mascot img{display:block;width:100%;height:auto;image-rendering:auto;
+  filter:drop-shadow(0 18px 26px rgba(0,0,0,.5))}
+/* shine is clipped to the mascot silhouette so the light sweeps THROUGH the
+   character and is never cut off at a rectangular edge */
+.mascot .shine{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;opacity:0;
+  background:linear-gradient(115deg,transparent 44%,rgba(255,255,255,.65) 50%,transparent 56%);
+  background-size:300% 100%;background-repeat:no-repeat;
+  -webkit-mask:url('/clubbit-mascot.png') center / contain no-repeat;
+          mask:url('/clubbit-mascot.png') center / contain no-repeat;
+  animation:shine 5.5s ease-in-out infinite}
+@keyframes shine{
+  0%,70%{opacity:0;background-position:130% 0}
+  76%{opacity:.6}
+  84%{opacity:.6}
+  90%,100%{opacity:0;background-position:-30% 0}}
+.mascot-shadow{width:56%;height:16px;margin:-6px auto 0;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(0,0,0,.5),transparent);filter:blur(1px);
+  animation:shadowPulse 1.6s var(--ease) infinite}
+@keyframes shadowPulse{0%,100%{transform:scaleX(1);opacity:.5}50%{transform:scaleX(.86);opacity:.35}}
+
+/* states */
+.m-idle{animation:mIdle 3.4s var(--ease) infinite}
+@keyframes mIdle{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-6px) rotate(-.6deg)}}
+.m-dance{animation:mDance 1.15s ease-in-out infinite}
+@keyframes mDance{
+  0%{transform:translateX(-6px) translateY(0) rotate(-3deg)}
+  25%{transform:translateX(-3px) translateY(-8px) rotate(-1deg)}
+  50%{transform:translateX(6px) translateY(0) rotate(3deg)}
+  75%{transform:translateX(3px) translateY(-8px) rotate(1deg)}
+  100%{transform:translateX(-6px) translateY(0) rotate(-3deg)}}
+.m-bounce{animation:mBounce 1s var(--ease) infinite}
+@keyframes mBounce{0%,100%{transform:translateY(0) scale(1,1)}30%{transform:translateY(-16px) scale(.98,1.03)}55%{transform:translateY(0) scale(1.04,.96)}70%{transform:translateY(-5px)}}
+.m-react{animation:mReact .5s var(--ease) 1}
+@keyframes mReact{0%{transform:scale(1)}35%{transform:scale(1.12) rotate(-3deg)}70%{transform:scale(.97) rotate(2deg)}100%{transform:scale(1)}}
+.m-wave{animation:mWave 1.8s ease-in-out infinite}
+@keyframes mWave{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(3deg) translateY(-3px)}}
+.m-celebrate{animation:mCele 1.05s var(--ease) infinite}
+@keyframes mCele{
+  0%{transform:translateY(0) rotate(-4deg) scale(1)}
+  20%{transform:translateY(-26px) rotate(4deg) scale(1.05)}
+  45%{transform:translateY(0) rotate(-3deg) scale(1)}
+  60%{transform:translateY(-12px) rotate(3deg)}
+  100%{transform:translateY(0) rotate(-4deg)}}
+
+/* ---------- welcome ---------- */
+.welcome{align-items:center;text-align:center;justify-content:center}
+.welcome .brand{display:flex;align-items:center;justify-content:center;margin-top:10px}
+.welcome .brand img{height:auto;width:58vw;max-width:220px;object-fit:contain}
+.welcome .mascot{width:min(62vw,270px);margin:2vh auto 0}
+/* two mascots dancing together on the welcome screen */
+.welcome .duo{display:flex;align-items:flex-end;justify-content:center;gap:0;margin:2vh auto 0}
+.welcome .duo .mascot{width:min(40vw,176px);margin:0}
+/* she's larger in her own canvas — shrink so she reads the same size as him */
+.welcome .duo .mascot.alt{width:min(35vw,154px)}
+.welcome .duo .mascot:first-child{margin-right:-2vw;z-index:2}
+/* mirror her so she faces him (he's on the left) */
+.welcome .duo .mascot.alt img,
+.welcome .duo .mascot.alt .shine{transform:scaleX(-1)}
+/* walk in from the sides, then settle into a calm idle sway */
+.welcome .duo .mascot.walk-l{animation:walkInLeft 1.5s var(--ease) both, mIdle 3.6s var(--ease) 1.6s infinite}
+.welcome .duo .mascot.walk-r{animation:walkInRight 1.5s var(--ease) both, mIdle 3.6s var(--ease) 1.75s infinite}
+@keyframes walkInLeft{
+  0%{transform:translateX(-150%) translateY(0) rotate(-1deg)}
+  20%{transform:translateX(-112%) translateY(-7px) rotate(1.5deg)}
+  40%{transform:translateX(-74%) translateY(0) rotate(-1.5deg)}
+  60%{transform:translateX(-42%) translateY(-7px) rotate(1.5deg)}
+  80%{transform:translateX(-14%) translateY(0) rotate(-1deg)}
+  100%{transform:translateX(0) translateY(0) rotate(0)}}
+@keyframes walkInRight{
+  0%{transform:translateX(150%) translateY(0) rotate(1deg)}
+  20%{transform:translateX(112%) translateY(-7px) rotate(-1.5deg)}
+  40%{transform:translateX(74%) translateY(0) rotate(1.5deg)}
+  60%{transform:translateX(42%) translateY(-7px) rotate(-1.5deg)}
+  80%{transform:translateX(14%) translateY(0) rotate(1deg)}
+  100%{transform:translateX(0) translateY(0) rotate(0)}}
+.shine.shine-f{-webkit-mask-image:url('/clubbit-mascot-f.png');mask-image:url('/clubbit-mascot-f.png')}
+.welcome .h1{margin-top:2vh}
+.welcome .sub{margin-left:auto;margin-right:auto}
+.disco{position:absolute;top:11%;font-size:26px;opacity:.9;animation:floaty 4s ease-in-out infinite}
+.disco.l{left:12%} .disco.r{right:12%;animation-delay:1.5s}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+/* ---------- cards (gender / frequency) ---------- */
+.cards{display:flex;flex-direction:column;gap:12px;margin-top:22px}
+.opt{display:flex;align-items:center;gap:14px;width:100%;text-align:left;
+  padding:17px 18px;border-radius:16px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line);
+  transition:transform .13s var(--ease),box-shadow .15s,background .15s;color:var(--txt)}
+.opt:active{transform:scale(.985)}
+.opt .lab{font-size:16.5px;font-weight:600;flex:1}
+.opt .tick{width:24px;height:24px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--line);flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;transition:all .15s}
+.opt .tick svg{width:14px;height:14px;opacity:0;transform:scale(.5);transition:all .18s}
+.opt.sel{background:linear-gradient(180deg,rgba(139,92,246,.28),rgba(124,58,237,.16));
+  box-shadow:inset 0 0 0 1.5px var(--violet-2),0 8px 20px rgba(124,58,237,.25);transform:scale(1.015)}
+.opt.sel .tick{background:var(--violet-2);box-shadow:none}
+.opt.sel .tick svg{opacity:1;transform:scale(1);color:#fff}
+
+/* ---------- text input ---------- */
+.field{margin-top:26px}
+.field input{width:100%;height:60px;border-radius:16px;background:rgba(255,255,255,.06);
+  box-shadow:inset 0 0 0 1px var(--line);color:#fff;font-size:20px;font-weight:600;padding:0 18px;
+  transition:box-shadow .18s,background .18s}
+.field input::placeholder{color:var(--txt-faint);font-weight:500}
+.field input:focus{outline:none;background:rgba(124,58,237,.12);box-shadow:inset 0 0 0 1.6px var(--violet-2),0 0 0 4px rgba(124,58,237,.18)}
+.err{color:#ff8a8a;font-size:13.5px;margin-top:10px;min-height:16px}
+
+/* ---------- DOB wheel ---------- */
+.wheels{display:flex;gap:8px;margin-top:20px;justify-content:center;
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 22%,#000 78%,transparent);
+          mask-image:linear-gradient(180deg,transparent,#000 22%,#000 78%,transparent)}
+.wheel{flex:1;height:200px;overflow-y:scroll;scroll-snap-type:y mandatory;text-align:center;
+  scrollbar-width:none;position:relative}
+.wheel::-webkit-scrollbar{display:none}
+.wheel .pad{height:80px}
+.wheel .w-item{height:40px;line-height:40px;scroll-snap-align:center;font-size:19px;font-weight:600;
+  color:var(--txt-faint);transition:color .15s,transform .15s,opacity .15s}
+.wheel .w-item.on{color:#fff;transform:scale(1.12)}
+.wheel-frame{position:relative}
+.wheel-frame::after{content:"";position:absolute;left:0;right:0;top:80px;height:40px;pointer-events:none;
+  border-top:1.5px solid var(--violet-2);border-bottom:1.5px solid var(--violet-2);
+  background:rgba(124,58,237,.10);border-radius:10px}
+.wheels-wrap{display:flex;gap:8px;align-items:stretch}
+.wcol-label{font:700 11px/1 var(--mono);letter-spacing:1px;color:var(--txt-faint);text-align:center;margin-bottom:6px;text-transform:uppercase}
+
+/* ---------- profile photo ---------- */
+.photo-wrap{display:flex;flex-direction:column;align-items:center;margin-top:20px}
+.photo-ring{width:190px;height:190px;border-radius:50%;padding:5px;
+  background:conic-gradient(from 210deg,var(--violet-2),var(--gold),var(--violet-2));
+  box-shadow:0 14px 34px rgba(124,58,237,.4)}
+.photo-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--card-solid);
+  display:flex;align-items:center;justify-content:center;position:relative}
+.photo-inner img{width:100%;height:100%;object-fit:cover}
+.photo-inner .ph-mascot{width:78%;height:auto;object-fit:contain;transform:translateY(6px)}
+.photo-actions{display:flex;gap:10px;margin-top:22px;width:100%}
+.photo-actions .cta{height:52px;font-size:15px}
+
+/* crop overlay */
+.crop{position:fixed;inset:0;z-index:40;background:rgba(8,4,18,.92);display:none;flex-direction:column;
+  padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
+.crop.open{display:flex}
+.crop h3{text-align:center;font-size:17px;font-weight:700;margin-bottom:14px}
+.crop-stage{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.crop-circle{position:relative;width:min(74vw,300px);height:min(74vw,300px);border-radius:50%;overflow:hidden;
+  box-shadow:0 0 0 3px var(--violet-2),0 0 0 2000px rgba(8,4,18,.72);touch-action:none;background:#000}
+.crop-circle img{position:absolute;left:50%;top:50%;transform-origin:center;user-select:none;-webkit-user-drag:none;will-change:transform}
+.crop-zoom{display:flex;align-items:center;gap:12px;margin:18px 4px 6px}
+.crop-zoom input{flex:1;accent-color:var(--violet-2)}
+.crop-btns{display:flex;gap:10px;margin-top:8px}
+
+/* ---------- done ---------- */
+.done{align-items:center;text-align:center;justify-content:center}
+.done .mascot{width:min(52vw,220px);margin:0 auto}
+.pcard{display:flex;align-items:center;gap:14px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line);
+  border-radius:18px;padding:14px 16px;margin-top:22px;width:100%;max-width:360px}
+.pcard .pc-ava{width:58px;height:58px;border-radius:50%;overflow:hidden;background:var(--card-solid);flex:0 0 auto;
+  box-shadow:0 0 0 2px var(--violet-2)}
+.pcard .pc-ava img{width:100%;height:100%;object-fit:cover}
+.pcard .pc-name{font-size:19px;font-weight:800;text-align:left}
+.pcard .pc-meta{font-size:13.5px;color:var(--txt-dim);text-align:left;margin-top:2px}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:3}
+.confetti i{position:absolute;top:-12px;width:8px;height:8px;border-radius:1px;opacity:.9;
+  animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(115vh) rotate(540deg);opacity:.6}}
+
+/* social buttons */
+.socials{display:flex;flex-direction:column;gap:11px;margin-top:26px}
+.sbtn{height:56px;border-radius:15px;display:flex;align-items:center;justify-content:center;gap:12px;
+  font-size:16px;font-weight:700;transition:transform .11s}
+.sbtn:active{transform:scale(.98)}
+.sbtn.google{background:#fff;color:#1f1f1f}
+.sbtn.apple{background:#000;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.sbtn.email{background:rgba(255,255,255,.08);color:var(--txt);box-shadow:inset 0 0 0 1px var(--line)}
+.sbtn .gi{width:20px;height:20px}
+/* email → code → password auth steps */
+.authstep{animation:authIn .28s ease both}
+@keyframes authIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.authnote{font-size:15px;color:var(--txt-faint);text-align:center;margin:22px auto 0;line-height:1.5}
+.authnote b{color:var(--txt);word-break:break-word}
+.ghost{display:block;width:100%;margin-top:12px;background:none;border:0;color:var(--violet-2);
+  font-size:14.5px;font-weight:700;padding:8px;cursor:pointer}
+.ghost:active{opacity:.6}
+.cta:disabled{opacity:.45;pointer-events:none}
+.mascot-peek{position:absolute;right:16px;width:120px;z-index:2;pointer-events:none}
+
+/* small mascot header (name / dob) */
+.mini-mascot{width:160px;margin:0 auto 4px}
+.card-head{display:flex;align-items:center;gap:14px;margin-top:18px}
+.card-head .mascot{width:74px;flex:0 0 auto}
+
+.toast{position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
+  background:#000;color:#fff;padding:11px 18px;border-radius:999px;font-size:13.5px;font-weight:600;z-index:60;
+  opacity:0;transition:all .25s var(--ease);box-shadow:0 8px 24px rgba(0,0,0,.5);pointer-events:none;max-width:88vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* compact corner mascot for card-heavy screens */
+.mascot-corner{position:absolute;top:calc(6px + env(safe-area-inset-top));right:12px;width:74px;z-index:3;pointer-events:none}
+.mascot-corner img{filter:drop-shadow(0 8px 12px rgba(0,0,0,.45))}
+/* on screens that carry the corner mascot, keep the step count + heading clear of it */
+.screen:has(.mascot-corner) .topbar{padding-right:76px}
+.screen:has(.mascot-corner) .h1{padding-right:78px}
+/* female variant: match the shine mask to the female mascot silhouette */
+.mascot-corner.fem .shine{-webkit-mask-image:url('/clubbit-mascot-f.png');mask-image:url('/clubbit-mascot-f.png')}

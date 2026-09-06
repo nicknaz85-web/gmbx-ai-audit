@@ -1,0 +1,30 @@
+# Render Blueprint for the Clubbit backend.
+# In Render: New → Blueprint → pick this repo. Render reads this file, creates the
+# web service + persistent disk, and prompts you for the secret values below.
+services:
+  - type: web
+    name: clubbit
+    runtime: node
+    rootDir: radar
+    plan: starter            # Starter keeps the disk + stays awake; use "free" to trial (no disk, sleeps)
+    buildCommand: echo "no build step (zero-dependency backend)"
+    startCommand: node server.js
+    autoDeploy: true
+    healthCheckPath: /api/state
+    envVars:
+      - key: AUTH_SECRET       # auto-generated once and kept stable (logins survive restarts)
+        generateValue: true
+      - key: RESEND_API_KEY    # you'll be prompted to paste these (from radar/.env)
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: GOOGLE_PLACES_KEY
+        sync: false
+      - key: BESTTIME_PRIVATE_KEY
+        sync: false
+      - key: BESTTIME_PUBLIC_KEY
+        sync: false
+    disk:
+      name: clubbit-data       # persists accounts + uploaded photos across deploys
+      mountPath: /opt/render/project/src/radar/.data
+      sizeGB: 1

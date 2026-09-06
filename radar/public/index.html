@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<script src="/config.js"></script>
+<script>try{if(!localStorage.getItem('clubbit_onboarding_complete'))location.replace('/onboarding.html');}catch(e){}</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#ffffff" />
+<title>PARTY RADAR — Live Crowd Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <!-- Top app bar -->
+  <header class="appbar">
+    <img class="appbar-scene" id="brandHome" src="/mascot.png" alt="Party Radar" onerror="this.style.display='none'" />
+    <button class="avatar" id="profileBtn" aria-label="Profile"><img src="/avatar-default.png" alt="You" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🧑'}))" /></button>
+    <div class="appbar-actions">
+      <button class="ab-ic" id="feedBtn" aria-label="Radar feed">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span class="ic-badge" id="feedBadge">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Map stage -->
+  <main class="stage">
+    <div id="map"></div>
+    <canvas id="radarCanvas"></canvas>
+    <div class="map-overlay" id="mapOverlay"></div>
+
+    <div class="map-controls" id="mapControls">
+      <button class="round-btn search-btn" id="searchBtn" aria-label="Search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      </button>
+      <div class="filter-row" id="filterRow"></div>
+    </div>
+
+    <div class="fab-stack">
+      <button class="fab-mini" id="locateFab" aria-label="Recenter map">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      </button>
+      <button class="fab-primary" id="addFab" aria-label="Report the vibe">+</button>
+    </div>
+
+    <button class="list-btn" id="listBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+      List
+    </button>
+  </main>
+
+  <!-- Bottom nav -->
+  <nav class="bottomnav">
+    <button class="bn active" data-nav="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg></button>
+    <button class="bn" data-nav="saved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg></button>
+    <button class="bn" data-nav="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></button>
+  </nav>
+
+  <!-- Bottom sheet: lists (opens on demand) -->
+  <div class="sheet-scrim" id="sheetScrim" hidden></div>
+  <section class="sheet" id="sheet">
+    <div class="sheet-grip" id="sheetGrip"><span></span></div>
+    <div class="sheet-search" id="sheetSearch" hidden>
+      <div class="group">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="search" id="searchInput" class="input" placeholder="Search for Clubs, Bars, and more" autocomplete="off" />
+      </div>
+    </div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </section>
+
+  <!-- Location gate (shown on open) -->
+  <div class="gate" id="locateGate" hidden>
+    <div class="gate-card">
+      <div class="gate-emoji">📍</div>
+      <h2>Find the night near you</h2>
+      <p>See the best clubs and bars around you right now.</p>
+      <button class="btn btn-primary full" id="gateAllow">Use my location</button>
+      <div class="gate-status" id="gateStatus" hidden></div>
+      <div class="gate-or">or jump to a city</div>
+      <div class="gate-cities" id="gateCities"></div>
+      <button class="gate-skip" id="gateSkip">Browse the whole map</button>
+    </div>
+  </div>
+
+  <!-- Venue detail overlay -->
+  <div class="overlay" id="venueOverlay" hidden>
+    <div class="overlay-scrim" data-close="venue"></div>
+    <div class="venue-card" id="venueCard"></div>
+  </div>
+
+  <!-- Report the vibe full-screen flow -->
+  <div class="overlay report" id="reportOverlay" hidden>
+    <div class="report-inner" id="reportInner"></div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js" crossorigin=""></script>
+  <script src="/app.js"></script>
+  <script>/* carry the Clubbit onboarding photo (or the gender-matched mascot) into the header avatar */
+  try{var _p=JSON.parse(localStorage.getItem('clubbit_profile'));if(_p){var _a=document.querySelector('.avatar img');
+    var _src=_p.profilePhoto||(_p.gender==='Woman'?'/clubbit-face-f.png':_p.gender==='Man'?'/clubbit-face-m.png':null);
+    if(_a&&_src)_a.src=_src;}}catch(e){}</script>
+</body>
+</html>
