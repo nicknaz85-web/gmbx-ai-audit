@@ -148,11 +148,7 @@ function openFromPeriods(periods, venue, ref) {
   const d = new Date(ref + tz * 3600 * 1000);
   const dow = d.getUTCDay();
   const nowWM = dow * 1440 + d.getUTCHours() * 60 + d.getUTCMinutes();
-
-  if (!periods.length) { // Google returns no periods for always-open venues
-    return { open: true, source: 'google', opensLabel: null, closesLabel: null };
-  }
-
+  // callers guard against empty periods (see resolveOpen) — always non-empty here
   let open = false, curCloseWM = null;
   let next = null; // soonest upcoming open: { delta, day, hour }
   for (const p of periods) {
@@ -209,10 +205,13 @@ export function resolveOpen(venue, ref, place) {
   }
   // permanently/temporarily closed per Google → never open
   if (place && (place.businessStatus === 'CLOSED_PERMANENTLY' || place.businessStatus === 'CLOSED_TEMPORARILY')) {
-    return { open: false, source: 'closed', opensLabel: 'permanently closed', closesLabel: null, permanentlyClosed: true };
+    const perm = place.businessStatus === 'CLOSED_PERMANENTLY';
+    return { open: false, source: 'closed', opensLabel: perm ? 'permanently closed' : 'temporarily closed', closesLabel: null, permanentlyClosed: perm };
   }
-  // real weekly hours (baked or live) → compute open/closed from the schedule
-  if (place && Array.isArray(place.periods)) {
+  // real weekly hours (baked or live) → compute open/closed from the schedule.
+  // Empty periods means Google has no regular hours (irregular/event-based, e.g.
+  // Berghain) — NOT 24/7 — so fall through to the schedule estimate instead.
+  if (place && Array.isArray(place.periods) && place.periods.length) {
     return openFromPeriods(place.periods, venue, ref);
   }
   // live openNow snapshot (only from a fresh confident live fetch)
