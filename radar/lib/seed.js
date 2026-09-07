@@ -40,6 +40,13 @@ const NEIGHBORHOODS = [
   // CORFU
   { id: 'corfu-town',   name: 'Corfu Town',   city: 'Corfu',        center: { lat: 39.6243, lng: 19.9212 }, radius: 280, bestFor: ['Dancing', 'Bars'] },
   { id: 'nafplio-old',  name: 'Old Town',     city: 'Nafplio',      center: { lat: 37.5680, lng: 22.7980 }, radius: 260, bestFor: ['Cocktails', 'Bars'] },
+  // PARTY / HOLIDAY RESORTS
+  { id: 'albufeira-strip', name: 'The Strip',  city: 'Albufeira',    center: { lat: 37.0890, lng: -8.2510 }, radius: 320, bestFor: ['Dancing', 'Bars'] },
+  { id: 'laganas',      name: 'Laganas Strip', city: 'Zakynthos',   center: { lat: 37.7250, lng: 20.8600 }, radius: 360, bestFor: ['Dancing', 'Bars'] },
+  { id: 'magaluf-strip', name: 'Punta Ballena', city: 'Magaluf',    center: { lat: 39.5100, lng: 2.5330 },  radius: 340, bestFor: ['Dancing', 'Bars'] },
+  { id: 'malia-strip',  name: 'The Strip',     city: 'Malia',        center: { lat: 35.2870, lng: 25.4600 }, radius: 320, bestFor: ['Dancing', 'Bars'] },
+  { id: 'ayianapa',     name: 'Ayia Napa',     city: 'Ayia Napa',    center: { lat: 34.9880, lng: 33.9990 }, radius: 380, bestFor: ['Dancing', 'Bars'] },
+  { id: 'sunnybeach',   name: 'Sunny Beach',   city: 'Sunny Beach',  center: { lat: 42.6900, lng: 27.7130 }, radius: 420, bestFor: ['Dancing', 'Bars'] },
 
   // GERMANY
   { id: 'friedrichshain', name: 'Friedrichshain', city: 'Berlin',  center: { lat: 52.5105, lng: 13.4490 }, radius: 420, bestFor: ['Techno', 'Late Night'] },
@@ -989,6 +996,29 @@ const VENUE_DEFS = [
   // ─── GREECE — NAFPLIO ──────────────────────────────────────────
   ['Ydragogio',           'nafplio-old', 'Cocktails','Bar', 150, 0.6, 11, 0, { mult: 0.9, trend: 0.5 }, false],
   ['Rosso Music Cafe',    'nafplio-old', 'Live',    'Venue', 150, 0.8, 11, 0, { mult: 0.9, trend: 0.5 }, false],
+
+  // ─── PARTY / HOLIDAY RESORTS ───────────────────────────────────
+  // Albufeira (Algarve)
+  ['Kiss Club',           'albufeira-strip', 'Dancing', 'Club', 1500, 2.0, 18, 15, { mult: 1.1,  trend: 0.9 }, true],
+  ['Libertos',            'albufeira-strip', 'Dancing', 'Club', 800,  1.8, 15, 12, { mult: 1.05, trend: 0.8 }, false],
+  // Zakynthos (Laganas)
+  ['Rescue Club',         'laganas', 'Dancing', 'Club', 2000, 2.2, 18, 12, { mult: 1.1,  trend: 0.9 }, true],
+  ['Cocktails and Dreams','laganas', 'Bars',    'Bar', 500, 1.8, 14, 8, { mult: 1.0, trend: 0.8 }, false],
+  // Magaluf (Mallorca)
+  ['BCM Planet Dance',    'magaluf-strip', 'Dancing', 'Club', 7000, 2.0, 20, 20, { mult: 1.15, trend: 0.9 }, true],
+  ["Tokio Joe's",         'magaluf-strip', 'Dancing', 'Club', 800, 2.0, 15, 12, { mult: 1.05, trend: 0.8 }, false],
+  // Malia (Crete)
+  ['Zig Zag Club',        'malia-strip', 'Dancing', 'Club', 900, 2.0, 16, 10, { mult: 1.05, trend: 0.9 }, false],
+  ['Candy Club',          'malia-strip', 'Dancing', 'Club', 500, 1.8, 13, 8, { mult: 1.0, trend: 0.8 }, false],
+  // Ayia Napa (Cyprus)
+  ['The Castle Club',     'ayianapa', 'Dancing', 'Club', 4000, 2.2, 20, 15, { mult: 1.15, trend: 0.9 }, true],
+  ['Bed Rock',            'ayianapa', 'Bars',    'Bar', 400, 1.6, 13, 8, { mult: 1.0, trend: 0.7 }, false],
+  // Sunny Beach (Bulgaria)
+  ['Cacao Beach Club',    'sunnybeach', 'Dancing', 'Club', 3000, 1.4, 18, 12, { mult: 1.1,  trend: 0.8 }, true],
+  ['Bedroom Beach',       'sunnybeach', 'Dancing', 'Club', 1500, 1.2, 15, 12, { mult: 1.05, trend: 0.7 }, false],
+  // Lebanon — Beirut (more)
+  ['AHM',                 'beirut', 'Dancing', 'Club', 600, 2.4, 16, 20, { mult: 1.1,  trend: 0.9 }, false],
+  ['Ballroom Blitz',      'beirut', 'Dancing', 'Club', 700, 2.2, 16, 20, { mult: 1.1,  trend: 0.9 }, false],
 ];
 
 function jitter(center, seed, spreadM = 140) {

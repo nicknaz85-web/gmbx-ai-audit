@@ -12,7 +12,9 @@ import { fmtHour } from './util.js';
 // European ones (Greece, Romania, Moldova) are EEST (+3); Portugal is WEST (+1).
 const EEST_CITIES = new Set([
   'Athens', 'Thessaloniki', 'Mykonos', 'Santorini', 'Heraklion',
-  'Chania', 'Patras', 'Rhodes', 'Corfu', 'Nafplio',  // Greece
+  'Chania', 'Patras', 'Rhodes', 'Corfu', 'Nafplio', 'Zakynthos', 'Malia',  // Greece
+  'Ayia Napa',                              // Cyprus (EEST +3)
+  'Sunny Beach',                            // Bulgaria (EEST +3)
   'Bucharest', 'Mamaia',                    // Romania
   'Chișinău',                               // Moldova
   'Sofia',                                  // Bulgaria
@@ -20,7 +22,7 @@ const EEST_CITIES = new Set([
 ]);
 // UTC+1 in summer: Portugal (WEST) and the UK / Ireland (BST).
 const WEST_CITIES = new Set([
-  'Lisbon', 'Porto',
+  'Lisbon', 'Porto', 'Albufeira',
   'London', 'Manchester', 'Glasgow', 'Leeds', 'Birmingham', 'Liverpool',
   'Bristol', 'Newcastle', 'Edinburgh', 'Sheffield', 'Cardiff', 'Belfast',
   'Dublin', // Ireland (IST, UTC+1)

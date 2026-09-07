@@ -29,7 +29,7 @@ const CURRENCY_BY_CITY = {
   // Switzerland — CHF (Austria & Slovenia are on the euro)
   Zurich: 'CHF', Geneva: 'CHF',
   // Nordics & Bulgaria (Finland & Ireland are on the euro)
-  Copenhagen: 'DKK', Stockholm: 'SEK', Oslo: 'NOK', Sofia: 'BGN',
+  Copenhagen: 'DKK', Stockholm: 'SEK', Oslo: 'NOK', Sofia: 'BGN', 'Sunny Beach': 'BGN',
   // North America
   'New York': 'USD', Miami: 'USD', 'Los Angeles': 'USD', 'Las Vegas': 'USD', Chicago: 'USD',
   'Panama City': 'USD', Montreal: 'CAD', Toronto: 'CAD',
