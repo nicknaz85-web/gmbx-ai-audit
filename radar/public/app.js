@@ -732,7 +732,7 @@ function renderVenue(v) {
           <div class="fc-bar ${p.mins === 0 ? 'now' : ''}${p.open === false ? ' closed' : ''}" style="height:${p.open === false ? 6 : Math.max(8, p.pct / maxPct * 100)}%"></div>
           <div class="fc-lab">${esc(p.label)}</div></div>`).join('')}
       </div>
-      <div class="peak-flag">★ Expected peak <b style="margin-left:4px">${esc(v.expectedPeak)}</b></div>
+      ${v.expectedPeak ? `<div class="peak-flag">★ Expected peak <b style="margin-left:4px">${esc(v.expectedPeak)}</b></div>` : ''}
     </div>
 
     <div class="decision ${decClass}">
