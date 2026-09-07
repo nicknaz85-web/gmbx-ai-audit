@@ -249,7 +249,7 @@ async function api(req, res, url) {
         fullness: s.fullness, recentSignals: s.recentSignals, entry: s.entry,
         entryLabel: s.entryLabel, currency: s.currency,
         source: s.source, special: s.special,
-        open: s.open, hours: s.hours, season: s.season, google: s.google,
+        open: s.open, hours: s.hours, season: s.season, google: s.google, googlePhoto: s.googlePhoto,
         expectedPeak: s.expectedPeak, dress: s.dress, instagram: s.instagram,
         photo: ((s.media || []).find((m) => m.type === 'image') || {}).url || null,
       };
