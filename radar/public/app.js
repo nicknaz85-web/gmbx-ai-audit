@@ -748,8 +748,13 @@ function renderVenue(v) {
       <span>${esc(v.neighborhoodName)} · ${esc(v.kind)}</span>
       ${seasonTag}
     </div>
-    <div class="vc-title">${esc(v.name)} ${v.verified ? '<span style="color:var(--blue);font-size:16px">✓</span>' : ''}</div>
-    <div class="vc-status">${openChip}${gRating}</div>
+    <div class="vc-headrow">
+      ${v.googlePhoto ? `<img class="vc-photo" src="${esc(v.googlePhoto)}" alt="${esc(v.name)}" loading="lazy" onerror="this.remove()" />` : ''}
+      <div class="vc-headtext">
+        <div class="vc-title">${esc(v.name)} ${v.verified ? '<span style="color:var(--blue);font-size:16px">✓</span>' : ''}</div>
+        <div class="vc-status">${openChip}${gRating}</div>
+      </div>
+    </div>
 
     <div class="pr-block">
       <div class="pr-num" style="color:${bc.core}">${v.radar.score}</div>

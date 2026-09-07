@@ -11,6 +11,7 @@ import { RESOLVED } from './resolved.js'; // real Google coords baked in (accura
 import { BAKED_PLACES } from './baked-places.js'; // real ratings + reviews + descriptions
 import { BAKED_INSTAGRAM } from './baked-instagram.js'; // resolved Instagram profile URLs
 import { BAKED_HOURS } from './baked-hours.js'; // real weekly opening-hours schedules
+import { BAKED_PHOTOS } from './baked-photos.js'; // first Google photo per venue (keyless URL)
 import { cityTz } from './hours.js'; // per-city UTC offset so night curves read local time
 
 // Athens nightlife districts. `center` drives the stylized map projection and
@@ -1240,6 +1241,13 @@ export function seed() {
     if (!db.places[v.id]) db.places[v.id] = { confident: true, resolvedTs: t0, detailsTs: t0 };
     if (Array.isArray(hrs.periods)) db.places[v.id].periods = hrs.periods;
     if (hrs.businessStatus) db.places[v.id].businessStatus = hrs.businessStatus;
+  }
+  // first Google photo (keyless CDN URL) → shown next to the venue name
+  for (const v of db.venues) {
+    const ph = BAKED_PHOTOS[v.id];
+    if (!ph) continue;
+    if (!db.places[v.id]) db.places[v.id] = { confident: true, resolvedTs: t0, detailsTs: t0 };
+    db.places[v.id].googlePhoto = ph;
   }
   // real Instagram URLs so the button links straight to the profile (no scraping)
   for (const v of db.venues) {

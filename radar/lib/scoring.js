@@ -330,6 +330,7 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     hours: { open: openState.open, source: openState.source, opensLabel: openState.opensLabel, closesLabel: openState.closesLabel },
     season: venue.season ? { label: seasonRange(venue.season) || 'Seasonal', reopen: openState.opensLabel || null, closed: !!openState.seasonalClosed } : null,
     google,
+    googlePhoto: place?.googlePhoto || null,
     instagram,
     dress,
     liveBusyness: bt ? bt.busyness : null,
