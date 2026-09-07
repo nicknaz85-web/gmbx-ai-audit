@@ -403,7 +403,7 @@ const VENUE_DEFS = [
   // KOSOVO — Pristina (bar/lounge-led scene)
   ['Zone Club',           'pristina', 'Dancing',  'Club', 500, 1.6, 16, 10, { mult: 1.05, trend: 0.8 }, true],
   ['tintin Cocktail Bar', 'pristina', 'Cocktails','Bar',  200, 0.0, 12, 0,  { mult: 0.95, trend: 0.5 }, false],
-  ['Bubble Pub',          'pristina', 'Bars',     'Bar',  250, 0.2, 12, 0,  { mult: 0.9,  trend: 0.5 }, false],
+  ['Bubble Pub',          'pristina', 'Bars',     'Bar',  250, 0.2, 12, 0,  { mult: 0.9,  trend: 0.5 }, false, true],
 
   // ALBANIA — Tirana (Blloku)
   ['Lollipop',        'blloku', 'Dancing',  'Club',    400, 1.4, 14, 12, { mult: 1.0,  trend: 0.7 }, false],
@@ -830,7 +830,7 @@ const VENUE_DEFS = [
   ['Bloombar',            'accra', 'Bars',    'Bar', 250, 0.6, 11, 8, { mult: 0.9,  trend: 0.5 }, false],
   // NORTH AMERICA (more)
   ['1015 Folsom',         'sf', 'Dancing', 'Club', 1000, 1.6, 18, 25, { mult: 1.1,  trend: 0.8 }, true],
-  ['The EndUp',           'sf', 'Late Night', 'Club', 400, 2.6, 14, 20, { mult: 1.05, trend: 0.9 }, false],
+  ['The EndUp',           'sf', 'Late Night', 'Club', 400, 2.6, 14, 20, { mult: 1.05, trend: 0.9 }, false, true],
   ['TV Lounge',           'detroit', 'Dancing', 'Club', 400, 2.0, 14, 15, { mult: 1.1,  trend: 0.9 }, true],
   ['Spot Lite Detroit',   'detroit', 'Dancing', 'Club', 350, 2.0, 13, 12, { mult: 1.05, trend: 0.9 }, false],
   ['Echostage',           'dc', 'Dancing', 'Club', 3000, 1.4, 24, 30, { mult: 1.15, trend: 0.7 }, true],
@@ -986,6 +986,13 @@ const slugify = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]
 // month numbers (1–12); outside that window the venue reads as closed for the
 // season. `label` is shown on the card. These are open-air beach clubs and
 // summer-resort / island venues that shut down over winter.
+// One-off temporary closures (renovations, private hire, holidays). Date range is
+// inclusive, ISO yyyy-mm-dd in the venue's local day. The venue reads closed for
+// the whole window and shows a "reopens <date>" label.
+const TEMP_CLOSURES = {
+  'tintin Cocktail Bar': { from: '2026-09-07', to: '2026-09-13', label: 'Closed until Sep 14' },
+};
+
 const SEASONAL = {
   // SWEDEN — Stockholm open-air (May–Sep)
   'Trädgården':          { from: 5, to: 9,  label: 'Summer only' },
@@ -1099,6 +1106,7 @@ export function seed() {
       verified,
       lgbtq: !!lgbtq,
       season: SEASONAL[name] || null, // summer-only venues read closed off-season
+      tempClosed: TEMP_CLOSURES[name] || null, // one-off temporary closure window
       ig: ig || null, // explicit Instagram handle override (optional)
       // fallback position only — a real Google location overrides this for
       // matched venues. Keep it tight around the (on-land) district centre so
@@ -1133,8 +1141,10 @@ export function seed() {
     db.places[v.id].instagram = ig;
   }
 
-  // Only backfill if we have no persisted signals (fresh boot / empty snapshot).
-  if (db.checkins.length === 0 && db.reports.length === 0) backfill();
+  // Ambient/backfill simulation is disabled — the radar shows only REAL user
+  // reports & check-ins now (crowd levels otherwise come from the honest estimate
+  // model, not fabricated activity). Re-enable backfill() here to restore the demo.
+  // if (db.checkins.length === 0 && db.reports.length === 0) backfill();
 }
 
 // Generate a believable last-90-minutes of anonymous activity following each

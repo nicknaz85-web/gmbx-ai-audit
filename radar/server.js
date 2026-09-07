@@ -43,7 +43,9 @@ if (process.env.RADAR_DEMO_CLOCK) enableDemoClock(0.83, 6);
 loadSnapshot();
 ensureMediaDir();
 seed();
-startSimulation();
+// Ambient simulation disabled — the radar reflects only REAL user reports/check-ins.
+// Re-enable startSimulation() to restore the self-driving demo crowd.
+// startSimulation();
 // Coordinates, ratings, reviews and hours are BAKED IN (lib/resolved.js,
 // baked-places.js), so we no longer sweep Google Places on boot — that sweep
 // burned the daily API quota (and then failed). Set PLACES_LIVE=1 to re-enable.

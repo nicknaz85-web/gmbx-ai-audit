@@ -754,8 +754,7 @@ function renderVenue(v) {
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>
         Instagram</button>` : ''}
       <button class="btn btn-save full${isSaved(v.id) ? ' on' : ''}" onclick="toggleSave('${v.id}')">${isSaved(v.id) ? '★ Saved' : '☆ Save for later'}</button>
-      <button class="btn btn-ghost" onclick="startReport('${v.id}')">Report</button>
-      <button class="btn btn-here" id="hereBtn" onclick="checkIn('${v.id}')">I'm here</button>
+      <button class="btn btn-ghost" onclick="startReport('${v.id}')">Report the vibe</button>
     </div>
     <div class="note">Anonymous and aggregated · no individual locations are ever shown</div>
   </div>`;

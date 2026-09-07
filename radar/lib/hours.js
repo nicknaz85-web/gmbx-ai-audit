@@ -192,6 +192,16 @@ function inSeason(season, month) {
 // Public: resolve open state. `place` is the cached Google record (or null);
 // we trust its openNow only when places.js marked the match confident.
 export function resolveOpen(venue, ref, place) {
+  // one-off temporary closure window (renovation/holiday) — closed for its span
+  if (venue.tempClosed) {
+    const from = Date.parse(venue.tempClosed.from + 'T00:00:00Z');
+    const to = Date.parse(venue.tempClosed.to + 'T23:59:59Z');
+    if (ref >= from && ref <= to) {
+      const d = new Date(to);
+      const reopen = MONTHS[d.getUTCMonth()].slice(0, 3) + ' ' + (d.getUTCDate() + 1);
+      return { open: false, source: 'closed', tempClosed: true, opensLabel: 'reopens ' + reopen, closesLabel: null };
+    }
+  }
   // seasonal (e.g. summer-only) venues read closed outside their season, whatever
   // Google or the schedule says
   if (venue.season && !inSeason(venue.season, localMonth(venue, ref))) {
