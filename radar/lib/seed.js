@@ -39,6 +39,7 @@ const NEIGHBORHOODS = [
   { id: 'rhodes-old',   name: 'Old Town',     city: 'Rhodes',       center: { lat: 36.4442, lng: 28.2268 }, radius: 280, bestFor: ['Bars', 'Rooftops'] },
   // CORFU
   { id: 'corfu-town',   name: 'Corfu Town',   city: 'Corfu',        center: { lat: 39.6243, lng: 19.9212 }, radius: 280, bestFor: ['Dancing', 'Bars'] },
+  { id: 'nafplio-old',  name: 'Old Town',     city: 'Nafplio',      center: { lat: 37.5680, lng: 22.7980 }, radius: 260, bestFor: ['Cocktails', 'Bars'] },
 
   // GERMANY
   { id: 'friedrichshain', name: 'Friedrichshain', city: 'Berlin',  center: { lat: 52.5105, lng: 13.4490 }, radius: 420, bestFor: ['Techno', 'Late Night'] },
@@ -168,6 +169,8 @@ const NEIGHBORHOODS = [
   { id: 'tulum',       name: 'Tulum Beach',    city: 'Tulum',        center: { lat: 20.1600, lng: -87.4650 }, radius: 520, bestFor: ['House', 'Late Night'] },
   { id: 'panama-casco',name: 'Casco Viejo',    city: 'Panama City',  center: { lat: 8.9510,  lng: -79.5340 }, radius: 480, bestFor: ['Dancing', 'Rooftops'] },
   { id: 'sanjose-cr',  name: 'San José',       city: 'San José',     center: { lat: 9.9330,  lng: -84.0790 }, radius: 480, bestFor: ['Dancing', 'Live'] },
+  { id: 'guatemala-zv',name: 'Zona Viva',      city: 'Guatemala City', center: { lat: 14.5990, lng: -90.5130 }, radius: 480, bestFor: ['Dancing', 'Bars'] },
+  { id: 'sansalvador-zr', name: 'Zona Rosa',   city: 'San Salvador', center: { lat: 13.7010, lng: -89.2240 }, radius: 480, bestFor: ['Dancing', 'Live'] },
   // SOUTH AMERICA
   { id: 'sao-paulo',   name: 'Barra Funda',    city: 'São Paulo',    center: { lat: -23.5250, lng: -46.6660 }, radius: 520, bestFor: ['Techno', 'House'] },
   { id: 'rio-lapa',    name: 'Lapa',           city: 'Rio de Janeiro', center: { lat: -22.9130, lng: -43.1790 }, radius: 500, bestFor: ['Live', 'Dancing'] },
@@ -236,6 +239,9 @@ const NEIGHBORHOODS = [
   { id: 'detroit',     name: 'Detroit',        city: 'Detroit',      center: { lat: 42.3350, lng: -83.0450 }, radius: 500, bestFor: ['Techno', 'House'] },
   { id: 'dc',          name: 'U Street',       city: 'Washington',   center: { lat: 38.9170, lng: -77.0280 }, radius: 500, bestFor: ['Dancing', 'Hip-Hop'] },
   { id: 'austin',      name: 'Downtown',       city: 'Austin',       center: { lat: 30.2670, lng: -97.7400 }, radius: 500, bestFor: ['Live', 'Dancing'] },
+  { id: 'houston-mid', name: 'Midtown / EaDo', city: 'Houston',      center: { lat: 29.7450, lng: -95.3620 }, radius: 520, bestFor: ['Dancing', 'Bars'] },
+  { id: 'dallas-de',   name: 'Deep Ellum',     city: 'Dallas',       center: { lat: 32.7840, lng: -96.7840 }, radius: 480, bestFor: ['Live', 'Dancing'] },
+  { id: 'sanantonio-dt', name: "St Mary's Strip", city: 'San Antonio', center: { lat: 29.4380, lng: -98.4880 }, radius: 480, bestFor: ['Live', 'Bars'] },
   { id: 'neworleans',  name: 'French Quarter', city: 'New Orleans',  center: { lat: 29.9600, lng: -90.0600 }, radius: 480, bestFor: ['Live', 'Dancing'] },
   { id: 'atlanta',     name: 'Atlanta',        city: 'Atlanta',      center: { lat: 33.7620, lng: -84.3830 }, radius: 500, bestFor: ['Hip-Hop', 'Dancing'] },
   { id: 'vancouver',   name: 'Granville',      city: 'Vancouver',    center: { lat: 49.2800, lng: -123.1200 }, radius: 500, bestFor: ['Dancing', 'House'] },
@@ -954,6 +960,35 @@ const VENUE_DEFS = [
   ['Nabaklab',            'riga-lv', 'Bars',    'Bar', 300, 1.0, 12, 6, { mult: 0.95, trend: 0.6 }, false],
   ['Depo',                'riga-lv', 'Dancing', 'Club', 500, 1.8, 14, 8, { mult: 1.05, trend: 0.8 }, true],
   ['Club Hollywood',      'tallinn', 'Dancing', 'Club', 700, 1.4, 15, 12, { mult: 1.05, trend: 0.6 }, false],
+
+  // ─── USA — TEXAS ───────────────────────────────────────────────
+  // Houston
+  ['Bauhaus',             'houston-mid', 'Dancing', 'Club', 500,  2.0, 14, 15, { mult: 1.05, trend: 0.9 }, false],
+  ['Numbers',             'houston-mid', 'Dancing', 'Club', 600,  1.8, 13, 10, { mult: 1.0,  trend: 0.7 }, false],
+  // Dallas — Deep Ellum
+  ['Club Dada',           'dallas-de', 'Live',    'Venue', 500, 1.4, 13, 10, { mult: 1.0,  trend: 0.7 }, false],
+  ['Vidorra',             'dallas-de', 'Rooftops','Rooftop', 400, 1.2, 13, 10, { mult: 1.0, trend: 0.7 }, false],
+  ["It'll Do Club",       'dallas-de', 'Dancing', 'Club', 400, 2.0, 13, 12, { mult: 1.05, trend: 0.9 }, false],
+  ['The Nines',           'dallas-de', 'Bars',    'Bar', 350, 1.4, 12, 8, { mult: 0.95, trend: 0.6 }, false],
+  // San Antonio
+  ['HEAT Nightclub',      'sanantonio-dt', 'Dancing', 'Club', 500, 1.6, 14, 10, { mult: 1.0, trend: 0.8 }, false, true],
+  ['Paper Tiger',         'sanantonio-dt', 'Live',    'Venue', 500, 1.4, 13, 12, { mult: 1.0, trend: 0.7 }, false],
+  ['Midnight Swim',       'sanantonio-dt', 'Cocktails','Bar', 180, 0.6, 11, 0, { mult: 0.9, trend: 0.6 }, false],
+
+  // ─── CENTRAL AMERICA ───────────────────────────────────────────
+  // Guatemala City — Zona Viva
+  ['Bajo Fondo',          'guatemala-zv', 'Dancing', 'Club', 400, 1.8, 13, 8, { mult: 1.0, trend: 0.8 }, false],
+  ['Trovajazz',           'guatemala-zv', 'Live',    'Venue', 150, 0.8, 11, 6, { mult: 0.9, trend: 0.5 }, false],
+  ["Shakespeare's Pub",   'guatemala-zv', 'Bars',    'Bar', 150, 0.4, 11, 0, { mult: 0.9, trend: 0.5 }, false],
+  // San Salvador — Zona Rosa
+  ['Republik',            'sansalvador-zr', 'Dancing','Club', 400, 1.6, 13, 10, { mult: 1.0, trend: 0.8 }, false],
+  ['Insomnia Club',       'sansalvador-zr', 'Dancing','Club', 350, 1.8, 12, 10, { mult: 1.0, trend: 0.8 }, false],
+  // Panama City — Casco Viejo (more; Teatro Amador already listed)
+  ['CasaCasco',           'panama-casco', 'Dancing', 'Club', 500, 1.4, 14, 15, { mult: 1.0, trend: 0.7 }, false],
+
+  // ─── GREECE — NAFPLIO ──────────────────────────────────────────
+  ['Ydragogio',           'nafplio-old', 'Cocktails','Bar', 150, 0.6, 11, 0, { mult: 0.9, trend: 0.5 }, false],
+  ['Rosso Music Cafe',    'nafplio-old', 'Live',    'Venue', 150, 0.8, 11, 0, { mult: 0.9, trend: 0.5 }, false],
 ];
 
 function jitter(center, seed, spreadM = 140) {

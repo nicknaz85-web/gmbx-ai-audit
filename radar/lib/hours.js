@@ -12,7 +12,7 @@ import { fmtHour } from './util.js';
 // European ones (Greece, Romania, Moldova) are EEST (+3); Portugal is WEST (+1).
 const EEST_CITIES = new Set([
   'Athens', 'Thessaloniki', 'Mykonos', 'Santorini', 'Heraklion',
-  'Chania', 'Patras', 'Rhodes', 'Corfu',   // Greece
+  'Chania', 'Patras', 'Rhodes', 'Corfu', 'Nafplio',  // Greece
   'Bucharest', 'Mamaia',                    // Romania
   'Chișinău',                               // Moldova
   'Sofia',                                  // Bulgaria
@@ -53,6 +53,8 @@ const CITY_OFFSET = {
   // North America (more)
   'San Francisco': -7, 'Vancouver': -7, 'Detroit': -4, 'Washington': -4,
   'Atlanta': -4, 'Austin': -5, 'New Orleans': -5,
+  'Houston': -5, 'Dallas': -5, 'San Antonio': -5,
+  'Guatemala City': -6, 'San Salvador': -6,
   // Latin America / Caribbean (more)
   'Montevideo': -3, 'Cartagena': -5, 'Havana': -4, 'San Juan': -4,
   // Europe (more)

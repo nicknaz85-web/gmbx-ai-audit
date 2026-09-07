@@ -52,6 +52,9 @@ const CURRENCY_BY_CITY = {
   // North America (more) — USD & CAD
   'San Francisco': 'USD', Detroit: 'USD', Washington: 'USD', Austin: 'USD',
   'New Orleans': 'USD', Atlanta: 'USD', Vancouver: 'CAD',
+  Houston: 'USD', Dallas: 'USD', 'San Antonio': 'USD',
+  // Central America — El Salvador uses USD; Guatemala the quetzal
+  'San Salvador': 'USD', 'Guatemala City': 'GTQ',
   // Latin America / Caribbean (more)
   Montevideo: 'UYU', Cartagena: 'COP', Havana: 'USD', 'San Juan': 'USD',
   // Oceania (more)
@@ -88,6 +91,7 @@ const CUR = {
   CAD: { code: 'CAD', symbol: 'C$',  pre: true,  rate: 1.47,  step: 5 },
   MXN: { code: 'MXN', symbol: '$',   pre: true,  rate: 18.5,  step: 20 },
   CRC: { code: 'CRC', symbol: '₡',   pre: true,  rate: 560,   step: 1000 },
+  GTQ: { code: 'GTQ', symbol: 'Q',   pre: true,  rate: 7.7,   step: 25 },
   BRL: { code: 'BRL', symbol: 'R$',  pre: true,  rate: 5.9,   step: 5 },
   ARS: { code: 'ARS', symbol: '$',   pre: true,  rate: 1150,  step: 500 },
   COP: { code: 'COP', symbol: '$',   pre: true,  rate: 4600,  step: 5000 },
