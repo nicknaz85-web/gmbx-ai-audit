@@ -931,15 +931,54 @@ const REPORT_STEPS = [
     { v: 'R&B', l: 'R&B' }, { v: 'Afrobeats', l: 'Afrobeats' }, { v: 'Commercial', l: 'Commercial' },
     { v: 'Latin', l: 'Latin' }, { v: 'Other', l: 'Other' }] },
 ];
-const R = { venueId: null, step: 0, answers: {}, media: null };
+// Welcome carousel shown before the report questions — explains the app with the mascot
+const REPORT_INTRO = [
+  { title: 'Welcome to Clubbit', body: "See how busy every club and bar is around you — live, right now, from real people on the ground." },
+  { title: 'You’re the radar', body: "Reports from clubbers like you keep it accurate — the vibe, the queue, the music, the door." },
+  { title: 'Add your vibe', body: "You’re here, so tell everyone what it’s like tonight. Takes about 15 seconds — let’s go." },
+];
+const R = { venueId: null, step: 0, answers: {}, media: null, intro: true, introStep: 0 };
 function startReport(id) {
   closeVenue();
-  R.venueId = id; R.step = 0; R.answers = {}; R.media = null;
+  R.venueId = id; R.step = 0; R.answers = {}; R.media = null; R.intro = true; R.introStep = 0;
   $('#reportOverlay').hidden = false;
   renderReport();
 }
 function closeReport() { $('#reportOverlay').hidden = true; }
+function reportDots(active, total) {
+  return `<div class="rep-dots">${Array.from({ length: total }, (_, i) =>
+    `<i class="${i === active ? 'on' : ''}"></i>`).join('')}</div>`;
+}
+function renderReportIntro() {
+  $('#reportOverlay').classList.add('vibe');
+  const venue = S.data.venues.find(v => v.id === R.venueId);
+  const s = REPORT_INTRO[R.introStep];
+  const last = R.introStep === REPORT_INTRO.length - 1;
+  $('#reportInner').innerHTML = `
+    <div class="rep-head">
+      <div class="rep-venue">${venue ? `Reporting · <b>${esc(venue.name)}</b>` : ''}</div>
+      <button class="rep-x" onclick="closeReport()">✕</button>
+    </div>
+    <div class="rep-intro">
+      <img class="ri-mascot" src="/clubbit-mascot.png" alt="Clubbit" onerror="this.style.display='none'" />
+      <h2>${s.title}</h2>
+      <p>${s.body}</p>
+    </div>
+    ${reportDots(R.introStep, REPORT_INTRO.length)}
+    <div class="rep-nav">
+      ${R.introStep > 0 ? `<button class="rep-skip" onclick="introPrev()">Back</button>` : `<button class="rep-skip" onclick="introSkip()">Skip</button>`}
+      <button class="rep-next" onclick="introNext()">${last ? 'Start' : 'Next'}</button>
+    </div>`;
+}
+function introNext() {
+  if (R.introStep < REPORT_INTRO.length - 1) { R.introStep++; renderReportIntro(); }
+  else introSkip();
+}
+function introPrev() { if (R.introStep > 0) { R.introStep--; renderReportIntro(); } }
+function introSkip() { R.intro = false; R.step = 0; renderReport(); }
 function renderReport() {
+  if (R.intro) return renderReportIntro();
+  $('#reportOverlay').classList.remove('vibe');
   const venue = S.data.venues.find(v => v.id === R.venueId);
   const step = REPORT_STEPS[R.step];
   const sel = R.answers[step.key];
@@ -1048,6 +1087,7 @@ async function submitReport() {
   const myLevel = levelFor(beforeCount);
   const reporter = { name: prof.firstName || null, age: prof.calculatedAge || null, tag: myLevel.name, photo: myFace(prof) };
   const payload = { venueId: R.venueId, vibe: a.vibe, queue: a.queue, entry: a.entry, mix: a.mix, music: a.music, coords, media: R.media, reporter };
+  $('#reportOverlay').classList.add('vibe');
   $('#reportInner').innerHTML = `<div class="rep-done"><div class="big">•••</div><h2>Sending…</h2></div>`;
   const res = await API.report(payload);
   if (res && res.error) { toast(res.needMedia ? 'A photo or video is required' : ('Could not send: ' + res.error)); R.step = 1; renderReport(); return; }
@@ -1057,9 +1097,9 @@ async function submitReport() {
   const leveledUp = newLevel.name !== myLevel.name;
   const badge = res.badges && res.badges.length ? res.badges[res.badges.length - 1] : null;
   $('#reportInner').innerHTML = `<div class="rep-done">
-    <div class="big">${VIBE_EMOJI[a.vibe] || '✓'}</div>
-    <h2>Thanks — you're on the radar</h2>
-    <p>Your report updates the live crowd view for everyone.<br>Confidence: <b style="color:var(--blue)">${titleCase(res.confidenceTier || 'medium')}</b></p>
+    <img class="rd-mascot" src="/clubbit-mascot.png" alt="Clubbit" onerror="this.style.display='none'" />
+    <h2>All good to go 🎉</h2>
+    <p>Thanks — you're on the radar. Now go enjoy the club!<br>Confidence: <b style="color:var(--blue)">${titleCase(res.confidenceTier || 'medium')}</b></p>
     ${leveledUp
       ? `<div class="rep-badge">${newLevel.emoji} Level up! You're now a <b>${esc(newLevel.name)}</b></div>`
       : `<div class="rep-levelnote">${newLevel.emoji} ${esc(newLevel.name)} · ${newLevel.next ? `${newLevel.next.min - newLevel.count} more to ${esc(newLevel.next.name)}` : 'max level'}</div>`}
