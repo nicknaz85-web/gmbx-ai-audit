@@ -46,17 +46,31 @@
 
   <div class="app" id="app">
 
-    <!-- ============ 1 · WELCOME ============ -->
+    <!-- ============ 1 · WELCOME CAROUSEL ============ -->
     <section class="screen welcome" data-screen="welcome">
       <div class="spacer"></div>
-      <div class="duo" aria-hidden="true">
-        <div class="mascot walk-l"><div class="shine"></div><img src="/clubbit-mascot.png" alt="" /></div>
-        <div class="mascot walk-r alt"><div class="shine shine-f"></div><img src="/clubbit-mascot-f.png" alt="" /></div>
+      <div class="wc-carousel" id="wcCarousel">
+        <div class="wc-track" id="wcTrack">
+          <div class="wc-slide">
+            <div class="mascot m-idle" aria-hidden="true"><div class="shine"></div><img src="/clubbit-mascot.png" alt="" /></div>
+            <div class="brand"><img src="/clubbit-logo-trim.png" alt="Clubbit" /></div>
+            <p class="sub">See how busy every club and bar is around you — live, right now, from real people on the ground.</p>
+          </div>
+          <div class="wc-slide">
+            <div class="mascot m-idle" aria-hidden="true"><div class="shine shine-f"></div><img src="/clubbit-mascot-f.png" alt="" /></div>
+            <h1 class="h1 big">You're the radar</h1>
+            <p class="sub">Reports from clubbers like you keep it accurate — the vibe, the queue, the music, the door.</p>
+          </div>
+          <div class="wc-slide">
+            <div class="mascot m-idle" aria-hidden="true"><div class="shine"></div><img src="/clubbit-mascot.png" alt="" /></div>
+            <h1 class="h1 big">Add your vibe</h1>
+            <p class="sub">You're here, so tell everyone what it's like tonight. Takes about 15 seconds.</p>
+          </div>
+        </div>
       </div>
-      <div class="brand"><img src="/clubbit-logo-trim.png" alt="Clubbit" /></div>
-      <p class="sub" style="text-align:center;margin:12px auto 0">See where the night is actually happening.</p>
+      <div class="wc-dots" id="wcDots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
       <div class="spacer"></div>
-      <button class="cta" data-act="start">I'm Ready</button>
+      <button class="cta" id="wcCta" data-act="wcNext">Next</button>
     </section>
 
     <!-- ============ 2 · SIGN IN ============ -->

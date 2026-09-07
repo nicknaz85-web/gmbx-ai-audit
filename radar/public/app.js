@@ -931,53 +931,15 @@ const REPORT_STEPS = [
     { v: 'R&B', l: 'R&B' }, { v: 'Afrobeats', l: 'Afrobeats' }, { v: 'Commercial', l: 'Commercial' },
     { v: 'Latin', l: 'Latin' }, { v: 'Other', l: 'Other' }] },
 ];
-// Welcome carousel shown before the report questions — explains the app with the mascot
-const REPORT_INTRO = [
-  { title: 'Welcome to Clubbit', body: "See how busy every club and bar is around you — live, right now, from real people on the ground." },
-  { title: 'You’re the radar', body: "Reports from clubbers like you keep it accurate — the vibe, the queue, the music, the door." },
-  { title: 'Add your vibe', body: "You’re here, so tell everyone what it’s like tonight. Takes about 15 seconds — let’s go." },
-];
-const R = { venueId: null, step: 0, answers: {}, media: null, intro: true, introStep: 0 };
+const R = { venueId: null, step: 0, answers: {}, media: null };
 function startReport(id) {
   closeVenue();
-  R.venueId = id; R.step = 0; R.answers = {}; R.media = null; R.intro = true; R.introStep = 0;
+  R.venueId = id; R.step = 0; R.answers = {}; R.media = null;
   $('#reportOverlay').hidden = false;
   renderReport();
 }
 function closeReport() { $('#reportOverlay').hidden = true; }
-function reportDots(active, total) {
-  return `<div class="rep-dots">${Array.from({ length: total }, (_, i) =>
-    `<i class="${i === active ? 'on' : ''}"></i>`).join('')}</div>`;
-}
-function renderReportIntro() {
-  $('#reportOverlay').classList.add('vibe');
-  const venue = S.data.venues.find(v => v.id === R.venueId);
-  const s = REPORT_INTRO[R.introStep];
-  const last = R.introStep === REPORT_INTRO.length - 1;
-  $('#reportInner').innerHTML = `
-    <div class="rep-head">
-      <div class="rep-venue">${venue ? `Reporting · <b>${esc(venue.name)}</b>` : ''}</div>
-      <button class="rep-x" onclick="closeReport()">✕</button>
-    </div>
-    <div class="rep-intro">
-      <img class="ri-mascot" src="/clubbit-mascot.png" alt="Clubbit" onerror="this.style.display='none'" />
-      <h2>${s.title}</h2>
-      <p>${s.body}</p>
-    </div>
-    ${reportDots(R.introStep, REPORT_INTRO.length)}
-    <div class="rep-nav">
-      ${R.introStep > 0 ? `<button class="rep-skip" onclick="introPrev()">Back</button>` : `<button class="rep-skip" onclick="introSkip()">Skip</button>`}
-      <button class="rep-next" onclick="introNext()">${last ? 'Start' : 'Next'}</button>
-    </div>`;
-}
-function introNext() {
-  if (R.introStep < REPORT_INTRO.length - 1) { R.introStep++; renderReportIntro(); }
-  else introSkip();
-}
-function introPrev() { if (R.introStep > 0) { R.introStep--; renderReportIntro(); } }
-function introSkip() { R.intro = false; R.step = 0; renderReport(); }
 function renderReport() {
-  if (R.intro) return renderReportIntro();
   $('#reportOverlay').classList.remove('vibe');
   const venue = S.data.venues.find(v => v.id === R.venueId);
   const step = REPORT_STEPS[R.step];

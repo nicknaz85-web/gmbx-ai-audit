@@ -428,27 +428,10 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   radial-gradient(120% 70% at 50% 12%, #f4ecff 0%, rgba(244,236,255,0) 62%),
   linear-gradient(180deg, #faf6ff 0%, #fdfbff 46%, #ffffff 100%)}
 .report.vibe .rep-venue{color:var(--muted)}
-/* report: welcome intro carousel + done mascot */
-.rep-intro{display:flex;flex-direction:column;align-items:center;text-align:center;margin:auto 0}
-.rep-intro .ri-mascot{width:210px;max-width:60vw;height:auto;display:block;
-  filter:drop-shadow(0 14px 24px rgba(124,58,237,.18));animation:riPop .5s cubic-bezier(.2,.8,.3,1.2) both}
-.rep-intro h2{font-size:24px;font-weight:600;color:var(--ink);margin:16px 0 0;letter-spacing:-.02em}
-.rep-intro p{font-size:14.5px;color:var(--muted);line-height:1.55;margin:11px 0 0;max-width:300px}
+/* report: done-screen mascot */
 .rep-done .rd-mascot{width:180px;max-width:52vw;height:auto;margin:0 auto 6px;display:block;
   filter:drop-shadow(0 14px 24px rgba(124,58,237,.2));animation:riPop .5s cubic-bezier(.2,.8,.3,1.2) both}
 @keyframes riPop{0%{opacity:0;transform:translateY(14px) scale(.9)}100%{opacity:1;transform:none}}
-/* rotating three-dot pager */
-.rep-dots{display:flex;gap:11px;justify-content:center;align-items:center;margin:20px 0 2px}
-.rep-dots i{width:9px;height:9px;border-radius:50%;background:#dcdfe4;position:relative;
-  transition:background .3s ease,transform .3s ease}
-.rep-dots i.on{background:var(--primary);transform:scale(1.22)}
-.rep-dots i.on::after{content:"";position:absolute;inset:-5px;border-radius:50%;
-  background:conic-gradient(var(--primary),rgba(124,58,237,0) 72%);
-  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 0);
-  mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 0);
-  animation:dotRing .6s linear}
-@keyframes dotRing{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.rep-dots i.on::after{animation:none}}
 
 /* recent named vibe reports on the venue card */
 .reports-block{margin:18px 0 4px}
