@@ -725,11 +725,11 @@ function renderVenue(v) {
     </div>` : ''}
 
     <div class="forecast">
-      <div class="section-h"><h3>Forecast</h3><span class="count">next 2 hours</span></div>
+      <div class="section-h"><h3>Forecast</h3><span class="count">next 8 hours</span></div>
       <div class="fc-bars">
         ${fc.map(p => `<div class="fc-col">
-          <div class="fc-pct">${p.pct}%</div>
-          <div class="fc-bar ${p.mins === 0 ? 'now' : ''}" style="height:${Math.max(8, p.pct / maxPct * 100)}%"></div>
+          <div class="fc-pct">${p.open === false ? '·' : p.pct + '%'}</div>
+          <div class="fc-bar ${p.mins === 0 ? 'now' : ''}${p.open === false ? ' closed' : ''}" style="height:${p.open === false ? 6 : Math.max(8, p.pct / maxPct * 100)}%"></div>
           <div class="fc-lab">${esc(p.label)}</div></div>`).join('')}
       </div>
       <div class="peak-flag">★ Expected peak <b style="margin-left:4px">${esc(v.expectedPeak)}</b></div>

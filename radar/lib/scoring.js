@@ -268,7 +268,7 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
   }
 
   const nearby = nearbyActivity(venue, ref);
-  const forecast = venueForecast(venue, fullnessEst, ref);
+  const forecast = venueForecast(venue, fullnessEst, ref, place);
   const radar = partyRadarScore({ hot, M, nearby, consensus, owner, expFrac, freshestSignalMin });
   const decision = shouldIGo({ venue, fullnessEst, M, momentum, consensus, owner, forecast, ref });
 
@@ -358,25 +358,39 @@ function nearbyActivity(venue, ref) {
   return { score: round(mean(hots)), count: near.length };
 }
 
-// forecast fullness across the next 2h from the historical night curve, anchored
-// to the current live estimate (offset fades over ~2h).
-function venueForecast(venue, currentEst, ref) {
+// Forecast fullness across the next 8 hours, hourly. The shape comes from the
+// venue's researched peak-time curve (peakHourFor: venue kind + city nightlife
+// culture), anchored to the current live crowd estimate (that live offset fades
+// over ~2h), and — crucially — bounded by the venue's REAL opening hours: any
+// hour the venue is closed reads 0%, so the forecast never claims a shut room is
+// filling up. `place` carries the baked Google hours used by resolveOpen.
+function venueForecast(venue, currentEst, ref, place) {
   const shape = (ts) => 0.12 + 0.83 * nightCurve(nightHour(ts), venue.peakHour, venue.spread);
-  const fracNow = shape(ref);
-  const offset = currentEst / 100 - fracNow;
-  const points = [0, 30, 60, 90, 120].map((mins) => {
+  const offset = currentEst / 100 - shape(ref);
+  // compact axis label ("11p", "3a", "12a") so 9 columns fit on a phone
+  const shortHour = (ts) => { const h = ((Math.floor(nightHour(ts)) % 24) + 24) % 24; return (h % 12 || 12) + (h < 12 ? 'a' : 'p'); };
+  const points = [0, 60, 120, 180, 240, 300, 360, 420, 480].map((mins) => {
     const ts = ref + mins * MIN;
-    const fade = Math.exp(-mins / 90);
-    const frac = clamp(shape(ts) + offset * fade);
-    return { mins, label: mins === 0 ? 'Now' : fmtHour(nightHour(ts)), pct: round(frac * 100) };
+    const open = resolveOpen(venue, ts, place).open;
+    const fade = Math.exp(-mins / 120); // live anchor fades over ~2h
+    const frac = open ? clamp(shape(ts) + offset * fade) : 0; // closed hours are empty
+    return { mins, label: mins === 0 ? 'Now' : shortHour(ts), pct: round(frac * 100), open };
   });
-  // expected peak = hour maximizing curve within next 4h (fallback: venue peak)
-  let bestTs = ref, best = -1;
-  for (let m = 0; m <= 240; m += 15) {
-    const s = shape(ref + m * MIN);
-    if (s > best) { best = s; bestTs = ref + m * MIN; }
+  // expected peak = the busiest OPEN moment of the coming night. Search further
+  // than the 8h chart (up to 16h) so an afternoon check still reports tonight's
+  // real peak (~2am) rather than a time capped at the window's edge.
+  let bestTs = null, best = -1;
+  for (let m = 0; m <= 960; m += 20) {
+    const ts = ref + m * MIN;
+    if (!resolveOpen(venue, ts, place).open) continue;
+    const s = shape(ts);
+    if (s > best) { best = s; bestTs = ts; }
   }
-  return { points, peakLabel: fmtHour(nightHour(bestTs)), peakInMin: round((bestTs - ref) / MIN) };
+  return {
+    points,
+    peakLabel: bestTs == null ? null : fmtHour(nightHour(bestTs)),
+    peakInMin: bestTs == null ? 0 : round((bestTs - ref) / MIN),
+  };
 }
 
 // PARTY RADAR SCORE — the flagship composite (hot + momentum + nearby + recency
