@@ -940,7 +940,7 @@ const VENUE_DEFS = [
   ['Jet BA',              'ba-palermo', 'Dancing', 'Club', 900, 1.4, 16, 18, { mult: 1.05, trend: 0.6 }, false],
   ['Kaputt',              'bogota-chap', 'Dancing', 'Club', 500, 1.8, 14, 14, { mult: 1.05, trend: 0.8 }, true],
   ['Armando Records',     'bogota-chap', 'Dancing', 'Club', 600, 1.4, 15, 14, { mult: 1.05, trend: 0.6 }, false],
-  ['Calle 9+1',           'medellin-pob', 'Dancing', 'Club', 500, 1.8, 14, 12, { mult: 1.05, trend: 0.8 }, true],
+  ['Perro Negro',         'medellin-pob', 'Dancing', 'Club', 500, 1.8, 14, 12, { mult: 1.05, trend: 0.8 }, true],
   ['Club Chocolate',      'santiago-bel', 'Dancing', 'Club', 600, 1.6, 15, 12, { mult: 1.05, trend: 0.7 }, true],
   // Eastern Europe (more, existing cities)
   ['Jasna 1',             'srodmiescie', 'Dancing', 'Club', 500, 2.0, 15, 12, { mult: 1.1,  trend: 0.9 }, true],
