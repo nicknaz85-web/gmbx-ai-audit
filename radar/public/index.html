@@ -25,10 +25,10 @@
     #clubbit-splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
       background:#fff;transition:opacity .45s ease;overflow:hidden}
     #clubbit-splash.gone{opacity:0;pointer-events:none}
-    #clubbit-splash .cs-lockup{display:flex;align-items:center;gap:16px}
-    #clubbit-splash .cs-drink{height:66px;width:auto;flex:none;animation:csDrink .72s cubic-bezier(.2,.75,.25,1) both}
-    #clubbit-splash .cs-text{height:42px;width:auto;flex:none;clip-path:inset(0 100% 0 0);animation:csText .84s steps(7,end) forwards .58s}
-    @keyframes csDrink{0%{transform:translateX(-64vw) rotate(-12deg);opacity:0}55%{opacity:1}100%{transform:translateX(0) rotate(0);opacity:1}}
+    #clubbit-splash .cs-lockup{display:flex;align-items:center;gap:9px}
+    #clubbit-splash .cs-drink{height:50px;width:auto;flex:none;position:relative;z-index:2;animation:csDrink .9s cubic-bezier(.2,.7,.25,1) both}
+    #clubbit-splash .cs-text{height:44px;width:auto;flex:none;position:relative;z-index:1;clip-path:inset(0 0 0 100%);animation:csText .72s steps(7,end) forwards .18s}
+    @keyframes csDrink{0%{transform:translateX(62vw);opacity:0}12%{opacity:1}100%{transform:translateX(0);opacity:1}}
     @keyframes csText{to{clip-path:inset(0 0 0 0)}}
     @media (prefers-reduced-motion:reduce){
       #clubbit-splash .cs-drink{animation:none}

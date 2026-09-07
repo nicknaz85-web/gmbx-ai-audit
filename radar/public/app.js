@@ -490,8 +490,11 @@ function venueRow(v) {
   sub.push(closed && v.hours ? 'Opens ' + v.hours.opensLabel : `${v.recentSignals} signals`);
   if (v.google && v.google.rating) sub.push('★ ' + v.google.rating);
   if (v._dist != null) sub.unshift('📍 ' + distLabel(v._dist));
+  const tile = (closed && v.googlePhoto)
+    ? `<div class="vthumb"><img src="${esc(v.googlePhoto)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('noimg')" /><span class="vthumb-badge">CLOSED</span></div>`
+    : `<div class="vscore${band === 'busy' ? ' amber' : ''}" style="background:${BAND_COLOR[band].core}">${closed ? '—' : v.radar.score}<small>${closed ? 'CLOSED' : 'SCORE'}</small></div>`;
   return `<div class="vrow${closed ? ' closed' : ''}" onclick="rowClick('${v.id}')">
-    <div class="vscore${band === 'busy' ? ' amber' : ''}" style="background:${BAND_COLOR[band].core}">${closed ? '—' : v.radar.score}<small>${closed ? 'CLOSED' : 'SCORE'}</small></div>
+    ${tile}
     <div class="vmeta">
       <div class="vname">${esc(v.name)} ${v.verified ? '<span class="verified">✔</span>' : ''}</div>
       <div class="vsub">${sub.map((x, i) => (i ? '<i class="dot"></i>' : '') + `<span>${esc(x)}</span>`).join('')}</div>
