@@ -377,6 +377,9 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .prk{font-size:12.5px;color:var(--muted);flex-shrink:0}
 .prv{font-size:13.5px;color:var(--ink);font-weight:500;text-align:right;word-break:break-word}
 .prof-signout{color:#c0392b!important}
+.prof-delete{background:transparent;border:1px solid var(--red);color:var(--red)}
+.prof-delete:active{background:color-mix(in oklab,var(--red) 10%,transparent)}
+.prof-delete:disabled{opacity:.6}
 .prof-removepic{color:var(--muted)!important}
 /* profile action buttons */
 .prof-actions{display:flex;gap:10px;margin:2px 0 4px}

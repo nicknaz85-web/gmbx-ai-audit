@@ -559,6 +559,15 @@ async function api(req, res, url) {
     return send(res, 200, { ok: true, profile: db.authUsers[key].profile || null, email: db.authUsers[key].email });
   }
 
+  // POST /api/auth/delete { token } — permanently delete the account (email,
+  // password and saved profile). Irreversible.
+  if (method === 'POST' && route === 'auth/delete') {
+    const body = await readBody(req);
+    const key = tokenKey(body.token);
+    if (key && db.authUsers[key]) { delete db.authUsers[key]; saveSnapshotSoon(); }
+    return send(res, 200, { ok: true });
+  }
+
   return send(res, 404, { error: 'unknown route' });
 }
 

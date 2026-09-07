@@ -12,6 +12,7 @@ const API = {
   pulse: (venueId, state) => post('/api/pulse', { venueId, state }),
   me: () => fetch('/api/me').then(r => r.json()),
   deleteMedia: (id) => post('/api/media/delete', { id }),
+  deleteAccount: (token) => post('/api/auth/delete', { token }),
 };
 function post(url, body) {
   return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
@@ -1525,6 +1526,7 @@ async function renderProfile() {
       : `<img class="media-cell" src="${m.url}" loading="lazy" alt="Your photo" />`}<button class="media-del" title="Delete" onclick="deleteMyMedia('${m.id}')" aria-label="Delete photo">✕</button></div>`).join('')}</div>`
       : `<div class="empty">You haven't added any photos yet.<br>Report the vibe at a venue to add your first one.</div>`}
     <button class="btn btn-ghost prof-signout" id="signOutBtn" style="width:100%;margin-top:22px">Sign out</button>
+    <button class="btn prof-delete" id="deleteAcctBtn" style="width:100%;margin-top:10px">Delete account</button>
   </div>`;
   // change profile picture
   const picInput = $('#profilePicInput');
@@ -1567,6 +1569,16 @@ async function renderProfile() {
   if (so) so.onclick = () => {
     if (!confirm('Sign out of Clubbit? Your profile is saved to your account — sign back in anytime to restore it.')) return;
     try { ['clubbit_onboarding_complete', 'clubbit_profile', 'clubbit_onboarding', 'clubbit_token'].forEach((k) => localStorage.removeItem(k)); } catch {}
+    location.replace('/onboarding.html');
+  };
+  const del = $('#deleteAcctBtn');
+  if (del) del.onclick = async () => {
+    if (!confirm('Delete your account permanently? This erases your account, saved profile and level. This cannot be undone.')) return;
+    del.disabled = true; del.textContent = 'Deleting…';
+    let token = ''; try { token = localStorage.getItem('clubbit_token') || ''; } catch {}
+    try { await API.deleteAccount(token); } catch (e) {}
+    // wipe everything on this device
+    try { ['clubbit_onboarding_complete', 'clubbit_profile', 'clubbit_onboarding', 'clubbit_token', 'clubbit_reports_count', 'pr_saved', 'pr_loc'].forEach((k) => localStorage.removeItem(k)); } catch {}
     location.replace('/onboarding.html');
   };
 }
