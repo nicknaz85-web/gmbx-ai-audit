@@ -22,7 +22,9 @@ const HOURS_FILE = path.join(__dirname, '..', 'lib', 'baked-hours.js');
 
 // ---- args ----
 const arg = (flag, def) => { const i = process.argv.indexOf(flag); return i >= 0 ? (process.argv[i + 1] ?? true) : def; };
-const LIMIT = Math.min(95, parseInt(arg('--limit', '95'), 10) || 95);
+// default 95/run (safe under the old free-tier daily cap); raise via --limit once
+// the project's GetPlace daily quota is upgraded. Hard ceiling just guards typos.
+const LIMIT = Math.min(2000, parseInt(arg('--limit', '95'), 10) || 95);
 const ONLY_CITY = arg('--city', null);
 const DRY = process.argv.includes('--dry');
 

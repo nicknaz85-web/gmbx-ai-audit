@@ -670,7 +670,7 @@ const VENUE_DEFS = [
   ['Marquee New York',    'nyc-mnh', 'Dancing', 'Club', 600, 1.4, 16, 30, { mult: 1.05, trend: 0.6 }, false],
   // USA — Miami
   ['LIV',                 'miami-beach', 'Dancing', 'Club', 1200, 1.4, 24, 40, { mult: 1.15, trend: 0.8 }, true],
-  ['Story',               'miami-beach', 'Dancing', 'Club', 1000, 1.6, 20, 40, { mult: 1.1,  trend: 0.8 }, false],
+  // Story — permanently closed April 2023 (Miami Beach 2 AM liquor curfew; property sold). Removed.
   ['Club Space',          'miami-dt',    'Late Night', 'Club', 1500, 2.6, 24, 35, { mult: 1.2, trend: 1.0 }, true],
   ['E11EVEN',             'miami-dt',    'Late Night', 'Club', 1000, 2.8, 22, 40, { mult: 1.15, trend: 0.9 }, true],
   // USA — Los Angeles
