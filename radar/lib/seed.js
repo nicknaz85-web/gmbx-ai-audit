@@ -1092,6 +1092,24 @@ const SEASONAL = {
   'MoMix':               { from: 5, to: 10, label: 'Summer only' },
   'Two Brothers Bar':    { from: 5, to: 10, label: 'Summer only' },
   'PK Cocktail Bar':     { from: 5, to: 10, label: 'Summer only' },
+  // PORTUGAL — Albufeira strip (Algarve, ~Easter–Oct)
+  'Kiss Club':           { from: 5, to: 10, label: 'Summer only' },
+  'Libertos':            { from: 5, to: 10, label: 'Summer only' },
+  // GREECE — Zakynthos / Laganas
+  'Rescue Club':         { from: 5, to: 10, label: 'Summer only' },
+  'Cocktails and Dreams':{ from: 5, to: 10, label: 'Summer only' },
+  // SPAIN — Magaluf (Mallorca)
+  'BCM Planet Dance':    { from: 5, to: 10, label: 'Summer only' },
+  "Tokio Joe's":         { from: 5, to: 10, label: 'Summer only' },
+  // GREECE — Malia (Crete)
+  'Zig Zag Club':        { from: 5, to: 10, label: 'Summer only' },
+  'Candy Club':          { from: 5, to: 10, label: 'Summer only' },
+  // CYPRUS — Ayia Napa
+  'The Castle Club':     { from: 5, to: 10, label: 'Summer only' },
+  'Bed Rock':            { from: 5, to: 10, label: 'Summer only' },
+  // BULGARIA — Sunny Beach (Black Sea, May–Sep)
+  'Cacao Beach Club':    { from: 5, to: 9,  label: 'Summer only' },
+  'Bedroom Beach':       { from: 5, to: 9,  label: 'Summer only' },
 };
 
 // ---- Peak-time model -------------------------------------------------------
