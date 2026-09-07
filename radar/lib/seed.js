@@ -289,7 +289,7 @@ const VENUE_DEFS = [
   ['Faust',           'psyrri', 'Late Night','Club',    200, 1.5,  14, 8,  { mult: 0.9,  trend: 0.5 }, false],
   ['Noel',            'psyrri', 'Cocktails', 'Bar',     140, 0.0,  10, 0,  { mult: 0.85, trend: 0.2 }, false],
   ['The Clumsies',    'psyrri', 'Cocktails', 'Bar',     160, -0.3, 11, 0,  { mult: 0.9,  trend: -0.2 }, true],
-  ['Kolonaki? No — Beaver', 'psyrri', 'Bars', 'Bar',    120, 0.3,  8,  0,  { mult: 0.7,  trend: 0.1 }, false],
+  ['Beaver Cooperativa', 'psyrri', 'Bars', 'Bar',    120, 0.3,  8,  0,  { mult: 0.7,  trend: 0.1 }, false],
 
   // MONASTIRAKI — rooftops + bars
   ['Couleur Locale',  'monastiraki', 'Rooftops', 'Rooftop', 220, 0.0,  12, 5, { mult: 0.95, trend: 0.4 }, true],
