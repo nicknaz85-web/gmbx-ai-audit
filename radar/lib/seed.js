@@ -1019,6 +1019,21 @@ const VENUE_DEFS = [
   // Lebanon — Beirut (more)
   ['AHM',                 'beirut', 'Dancing', 'Club', 600, 2.4, 16, 20, { mult: 1.1,  trend: 0.9 }, false],
   ['Ballroom Blitz',      'beirut', 'Dancing', 'Club', 700, 2.2, 16, 20, { mult: 1.1,  trend: 0.9 }, false],
+
+  // ─── PARTY RESORTS (more) ──────────────────────────────────────
+  // Zakynthos / Laganas
+  ['Waikiki',             'laganas', 'Dancing', 'Club', 800, 2.2, 15, 10, { mult: 1.05, trend: 0.9 }, false],
+  // Albufeira
+  ['Club Vida',           'albufeira-strip', 'Dancing', 'Club', 900, 2.0, 15, 12, { mult: 1.05, trend: 0.8 }, false],
+  ['Club Tropicana',      'albufeira-strip', 'Bars',    'Bar', 500, 1.8, 14, 8, { mult: 1.0, trend: 0.8 }, false],
+  ['Club Heaven',         'albufeira-strip', 'Dancing', 'Club', 1500, 2.0, 15, 12, { mult: 1.05, trend: 0.8 }, false],
+  // Ayia Napa
+  ['Black N White',       'ayianapa', 'Dancing', 'Club', 600, 2.0, 14, 10, { mult: 1.0, trend: 0.8 }, false],
+  ['Carwash',             'ayianapa', 'Dancing', 'Club', 700, 1.8, 14, 12, { mult: 1.0, trend: 0.7 }, false],
+  // Sunny Beach
+  // Malia
+  ['Apollo Club',         'malia-strip', 'Dancing', 'Club', 900, 2.2, 15, 8, { mult: 1.05, trend: 0.9 }, false],
+  // Magaluf
 ];
 
 function jitter(center, seed, spreadM = 140) {
@@ -1110,6 +1125,14 @@ const SEASONAL = {
   // BULGARIA — Sunny Beach (Black Sea, May–Sep)
   'Cacao Beach Club':    { from: 5, to: 9,  label: 'Summer only' },
   'Bedroom Beach':       { from: 5, to: 9,  label: 'Summer only' },
+  // resort clubs added later (May–Oct)
+  'Waikiki':             { from: 5, to: 10, label: 'Summer only' },
+  'Club Vida':           { from: 5, to: 10, label: 'Summer only' },
+  'Club Tropicana':      { from: 5, to: 10, label: 'Summer only' },
+  'Club Heaven':         { from: 5, to: 10, label: 'Summer only' },
+  'Black N White':       { from: 5, to: 10, label: 'Summer only' },
+  'Carwash':             { from: 5, to: 10, label: 'Summer only' },
+  'Apollo Club':         { from: 5, to: 10, label: 'Summer only' },
 };
 
 // ---- Peak-time model -------------------------------------------------------
