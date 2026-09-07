@@ -25,16 +25,16 @@
     #clubbit-splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
       background:#fff;transition:opacity .45s ease;overflow:hidden}
     #clubbit-splash.gone{opacity:0;pointer-events:none}
-    #clubbit-splash .cs-lockup{display:flex;align-items:center;gap:6px}
-    #clubbit-splash .cs-drink{height:48px;width:auto;flex:none;animation:csDrink .66s cubic-bezier(.2,.75,.25,1) both}
-    #clubbit-splash .cs-textwrap{height:48px;width:0;overflow:hidden;flex:none;display:flex;align-items:center;
+    #clubbit-splash .cs-lockup{display:flex;align-items:center;gap:3px}
+    #clubbit-splash .cs-drink{height:52px;width:auto;flex:none;animation:csDrink .66s cubic-bezier(.2,.75,.25,1) both}
+    #clubbit-splash .cs-textwrap{height:52px;width:0;overflow:hidden;flex:none;display:flex;align-items:center;
       border-right:5px solid #9333ea;animation:csReveal .82s cubic-bezier(.3,.7,.25,1) forwards .44s}
-    #clubbit-splash .cs-text{height:48px;width:202px;max-width:none;display:block}
+    #clubbit-splash .cs-text{height:52px;width:auto;max-width:none;display:block}
     @keyframes csDrink{0%{transform:translateX(-58vw);opacity:0}15%{opacity:1}100%{transform:translateX(0);opacity:1}}
-    @keyframes csReveal{0%{width:0}92%{border-right-color:#9333ea}100%{width:202px;border-right-color:transparent}}
+    @keyframes csReveal{0%{width:0}90%{border-right-color:#9333ea}100%{width:224px;border-right-color:transparent}}
     @media (prefers-reduced-motion:reduce){
       #clubbit-splash .cs-drink{animation:none}
-      #clubbit-splash .cs-textwrap{animation:none;width:202px;border-right:none}
+      #clubbit-splash .cs-textwrap{animation:none;width:224px;border-right:none}
     }
   </style>
   <script>(function(){var s=document.getElementById('clubbit-splash');if(!s)return;
