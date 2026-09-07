@@ -672,7 +672,7 @@ const VENUE_DEFS = [
   ['Viaduct Showbar',  'leeds', 'Bars', 'Bar', 250, 0.6, 12, 0, { mult: 0.95, trend: 0.6 }, true, true],
   // FRANCE — Nice & Marseille
   ['Le Glam',          'nice', 'Dancing', 'Club', 300, 1.6, 12, 10, { mult: 1.0, trend: 0.7 }, true, true],
-  ['MP Bar',           'marseille', 'Bars', 'Bar', 200, 0.5, 11, 0, { mult: 0.9, trend: 0.6 }, true, true],
+  ['Le Pulse',         'marseille', 'Bars', 'Bar', 200, 0.6, 12, 0, { mult: 0.95, trend: 0.7 }, false, true],
   // NETHERLANDS — Amsterdam  // SLOVENIA — Ljubljana
   ['Klub Tiffany',     'ljubljana', 'Dancing', 'Club', 300, 1.6, 12, 8, { mult: 1.0, trend: 0.7 }, true, true],
 
