@@ -8,7 +8,7 @@
   const screenEl = (name) => $(`.screen[data-screen="${name}"]`);
 
   // flow order; steps 3–7 carry the "1/5…5/5" progress
-  const ORDER = ['welcome', 'signin', 'name', 'gender', 'dob', 'frequency', 'photo', 'done'];
+  const ORDER = ['welcome', 'signin', 'name', 'gender', 'dob', 'frequency', 'photo', 'howto', 'done'];
   const PROGRESS = { name: 1, gender: 2, dob: 3, frequency: 4, photo: 5 };
   const SAVE_KEY = 'clubbit_onboarding';
   const PROFILE_KEY = 'clubbit_profile';
@@ -469,8 +469,10 @@
   $('[data-act="photoNext"]').addEventListener('click', () => {
     haptic();
     if (!D.profilePhoto) { D.profilePhoto = null; persist(); }
-    go('done');
+    go('howto');
   });
+  // how-it-works step → finish
+  $('[data-act="howtoNext"]').addEventListener('click', () => { haptic(); go('done'); });
   function updatePhotoCta() {
     const b = $('#photoCta'); if (b) b.textContent = D.profilePhoto ? 'Continue' : 'Skip for now';
   }

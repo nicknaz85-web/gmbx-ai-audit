@@ -287,3 +287,12 @@ button{font-family:inherit;color:inherit;border:none;background:none;cursor:poin
 .screen:has(.mascot-corner) .h1{padding-right:84px}
 /* female variant: match the shine mask to the female mascot silhouette */
 .mascot-corner.fem .shine{-webkit-mask-image:url('/clubbit-mascot-f.png');mask-image:url('/clubbit-mascot-f.png')}
+
+/* how-it-works (report the vibe) step */
+.howto-list{display:flex;flex-direction:column;gap:14px;margin-top:26px}
+.howto-item{display:flex;align-items:flex-start;gap:14px;background:var(--card);border:1px solid var(--line);
+  border-radius:16px;padding:15px 16px}
+.howto-ic{font-size:24px;line-height:1;flex:none;margin-top:1px}
+.howto-item div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.howto-item b{font-size:15.5px;font-weight:700;color:var(--txt)}
+.howto-item span{font-size:13.5px;color:var(--txt-dim);line-height:1.4}

@@ -1464,10 +1464,9 @@ async function renderProfile() {
     <input type="file" id="profilePicInput" accept="image/*" style="display:none" />
     <div class="prof-stats">
       <div class="pstat"><div class="pv">${reports}</div><div class="pk">Reports</div></div>
-      <div class="pstat"><div class="pv">${checkins}</div><div class="pk">Check-ins</div></div>
       <div class="pstat"><div class="pv">${photos}</div><div class="pk">Photos</div></div>
     </div>
-    <div class="prof-total">${total} contribution${total === 1 ? '' : 's'} to the radar</div>
+    <div class="prof-total">${reports + photos} contribution${(reports + photos) === 1 ? '' : 's'} to the radar</div>
     ${badges.length ? `<div class="prof-badges">${badges.map((b) => `<span class="chip bg-heat">🏅 ${esc(b.label || b)}</span>`).join('')}</div>` : ''}
     <div class="section-h" style="margin-top:16px"><h3>Your photos &amp; videos</h3><span class="count">${media.length}</span></div>
     ${media.length ? `<div class="media-grid">${media.map((m) => `<div class="media-cellwrap">${m.type === 'video'
