@@ -415,6 +415,10 @@ function venueForecast(venue, currentEst, ref, place) {
     const s = shape(ts);
     if (s > best) { best = s; bestTs = ts; }
   }
+  // "Expected peak" reflects TONIGHT. Hide it when the venue is closed today —
+  // i.e. it isn't open now and its next busy moment is more than ~14h away
+  // (a future day), so a closed venue never advertises a peak.
+  if (bestTs != null && !openNow && (bestTs - ref) / MIN > 14 * 60) bestTs = null;
   return {
     points,
     peakLabel: bestTs == null ? null : fmtHour(nightHour(bestTs, tz)),
