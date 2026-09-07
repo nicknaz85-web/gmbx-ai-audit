@@ -11,7 +11,7 @@ const CURRENCY_BY_CITY = {
   Liverpool: 'GBP', Bristol: 'GBP', Newcastle: 'GBP', Edinburgh: 'GBP', Sheffield: 'GBP',
   Cardiff: 'GBP', Belfast: 'GBP',
   // Poland — PLN
-  Warsaw: 'PLN', 'Kraków': 'PLN', Sopot: 'PLN',
+  Warsaw: 'PLN', 'Kraków': 'PLN', Sopot: 'PLN', 'Poznań': 'PLN',
   // Czechia — CZK
   Prague: 'CZK',
   // Hungary — HUF

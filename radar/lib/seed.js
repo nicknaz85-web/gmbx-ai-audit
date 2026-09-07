@@ -81,6 +81,7 @@ const NEIGHBORHOODS = [
   // POLAND — Warsaw & Kraków
   { id: 'srodmiescie',     name: 'Śródmieście',   city: 'Warsaw',    center: { lat: 52.2300, lng: 21.0180 }, radius: 500, bestFor: ['Techno', 'Late Night'] },
   { id: 'krakow-stare',    name: 'Stare Miasto',  city: 'Kraków',    center: { lat: 50.0615, lng: 19.9370 }, radius: 440, bestFor: ['Dancing', 'Bars'] },
+  { id: 'poznan-centrum',  name: 'Centrum',       city: 'Poznań',    center: { lat: 52.4064, lng: 16.9252 }, radius: 420, bestFor: ['Techno', 'Dancing'] },
   // MOLDOVA — Chișinău
   { id: 'chisinau-centru', name: 'Centru',        city: 'Chișinău',  center: { lat: 47.0245, lng: 28.8320 }, radius: 440, bestFor: ['Dancing', 'Bars'] },
 
@@ -943,7 +944,7 @@ const VENUE_DEFS = [
   ['Club Chocolate',      'santiago-bel', 'Dancing', 'Club', 600, 1.6, 15, 12, { mult: 1.05, trend: 0.7 }, true],
   // Eastern Europe (more, existing cities)
   ['Jasna 1',             'srodmiescie', 'Dancing', 'Club', 500, 2.0, 15, 12, { mult: 1.1,  trend: 0.9 }, true],
-  ['Tama',                'krakow-stare', 'Dancing', 'Club', 600, 1.6, 15, 10, { mult: 1.05, trend: 0.8 }, true],
+  ['Tama',                'poznan-centrum', 'Dancing', 'Club', 600, 1.6, 15, 10, { mult: 1.05, trend: 0.8 }, true],
   ['Ankali',              'stare-mesto-prg', 'Dancing', 'Club', 500, 2.2, 14, 10, { mult: 1.1,  trend: 0.9 }, true],
   ['Lärm',                'erzsebetvaros', 'Dancing', 'Club', 400, 2.2, 13, 10, { mult: 1.1,  trend: 0.9 }, true],
   ['Guesthouse',          'lipscani', 'Dancing', 'Club', 400, 1.8, 13, 8, { mult: 1.05, trend: 0.8 }, true],
