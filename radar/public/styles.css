@@ -531,3 +531,76 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 /* ---- save-for-later button ---- */
 .btn-save{width:100%;background:var(--card);border:1px solid var(--line);color:var(--ink)}
 .btn-save.on{background:color-mix(in oklab,var(--primary) 12%,transparent);border-color:var(--primary);color:var(--primary);font-weight:600}
+
+/* ============================================================
+   APPLE-STYLE POLISH — tactile response, materials, motion, type
+   ============================================================ */
+
+/* 1 · Tactile response: press feedback is instant and physical.
+   Scoped to controls that DON'T use transform for layout (so we never
+   fight .list-btn/.sheet/.avatar positioning transforms). */
+.btn, .fchip, .round-btn, .fab-primary, .fab-mini, .bn, .acard,
+.pulse-btn, .rep-next, .gate-city, .media-thumb, .prof-actions .btn {
+  transition: transform .11s ease, opacity .12s ease, background .12s ease;
+}
+.btn:active, .fchip:active, .round-btn:active, .fab-primary:active,
+.fab-mini:active, .acard:active, .pulse-btn:active, .rep-next:active,
+.gate-city:active, .media-thumb:active {
+  transform: scale(.96);
+}
+.bn:active { transform: scale(.9); }               /* icon-only, a touch more */
+.vrow:active, .rep-item:active { transform: scale(.985); }
+
+/* 2 · Materials & depth: the bottom nav floats as a translucent layer
+   with content passing beneath it, instead of an opaque strip. */
+.bottomnav {
+  background: color-mix(in oklab, var(--card) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid color-mix(in oklab, var(--card) 40%, transparent);
+}
+/* floating map controls read as glass chips */
+.fchip, .round-btn, .fab-mini, .list-btn, .here-pill {
+  background: color-mix(in oklab, var(--card) 82%, transparent);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+}
+.fchip.active { background: var(--primary); }        /* selected stays solid for contrast */
+
+/* 3 · Motion: springy-but-graceful sheet/card entrance (subtle overshoot,
+   as if it carried momentum up into place). */
+.sheet { transition: transform .42s cubic-bezier(.32,1.28,.42,1); }
+.venue-card { animation: appleUp .44s cubic-bezier(.32,1.28,.42,1); }
+@keyframes appleUp { from { transform: translateY(14%); opacity: .6; } to { transform: translateY(0); opacity: 1; } }
+.overlay-scrim { animation: fade .28s ease; }
+
+/* 4 · Typography: large titles want tighter tracking; tiny labels a hair looser. */
+.vc-title { letter-spacing: -.021em; }
+.gate-card h2, .rep-done h2 { letter-spacing: -.018em; }
+.prof-name { letter-spacing: -.012em; }
+
+/* 5 · Reduced motion: don't kill feedback — swap physical motion for a gentle
+   cross-fade (overrides the blanket rule above for these surfaces). */
+@media (prefers-reduced-motion: reduce) {
+  .sheet { transition: opacity .2s ease !important; }
+  .venue-card { animation: fade .2s ease !important; }
+  .btn:active, .fchip:active, .round-btn:active, .fab-primary:active,
+  .fab-mini:active, .bn:active, .acard:active, .vrow:active { transform: none; }
+}
+
+/* 6 · Reduced transparency: make glass surfaces solid & legible. */
+@media (prefers-reduced-transparency: reduce) {
+  .bottomnav, .fchip, .round-btn, .fab-mini, .list-btn, .here-pill {
+    background: var(--card);
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  .fchip.active { background: var(--primary); }
+}
+
+/* 7 · High contrast: firmer borders on floating chrome. */
+@media (prefers-contrast: more) {
+  .fchip, .round-btn, .fab-mini, .list-btn, .btn-ghost, .btn-here {
+    border: 1px solid var(--line2);
+  }
+  .bottomnav { border-top: 1px solid var(--line2); }
+}
