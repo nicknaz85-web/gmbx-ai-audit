@@ -398,6 +398,7 @@ const VENUE_DEFS = [
   ['Joy Eslava',      'madrid-centro', 'Dancing', 'Club', 400, 1.2, 15, 15, { mult: 0.95, trend: 0.6 }, false],
   ['Razzmatazz',      'poblenou',      'Dancing', 'Club', 700, 1.8, 22, 18, { mult: 1.15, trend: 0.9 }, true],
   ['Opium Barcelona', 'poblenou',      'Dancing', 'Club', 500, 1.0, 16, 20, { mult: 1.0,  trend: 0.6 }, false],
+  ['Shôko',           'poblenou',      'Dancing', 'Club', 600, 1.2, 16, 20, { mult: 1.05, trend: 0.7 }, false],
   ['Pacha Ibiza',     'ibiza', 'Dancing', 'Club', 800, 1.8, 26, 50, { mult: 1.2, trend: 1.0 }, true],
   ['Amnesia Ibiza',   'ibiza', 'Dancing', 'Club', 900, 2.0, 26, 50, { mult: 1.2, trend: 1.0 }, true],
   ['Ushuaïa',         'ibiza', 'Dancing', 'Club', 900, -1.0, 20, 70, { mult: 1.0, trend: -0.3 }, true],
