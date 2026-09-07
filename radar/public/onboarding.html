@@ -18,21 +18,23 @@
   <div id="clubbit-splash" aria-hidden="true">
     <div class="cs-lockup">
       <img class="cs-drink" src="/splash-drink.png" alt="" />
-      <img class="cs-text" src="/splash-text.png" alt="Clubbit" />
+      <div class="cs-textwrap"><img class="cs-text" src="/splash-text.png" alt="Clubbit" /></div>
     </div>
   </div>
   <style>
     #clubbit-splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
       background:#fff;transition:opacity .45s ease;overflow:hidden}
     #clubbit-splash.gone{opacity:0;pointer-events:none}
-    #clubbit-splash .cs-lockup{display:flex;align-items:center;gap:9px}
-    #clubbit-splash .cs-drink{height:50px;width:auto;flex:none;position:relative;z-index:2;animation:csDrink .9s cubic-bezier(.2,.7,.25,1) both}
-    #clubbit-splash .cs-text{height:44px;width:auto;flex:none;position:relative;z-index:1;clip-path:inset(0 0 0 100%);animation:csText .72s steps(7,end) forwards .18s}
-    @keyframes csDrink{0%{transform:translateX(62vw);opacity:0}12%{opacity:1}100%{transform:translateX(0);opacity:1}}
-    @keyframes csText{to{clip-path:inset(0 0 0 0)}}
+    #clubbit-splash .cs-lockup{display:flex;align-items:center;gap:6px}
+    #clubbit-splash .cs-drink{height:48px;width:auto;flex:none;animation:csDrink .66s cubic-bezier(.2,.75,.25,1) both}
+    #clubbit-splash .cs-textwrap{height:48px;width:0;overflow:hidden;flex:none;display:flex;align-items:center;
+      border-right:5px solid #9333ea;animation:csReveal .82s cubic-bezier(.3,.7,.25,1) forwards .44s}
+    #clubbit-splash .cs-text{height:48px;width:202px;max-width:none;display:block}
+    @keyframes csDrink{0%{transform:translateX(-58vw);opacity:0}15%{opacity:1}100%{transform:translateX(0);opacity:1}}
+    @keyframes csReveal{0%{width:0}92%{border-right-color:#9333ea}100%{width:202px;border-right-color:transparent}}
     @media (prefers-reduced-motion:reduce){
       #clubbit-splash .cs-drink{animation:none}
-      #clubbit-splash .cs-text{animation:none;clip-path:none}
+      #clubbit-splash .cs-textwrap{animation:none;width:202px;border-right:none}
     }
   </style>
   <script>(function(){var s=document.getElementById('clubbit-splash');if(!s)return;
