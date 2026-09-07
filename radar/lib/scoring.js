@@ -121,6 +121,29 @@ function vibeFromFullness(f) {
   return 'dead';
 }
 
+// Deterministic "typical genre" for a venue, shown when nobody has reported the
+// music — so the Music stat is never just a dash.
+const CITY_GENRE = { Berlin: 'Techno', Leipzig: 'Techno', Detroit: 'Techno', Tbilisi: 'Techno', Amsterdam: 'House & Techno' };
+const LATIN_CITIES = new Set(['Medellín', 'Bogotá', 'Mexico City', 'Cancún', 'Tulum', 'Buenos Aires', 'São Paulo', 'Rio de Janeiro', 'Lima', 'Santiago', 'San José', 'Panama City', 'Guatemala City', 'San Salvador', 'Cartagena', 'Havana', 'Montevideo', 'Camboriú']);
+function genreHint(v) {
+  if (v.kind === 'Club' || v.category === 'Dancing' || v.category === 'Late Night') {
+    if (CITY_GENRE[v.city]) return CITY_GENRE[v.city];
+    if (LATIN_CITIES.has(v.city)) return 'Reggaeton & Latin';
+    return 'House & Techno';
+  }
+  if (v.kind === 'Rooftop') return 'House & Commercial';
+  if (v.kind === 'Wine Bar') return 'Jazz & Soul';
+  if (v.kind === 'Venue' || v.category === 'Live') return 'Live music';
+  return 'House & Hip-Hop'; // bars
+}
+
+// "May–Oct" style label for a seasonal venue's OPEN months (from/to = 1–12).
+const MON3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function seasonRange(season) {
+  if (!season) return null;
+  return MON3[(season.from - 1 + 12) % 12] + '–' + MON3[(season.to - 1 + 12) % 12];
+}
+
 // Estimated door queue when nobody has reported one. Grows non-linearly with how
 // full the room is, scaled by "door pressure" — clubs, pricier/selective doors and
 // big popular rooms build lines; a quiet bar rarely does. Returns a bucket that
@@ -277,7 +300,7 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     decision.verdict = 'CLOSED';
     if (openState.seasonalClosed) {
       decision.headline = `Closed for the season · reopens ${openState.opensLabel}`;
-      decision.reasons = [`${venue.season?.label || 'Seasonal'} — reopens ${openState.opensLabel}`];
+      decision.reasons = [`Open ${seasonRange(venue.season) || 'seasonally'} — reopens ${openState.opensLabel}`];
     } else {
       decision.headline = `Closed now · opens ${openState.opensLabel}`;
       decision.reasons = [`opens around ${openState.opensLabel}`]
@@ -305,7 +328,7 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     source,
     open: openState.open,
     hours: { open: openState.open, source: openState.source, opensLabel: openState.opensLabel, closesLabel: openState.closesLabel },
-    season: venue.season ? { label: venue.season.label || 'Seasonal', reopen: openState.opensLabel || null, closed: !!openState.seasonalClosed } : null,
+    season: venue.season ? { label: seasonRange(venue.season) || 'Seasonal', reopen: openState.opensLabel || null, closed: !!openState.seasonalClosed } : null,
     google,
     instagram,
     dress,
@@ -324,6 +347,7 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     entryEstimated: consensus?.entry == null, // true = seeded/typical, not community-reported
 
     music: owner?.music || consensus?.music || null,
+    musicHint: genreHint(venue), // deterministic typical genre when none reported
     special: owner?.specials || null,
     forecast,
     expectedPeak: forecast.peakLabel,
