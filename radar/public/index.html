@@ -97,6 +97,22 @@
     <div class="report-inner" id="reportInner"></div>
   </div>
 
+  <!-- Profile photo crop (circular) -->
+  <div class="crop-ov" id="cropOv" hidden>
+    <div class="crop-box">
+      <h3>Position your photo</h3>
+      <div class="crop-stage"><div class="crop-circle" id="pfCropCircle"><img id="pfCropImg" alt="" /></div></div>
+      <div class="crop-zoom">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6M21 21l-4.3-4.3"/></svg>
+        <input type="range" id="pfCropZoom" min="1" max="3" step="0.01" value="1" />
+      </div>
+      <div class="crop-btns">
+        <button class="btn btn-ghost" id="pfCropCancel">Cancel</button>
+        <button class="btn btn-primary" id="pfCropSave">Use photo</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div class="toast" id="toast" hidden></div>
 

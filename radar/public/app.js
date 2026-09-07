@@ -1362,6 +1362,52 @@ function squareCropDataUrl(file, out = 512, quality = 0.85) {
     r.readAsDataURL(file);
   });
 }
+// Interactive circular crop (pan + zoom over a circle) for the profile photo, so
+// people can place & frame their face — same feel as onboarding. Resolves to a
+// cropped data URL, or null if cancelled.
+function cropPhoto(file) {
+  return new Promise((resolve) => {
+    const ov = $('#cropOv'), circle = $('#pfCropCircle'), img = $('#pfCropImg'), zoom = $('#pfCropZoom');
+    const cancel = $('#pfCropCancel'), save = $('#pfCropSave');
+    if (!ov || !circle) { resolve(null); return; }
+    const src = URL.createObjectURL(file);
+    let st = null, drag = null;
+    const layout = () => {
+      if (!st) return;
+      const eff = st.coverBase * st.zoom, w = st.iw * eff, h = st.ih * eff, S = st.S;
+      st.ox = Math.min(0, Math.max(S - w, st.ox));
+      st.oy = Math.min(0, Math.max(S - h, st.oy));
+      Object.assign(img.style, { position: 'absolute', left: '0', top: '0', width: w + 'px', height: h + 'px', transform: `translate(${(S - w) / 2 + st.ox}px, ${(S - h) / 2 + st.oy}px)` });
+    };
+    const close = () => { ov.hidden = true; URL.revokeObjectURL(src); zoom.oninput = null; circle.onpointerdown = circle.onpointermove = circle.onpointerup = circle.onpointercancel = null; cancel.onclick = save.onclick = null; };
+    const im = new Image();
+    im.onload = () => {
+      const S = circle.clientWidth || 280;
+      st = { iw: im.naturalWidth, ih: im.naturalHeight, S, coverBase: Math.max(S / im.naturalWidth, S / im.naturalHeight), zoom: 1, ox: 0, oy: 0 };
+      img.src = src; img.style.transform = 'none'; zoom.value = '1';
+      ov.hidden = false; requestAnimationFrame(layout);
+    };
+    im.onerror = () => { URL.revokeObjectURL(src); resolve(null); };
+    im.src = src;
+    zoom.oninput = () => { if (st) { st.zoom = +zoom.value; layout(); } };
+    circle.onpointerdown = (e) => { if (!st) return; drag = { x: e.clientX, y: e.clientY, ox: st.ox, oy: st.oy }; circle.setPointerCapture(e.pointerId); };
+    circle.onpointermove = (e) => { if (!drag || !st) return; st.ox = drag.ox + (e.clientX - drag.x); st.oy = drag.oy + (e.clientY - drag.y); layout(); };
+    circle.onpointerup = circle.onpointercancel = () => { drag = null; };
+    cancel.onclick = () => { close(); resolve(null); };
+    save.onclick = () => {
+      if (!st) { close(); resolve(null); return; }
+      const OUT = 480, eff = st.coverBase * st.zoom, S = st.S;
+      const left = (S - st.iw * eff) / 2 + st.ox, top = (S - st.ih * eff) / 2 + st.oy;
+      const sx = -left / eff, sy = -top / eff, sS = S / eff;
+      const c = document.createElement('canvas'); c.width = c.height = OUT;
+      const ctx = c.getContext('2d');
+      const im2 = new Image();
+      im2.onload = () => { ctx.drawImage(im2, sx, sy, sS, sS, 0, 0, OUT, OUT); let url = null; try { url = c.toDataURL('image/jpeg', 0.88); } catch (e) {} close(); resolve(url); };
+      im2.onerror = () => { close(); resolve(null); };
+      im2.src = src;
+    };
+  });
+}
 function exactAgeFromISO(iso) {
   const d = new Date(iso + 'T00:00:00'); if (isNaN(d)) return null;
   const t = new Date(); let a = t.getFullYear() - d.getFullYear();
@@ -1495,9 +1541,10 @@ async function renderProfile() {
     const f = e.target.files && e.target.files[0]; e.target.value = '';
     if (!f) return;
     if (!f.type.startsWith('image/')) return toast('Please choose an image');
-    toast('Updating photo…');
     let dataUrl;
-    try { dataUrl = await squareCropDataUrl(f); } catch { return toast('Could not read that image'); }
+    try { dataUrl = await cropPhoto(f); } catch { return toast('Could not read that image'); }
+    if (!dataUrl) return; // cancelled
+    toast('Updating photo…');
     const prof = loadLocalProfile();
     prof.profilePhoto = dataUrl;
     if (prof.public) prof.public.profilePhoto = dataUrl;

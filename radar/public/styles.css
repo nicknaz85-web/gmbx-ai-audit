@@ -604,3 +604,20 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   }
   .bottomnav { border-top: 1px solid var(--line2); }
 }
+
+/* ============================================================ PROFILE PHOTO CROP */
+.crop-ov{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+  background:rgba(20,12,30,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:20px}
+.crop-ov[hidden]{display:none}
+.crop-box{width:100%;max-width:360px;background:var(--card);border-radius:20px;box-shadow:var(--shadow-lg);
+  padding:20px 18px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
+.crop-box h3{text-align:center;font-size:17px;font-weight:700;color:var(--ink);margin-bottom:16px;letter-spacing:-.01em}
+.crop-box .crop-stage{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:6px 0}
+.crop-box .crop-circle{position:relative;width:min(66vw,260px);height:min(66vw,260px);border-radius:50%;overflow:hidden;
+  box-shadow:0 0 0 3px var(--primary),0 0 0 2000px rgba(20,12,30,.55);touch-action:none;background:#000;cursor:grab}
+.crop-box .crop-circle:active{cursor:grabbing}
+.crop-box .crop-circle img{position:absolute;left:50%;top:50%;user-select:none;-webkit-user-drag:none;will-change:transform}
+.crop-box .crop-zoom{display:flex;align-items:center;gap:12px;margin:18px 4px 8px;color:var(--muted)}
+.crop-box .crop-zoom input{flex:1;accent-color:var(--primary)}
+.crop-box .crop-btns{display:flex;gap:10px;margin-top:6px}
+.crop-box .crop-btns .btn{flex:1}
