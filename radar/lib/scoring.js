@@ -346,6 +346,13 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     currency: currencyInfo(venue.city),
     entryEstimated: consensus?.entry == null, // true = seeded/typical, not community-reported
 
+    // recent named vibe reports (real users only) — newest first, for the
+    // "Nick, 26 reported…" list on the venue card
+    recentReports: freshReports(venue.id, ref)
+      .filter((r) => r.reporter && r.reporter.name)
+      .sort((a, b) => a.age - b.age)
+      .slice(0, 6)
+      .map((r) => ({ name: r.reporter.name, age: r.reporter.age, tag: r.reporter.tag, photo: r.reporter.photo, vibe: r.vibe, ageMin: round(r.age) })),
     music: owner?.music || consensus?.music || null,
     musicHint: genreHint(venue), // deterministic typical genre when none reported
     special: owner?.specials || null,

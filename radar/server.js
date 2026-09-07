@@ -394,6 +394,16 @@ async function api(req, res, url) {
     const nightH = new Date(ts + 3 * 3600 * 1000).getUTCHours();
     if (nightH >= 2 && nightH < 6) u.lateReports++;
 
+    // reporter identity (from the poster's profile) so reports read
+    // "Nick, 26 reported…" with a face — sanitised & size-capped.
+    const rp = body.reporter && typeof body.reporter === 'object' ? body.reporter : null;
+    const reporter = rp ? {
+      name: String(rp.name || '').trim().slice(0, 24) || null,
+      age: (typeof rp.age === 'number' && rp.age >= 16 && rp.age <= 99) ? Math.round(rp.age) : null,
+      tag: String(rp.tag || '').trim().slice(0, 20) || null,
+      photo: (typeof rp.photo === 'string' && rp.photo.length <= 300000) ? rp.photo : null,
+    } : null;
+
     db.reports.push({
       id: randId('rp'), venueId: v.id, uHash: id.uHash, dHash: id.dHash, ts,
       coords, vibe,
@@ -401,14 +411,15 @@ async function api(req, res, url) {
       entry: typeof body.entry === 'number' ? clamp(body.entry, 0, 200) : (body.entry === 'guestlist' ? 0 : null),
       mix: safeEnum(body.mix, ['more_women', 'even', 'more_men']),
       music: safeEnum(body.music, ['House', 'Techno', 'Hip-Hop', 'R&B', 'Afrobeats', 'Commercial', 'Latin', 'Other', 'Tech House', 'Live']),
-      confidence, mediaId: saved.entry.id,
+      confidence, mediaId: saved.entry.id, reporter,
     });
     const badges = refreshBadges(u).map((b) => b.label);
     saveSnapshotSoon();
     const after = venueSnapshot(v, now());
-    // notable community report -> feed
-    if (vibe === 'packed' || after.momentum.state === 'surging' || after.momentum.state === 'exploding') {
-      pushFeed({ ts, venueId: v.id, kind: 'report', text: `Community: ${v.name} is ${vibe.toUpperCase()}`, area: v.neighborhoodName });
+    // community report -> feed, attributed to the reporter when we have a name
+    if (vibe === 'packed' || after.momentum.state === 'surging' || after.momentum.state === 'exploding' || reporter) {
+      const who = reporter && reporter.name ? `${reporter.name}${reporter.age ? ', ' + reporter.age : ''}` : 'Someone';
+      pushFeed({ ts, venueId: v.id, kind: 'report', text: `${who} reported ${v.name} is ${vibe.toUpperCase()}`, sub: reporter && reporter.tag ? reporter.tag : '', area: v.neighborhoodName });
     }
     return send(res, 200, { ok: true, confidenceTier: confidenceTier(confidence), badges, venue: after });
   }

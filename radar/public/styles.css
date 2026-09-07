@@ -414,6 +414,27 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .rep-done h2{font-size:21px;font-weight:500;color:var(--ink)}
 .rep-done p{color:var(--muted);font-size:13px;margin-top:8px;line-height:1.5}
 .rep-badge{display:inline-flex;align-items:center;gap:8px;margin-top:16px;font-size:12px;font-weight:500;color:var(--amber-d);background:#feefc3;padding:8px 15px;border-radius:20px}
+.rep-levelnote{margin-top:14px;font-size:12px;color:var(--muted)}
+
+/* recent named vibe reports on the venue card */
+.reports-block{margin:18px 0 4px}
+.rep-item{display:flex;align-items:center;gap:11px;padding:9px 0;border-top:1px solid var(--line,#eee)}
+.rep-item:first-of-type{border-top:none}
+.rep-face{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none;background:var(--card-solid,#f4f4f6)}
+.rep-txt{min-width:0}
+.rep-who{font-size:14px;color:var(--ink,#111)}
+.rep-who b{font-weight:600}
+.rep-tag{display:inline-block;font-size:10px;font-weight:600;color:var(--violet-2,#7c3aed);background:rgba(124,58,237,.1);padding:1px 7px;border-radius:10px;vertical-align:middle;margin:0 2px}
+.rep-sub{font-size:12px;color:var(--muted);margin-top:1px}
+
+/* profile level / tier */
+.pl-tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--violet-2,#7c3aed);background:rgba(124,58,237,.1);padding:3px 10px;border-radius:20px}
+.pl-tag.sm{font-size:10px;padding:1px 8px;vertical-align:middle}
+.prof-level{margin:14px 0 4px}
+.pl-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.pl-count{font-size:11px;color:var(--muted)}
+.pl-track{height:7px;border-radius:6px;background:var(--line,#ececf0);overflow:hidden}
+.pl-track i{display:block;height:100%;background:linear-gradient(90deg,var(--violet-2,#7c3aed),var(--gold,#f6c944));border-radius:6px}
 
 /* ============================================================ TOAST + misc */
 .toast{position:fixed;left:50%;bottom:150px;transform:translateX(-50%);z-index:60;

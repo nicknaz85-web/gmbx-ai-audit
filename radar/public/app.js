@@ -633,6 +633,67 @@ async function openVenue(id) {
 function closeVenue() { $('#venueOverlay').hidden = true; S.activeVenue = null; S.activeVenueData = null; map.selected = null; map.refreshSelection && map.refreshSelection(); }
 
 // A short "what this place is" line, used when Google has no editorial blurb.
+// ---- reporter levels (client-side; the more you report, the higher your tier) ----
+const LEVELS = [
+  { min: 0,  name: 'Newcomer', emoji: '🌱' },
+  { min: 10, name: 'Regular',  emoji: '🎟️' },
+  { min: 20, name: 'Scout',    emoji: '🧭' },
+  { min: 30, name: 'Insider',  emoji: '🌟' },
+  { min: 50, name: 'Legend',   emoji: '👑' },
+];
+function reportCount() { try { return +localStorage.getItem('clubbit_reports_count') || 0; } catch (e) { return 0; } }
+function setReportCount(n) { try { localStorage.setItem('clubbit_reports_count', String(n)); } catch (e) {} }
+function levelFor(n) {
+  let cur = LEVELS[0], next = null;
+  for (let i = 0; i < LEVELS.length; i++) { if (n >= LEVELS[i].min) cur = LEVELS[i]; else { next = LEVELS[i]; break; } }
+  return { name: cur.name, emoji: cur.emoji, min: cur.min, count: n, next };
+}
+function myProfile() { try { return JSON.parse(localStorage.getItem('clubbit_profile')) || {}; } catch (e) { return {}; } }
+function myFace(p) { p = p || myProfile(); return p.profilePhoto || (p.gender === 'Woman' ? '/clubbit-face-f.png' : p.gender === 'Man' ? '/clubbit-face-m.png' : p.gender === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png'); }
+
+// "Nick, 26 · Scout reported — packed · 12 min ago" cards
+const VIBE_WORD = { dead: 'quiet', chill: 'chilled', popping: 'popping', packed: 'packed' };
+function recentReportsBlock(v) {
+  const rs = (v.recentReports || []).filter((r) => r && r.name);
+  if (!rs.length) return '';
+  return `<div class="reports-block">
+    <div class="section-h"><h3>What people are saying</h3><span class="count">${rs.length}</span></div>
+    ${rs.map((r) => `<div class="rep-item">
+      <img class="rep-face" src="${esc(r.photo || '/clubbit-mascot.png')}" alt="" onerror="this.src='/clubbit-mascot.png'" />
+      <div class="rep-txt">
+        <div class="rep-who"><b>${esc(r.name)}${r.age ? ', ' + r.age : ''}</b>${r.tag ? ` <span class="rep-tag">${esc(r.tag)}</span>` : ''} reported</div>
+        <div class="rep-sub">${esc(cap(VIBE_WORD[r.vibe] || r.vibe))} · ${ago(r.ageMin)} ago</div>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+function cap(s) { return String(s || '').charAt(0).toUpperCase() + String(s || '').slice(1); }
+
+// ---- best-effort photo moderation: block explicit/personal shots (NSFW) so the
+// gallery stays about the venue. Lazy-loads a small on-device model; fails open. ----
+let _nsfwModel = null, _nsfwTried = false;
+function loadScriptOnce(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+async function getNsfw() {
+  if (_nsfwModel || _nsfwTried) return _nsfwModel;
+  _nsfwTried = true;
+  try {
+    if (!window.tf) await loadScriptOnce('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js');
+    if (!window.nsfwjs) await loadScriptOnce('https://cdn.jsdelivr.net/npm/nsfwjs@4.2.1/dist/nsfwjs.min.js');
+    _nsfwModel = await window.nsfwjs.load();
+  } catch (e) { _nsfwModel = null; }
+  return _nsfwModel;
+}
+async function isInappropriate(dataUrl) {
+  const model = await getNsfw();
+  if (!model) return false; // model unavailable → don't block
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl; });
+    const preds = await model.classify(img);
+    const p = Object.fromEntries(preds.map((x) => [x.className, x.probability]));
+    return (p.Porn || 0) + (p.Hentai || 0) > 0.6 || (p.Sexy || 0) > 0.9;
+  } catch (e) { return false; }
+}
+
 function venueBlurb(v) {
   const kindWord = { Club: 'nightclub', Bar: 'bar', Rooftop: 'rooftop bar', 'Wine Bar': 'wine bar', Venue: 'live-music venue' }[v.kind] || 'nightlife spot';
   const music = (v.music && typeof v.music === 'string') ? v.music : null;
@@ -719,6 +780,8 @@ function renderVenue(v) {
     </div>
 
     ${v.owner ? `<div class="owner-note"><b>Venue update</b> · ${ago(v.owner.ageMin)} ago: status ${esc(v.owner.status)}${v.owner.lastEntry ? ' · last entry ' + esc(v.owner.lastEntry) : ''}</div>` : ''}
+
+    ${recentReportsBlock(v)}
 
     ${reviewsBlock(v)}
 
@@ -923,6 +986,8 @@ async function onMediaPick(e) {
   if (f.type.startsWith('image/')) {
     const dataUrl = await compressImage(f);
     if (!dataUrl) return toast('Could not read that image');
+    toast('Checking photo…', 1200);
+    if (await isInappropriate(dataUrl)) { toast('Please post a photo of the venue — explicit or personal photos aren’t allowed', 3200); return; }
     R.media = { type: 'image', dataUrl };
   } else if (f.type.startsWith('video/')) {
     if (f.size > 13 * 1024 * 1024) return toast('Video too large — keep it under ~13 MB');
@@ -968,15 +1033,27 @@ async function submitReport() {
   const venue = S.data.venues.find(v => v.id === R.venueId);
   const coords = await locationFor(venue);
   const a = R.answers;
-  const payload = { venueId: R.venueId, vibe: a.vibe, queue: a.queue, entry: a.entry, mix: a.mix, music: a.music, coords, media: R.media };
+  // attach the reporter's identity + current tier so it shows as "Nick, 26 · Scout reported"
+  const prof = myProfile();
+  const beforeCount = reportCount();
+  const myLevel = levelFor(beforeCount);
+  const reporter = { name: prof.firstName || null, age: prof.calculatedAge || null, tag: myLevel.name, photo: myFace(prof) };
+  const payload = { venueId: R.venueId, vibe: a.vibe, queue: a.queue, entry: a.entry, mix: a.mix, music: a.music, coords, media: R.media, reporter };
   $('#reportInner').innerHTML = `<div class="rep-done"><div class="big">•••</div><h2>Sending…</h2></div>`;
   const res = await API.report(payload);
   if (res && res.error) { toast(res.needMedia ? 'A photo or video is required' : ('Could not send: ' + res.error)); R.step = 1; renderReport(); return; }
+  // level up: count this contribution and see if we crossed a tier
+  setReportCount(beforeCount + 1);
+  const newLevel = levelFor(beforeCount + 1);
+  const leveledUp = newLevel.name !== myLevel.name;
   const badge = res.badges && res.badges.length ? res.badges[res.badges.length - 1] : null;
   $('#reportInner').innerHTML = `<div class="rep-done">
     <div class="big">${VIBE_EMOJI[a.vibe] || '✓'}</div>
     <h2>Thanks — you're on the radar</h2>
     <p>Your report updates the live crowd view for everyone.<br>Confidence: <b style="color:var(--blue)">${titleCase(res.confidenceTier || 'medium')}</b></p>
+    ${leveledUp
+      ? `<div class="rep-badge">${newLevel.emoji} Level up! You're now a <b>${esc(newLevel.name)}</b></div>`
+      : `<div class="rep-levelnote">${newLevel.emoji} ${esc(newLevel.name)} · ${newLevel.next ? `${newLevel.next.min - newLevel.count} more to ${esc(newLevel.next.name)}` : 'max level'}</div>`}
     ${badge ? `<div class="rep-badge">🏅 ${esc(badge)} unlocked</div>` : ''}
     <div style="margin-top:26px"><button class="rep-next" style="max-width:220px;margin:0 auto" onclick="afterReport('${R.venueId}')">Done</button></div>
   </div>`;
@@ -1365,11 +1442,19 @@ async function renderProfile() {
   if (p.email) rows.push(['Email', esc(p.email)]);
   if (p.gender) rows.push(['Gender', esc(profGender(p.gender))]);
   if (p.dateOfBirth) rows.push(['Date of birth', esc(profDob(p.dateOfBirth)) + (p.calculatedAge ? ` · ${p.calculatedAge} yrs` : '')]);
+  // reporter level (from the number of vibe reports posted on this device)
+  const lvl = levelFor(reportCount());
+  const pct = lvl.next ? Math.round(((lvl.count - lvl.min) / (lvl.next.min - lvl.min)) * 100) : 100;
+  const levelBlock = `<div class="prof-level">
+    <div class="pl-top"><span class="pl-tag">${lvl.emoji} ${esc(lvl.name)}</span>
+      <span class="pl-count">${lvl.next ? `${lvl.next.min - lvl.count} to ${esc(lvl.next.name)}` : 'Max level'}</span></div>
+    <div class="pl-track"><i style="width:${pct}%"></i></div></div>`;
   body.innerHTML = `<div class="profile">
     <div class="prof-head">
       <div class="prof-ava"><img src="${esc(ava)}" alt="${esc(name)}" onerror="this.replaceWith(document.createTextNode('🧑'))" /></div>
-      <div class="prof-id"><div class="prof-name">${esc(name)}</div><div class="prof-sub">${sub}</div></div>
+      <div class="prof-id"><div class="prof-name">${esc(name)} <span class="pl-tag sm">${lvl.emoji} ${esc(lvl.name)}</span></div><div class="prof-sub">${sub}</div></div>
     </div>
+    ${levelBlock}
     ${rows.length ? `<div class="prof-details">${rows.map(([k, v]) => `<div class="prof-row"><span class="prk">${k}</span><span class="prv">${v}</span></div>`).join('')}</div>` : ''}
     <div class="prof-actions">
       <button class="btn btn-ghost" id="changePicBtn">Change profile picture</button>
