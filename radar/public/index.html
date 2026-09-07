@@ -14,6 +14,54 @@
 <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
+  <!-- Animated splash: the drink glides in, then CLUBBIT writes on letter-by-letter -->
+  <div id="clubbit-splash" aria-hidden="true">
+    <div class="cs-lockup">
+      <svg class="cs-glass" viewBox="0 0 64 64" fill="none">
+        <defs><linearGradient id="csg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#f6c944"/></linearGradient></defs>
+        <path d="M12 14 L52 14 L32 36 Z" fill="none" stroke="url(#csg)" stroke-width="3.6" stroke-linejoin="round"/>
+        <path d="M18 18 L46 18 L32 32 Z" fill="url(#csg)" opacity="0.5"/>
+        <path d="M32 36 L32 52" stroke="url(#csg)" stroke-width="3.6" stroke-linecap="round"/>
+        <path d="M20 54 L44 54" stroke="url(#csg)" stroke-width="3.6" stroke-linecap="round"/>
+        <path d="M42 22 L50 11" stroke="#f6c944" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="42" cy="22.5" r="3.2" fill="#f6c944"/>
+      </svg>
+      <div class="cs-word"><span>C</span><span>L</span><span>U</span><span>B</span><span>B</span><span>I</span><span>T</span></div>
+    </div>
+  </div>
+  <style>
+    #clubbit-splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+      background:radial-gradient(120% 120% at 50% 40%,#1f1140 0%,#120a22 70%);
+      transition:opacity .45s ease;overflow:hidden}
+    #clubbit-splash.gone{opacity:0;pointer-events:none}
+    #clubbit-splash .cs-lockup{display:flex;align-items:center;gap:12px;transform:translateX(-2%)}
+    #clubbit-splash .cs-glass{width:64px;height:64px;flex:none;filter:drop-shadow(0 6px 22px rgba(139,92,246,.55));
+      animation:csGlass .72s cubic-bezier(.2,.75,.25,1) both}
+    #clubbit-splash .cs-word{display:flex;font-family:'DM Sans',system-ui,sans-serif;font-weight:700;
+      font-size:44px;letter-spacing:-.01em;line-height:1}
+    #clubbit-splash .cs-word span{opacity:0;transform:translateY(9px);
+      background:linear-gradient(90deg,#c4b5fd,#f6c944);-webkit-background-clip:text;background-clip:text;color:transparent;
+      animation:csLetter .34s cubic-bezier(.2,.7,.2,1) forwards}
+    #clubbit-splash .cs-word span:nth-child(1){animation-delay:.56s}
+    #clubbit-splash .cs-word span:nth-child(2){animation-delay:.62s}
+    #clubbit-splash .cs-word span:nth-child(3){animation-delay:.68s}
+    #clubbit-splash .cs-word span:nth-child(4){animation-delay:.74s}
+    #clubbit-splash .cs-word span:nth-child(5){animation-delay:.80s}
+    #clubbit-splash .cs-word span:nth-child(6){animation-delay:.86s}
+    #clubbit-splash .cs-word span:nth-child(7){animation-delay:.92s}
+    @keyframes csGlass{0%{transform:translateX(-62vw) rotate(-14deg);opacity:0}
+      60%{opacity:1}100%{transform:translateX(0) rotate(0);opacity:1}}
+    @keyframes csLetter{to{opacity:1;transform:translateY(0)}}
+    @media (prefers-reduced-motion:reduce){
+      #clubbit-splash .cs-glass{animation:none}
+      #clubbit-splash .cs-word span{animation:none;opacity:1;transform:none}
+    }
+  </style>
+  <script>(function(){var s=document.getElementById('clubbit-splash');if(!s)return;
+    try{var P=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.SplashScreen;if(P&&P.hide)P.hide();}catch(e){}
+    var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+    setTimeout(function(){s.classList.add('gone');setTimeout(function(){s.remove();},480);},reduce?700:1750);
+  })();</script>
   <!-- Top app bar -->
   <header class="appbar">
     <img class="appbar-scene" id="brandHome" src="/mascot.png" alt="Party Radar" onerror="this.style.display='none'" />
