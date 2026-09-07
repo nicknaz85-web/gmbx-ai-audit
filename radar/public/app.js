@@ -541,7 +541,13 @@ function renderSheet() {
   if (S.tab === 'near') {
     let vs = [...d.venues].filter(venueMatches);
     let title = 'Trending now';
-    if (S.userLoc) {
+    const searching = !!(S.query || '').trim();
+    if (searching) {
+      // a search spans the whole map — never restrict to what's near you
+      if (S.userLoc) vs.forEach((v) => { v._dist = haversineKm(S.userLoc, v.coords); });
+      vs.sort((a, b) => b.radar.score - a.radar.score);
+      title = `Results for “${S.query.trim()}”`;
+    } else if (S.userLoc) {
       vs.forEach((v) => { v._dist = haversineKm(S.userLoc, v.coords); });
       const near = vs.filter((v) => v._dist <= 60);
       if (near.length) { vs = near.sort((a, b) => b.radar.score - a.radar.score); title = S.locLabel || 'Best near you'; }
@@ -1030,6 +1036,7 @@ let map;
 // category filters shown as chips over the map
 const FILTERS = [
   { k: 'all', label: 'All' },
+  { k: 'open', label: 'Open now', pred: (v) => v.open },
   { k: 'club', label: 'Clubs', kinds: ['Club'] },
   { k: 'bar', label: 'Bars', kinds: ['Bar', 'Wine Bar'] },
   { k: 'rooftop', label: 'Rooftops', kinds: ['Rooftop'] },
@@ -1041,6 +1048,34 @@ function matchFilter(v) {
   const f = FILTERS.find((x) => x.k === S.filter);
   return !f || f.k === 'all' || filterHit(f, v);
 }
+// city → country (+ region aliases) so searching a country/region finds its venues
+const CITY_COUNTRY = {
+  Athens:'Greece', Thessaloniki:'Greece', Mykonos:'Greece', Santorini:'Greece', Heraklion:'Greece Crete', Chania:'Greece Crete', Patras:'Greece', Rhodes:'Greece', Corfu:'Greece', Nafplio:'Greece', Zakynthos:'Greece Zante', Malia:'Greece Crete',
+  London:'UK England', Manchester:'UK England', Birmingham:'UK England', Leeds:'UK England', Liverpool:'UK England', Bristol:'UK England', Newcastle:'UK England', Edinburgh:'UK Scotland', Glasgow:'UK Scotland', Sheffield:'UK England', Cardiff:'UK Wales', Belfast:'UK Northern Ireland', Dublin:'Ireland',
+  Lisbon:'Portugal', Porto:'Portugal', Albufeira:'Portugal Algarve',
+  Barcelona:'Spain', Madrid:'Spain', Valencia:'Spain', Seville:'Spain', Ibiza:'Spain Balearics', Magaluf:'Spain Mallorca Balearics',
+  Rome:'Italy', Milan:'Italy',
+  Berlin:'Germany', Munich:'Germany', Cologne:'Germany', Hamburg:'Germany', Frankfurt:'Germany', Leipzig:'Germany',
+  Paris:'France', Lyon:'France', Marseille:'France', Nice:'France',
+  Amsterdam:'Netherlands', Rotterdam:'Netherlands', Brussels:'Belgium', Antwerp:'Belgium', Ghent:'Belgium',
+  Zurich:'Switzerland', Geneva:'Switzerland', Vienna:'Austria', Prague:'Czechia', Budapest:'Hungary',
+  Warsaw:'Poland', 'Kraków':'Poland', 'Poznań':'Poland', Sopot:'Poland',
+  Bucharest:'Romania', Mamaia:'Romania', Sofia:'Bulgaria', 'Sunny Beach':'Bulgaria',
+  Belgrade:'Serbia', Zagreb:'Croatia', Hvar:'Croatia', Novalja:'Croatia', Ljubljana:'Slovenia', Bratislava:'Slovakia', Sarajevo:'Bosnia', Tirana:'Albania', Budva:'Montenegro', Pristina:'Kosovo', 'Chișinău':'Moldova', Kyiv:'Ukraine',
+  Moscow:'Russia', 'Saint Petersburg':'Russia', Minsk:'Belarus', Vilnius:'Lithuania', Riga:'Latvia', Tallinn:'Estonia',
+  Tbilisi:'Georgia', Yerevan:'Armenia', Baku:'Azerbaijan',
+  Helsinki:'Finland', Stockholm:'Sweden', Copenhagen:'Denmark', Oslo:'Norway', Reykjavik:'Iceland', Luxembourg:'Luxembourg',
+  'Ayia Napa':'Cyprus', Istanbul:'Turkey', Beirut:'Lebanon', 'Tel Aviv':'Israel', Dubai:'UAE Emirates',
+  'New York':'USA United States', Miami:'USA United States Florida', 'Los Angeles':'USA United States California', 'Las Vegas':'USA United States Nevada', Chicago:'USA United States', 'San Francisco':'USA United States California', Detroit:'USA United States', Washington:'USA United States', Atlanta:'USA United States', Austin:'USA United States Texas', 'New Orleans':'USA United States', Houston:'USA United States Texas', Dallas:'USA United States Texas', 'San Antonio':'USA United States Texas',
+  Montreal:'Canada', Toronto:'Canada', Vancouver:'Canada',
+  'Mexico City':'Mexico', 'Cancún':'Mexico', Tulum:'Mexico', 'Panama City':'Panama', 'San José':'Costa Rica', 'Guatemala City':'Guatemala', 'San Salvador':'El Salvador', Havana:'Cuba', 'San Juan':'Puerto Rico',
+  'Bogotá':'Colombia', 'Medellín':'Colombia', Cartagena:'Colombia', Lima:'Peru', Santiago:'Chile', 'Buenos Aires':'Argentina', Montevideo:'Uruguay', 'São Paulo':'Brazil', 'Rio de Janeiro':'Brazil', 'Camboriú':'Brazil',
+  Bangkok:'Thailand', 'Ho Chi Minh City':'Vietnam', Hanoi:'Vietnam', Tokyo:'Japan', Osaka:'Japan', Seoul:'South Korea', Singapore:'Singapore', 'Kuala Lumpur':'Malaysia', Bali:'Indonesia', Jakarta:'Indonesia', Manila:'Philippines',
+  Shanghai:'China', Beijing:'China', Chengdu:'China', Shenzhen:'China', 'Hong Kong':'Hong Kong', Taipei:'Taiwan',
+  Mumbai:'India', Delhi:'India', Bangalore:'India', Goa:'India', Tashkent:'Uzbekistan', Almaty:'Kazakhstan',
+  'Cape Town':'South Africa', Johannesburg:'South Africa', Durban:'South Africa', Lagos:'Nigeria', Nairobi:'Kenya', Marrakech:'Morocco', Casablanca:'Morocco', Cairo:'Egypt', Dakar:'Senegal', Accra:'Ghana', 'Addis Ababa':'Ethiopia',
+  Sydney:'Australia', Melbourne:'Australia', Brisbane:'Australia', Perth:'Australia', Auckland:'New Zealand',
+};
 // a venue is "in view" if it's within the current map bounds — used so the
 // filter counts reflect what's near you, growing only as you zoom out
 function inScope(v) {
@@ -1051,7 +1086,9 @@ function inScope(v) {
 function venueMatches(v) {
   if (!matchFilter(v)) return false;
   const q = (S.query || '').trim().toLowerCase();
-  return !q || `${v.name} ${v.neighborhoodName} ${v.category}`.toLowerCase().includes(q);
+  if (!q) return true;
+  const hay = `${v.name} ${v.neighborhoodName} ${v.city} ${v.category} ${CITY_COUNTRY[v.city] || ''}`.toLowerCase();
+  return hay.includes(q);
 }
 
 async function refresh() {

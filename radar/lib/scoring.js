@@ -6,7 +6,7 @@ import { db, venueById, pushFeed } from './store.js';
 import { expectedRate, dayFactor } from './seed.js';
 import { computeReportConfidence, inflationPenalty, getUser } from './reputation.js';
 import { getBusyness } from './besttime.js';
-import { resolveOpen } from './hours.js';
+import { resolveOpen, cityTz } from './hours.js';
 import { getPlace } from './places.js';
 import { currencyInfo, formatMoney } from './money.js';
 import {
@@ -389,10 +389,15 @@ function nearbyActivity(venue, ref) {
 // hour the venue is closed reads 0%, so the forecast never claims a shut room is
 // filling up. `place` carries the baked Google hours used by resolveOpen.
 function venueForecast(venue, currentEst, ref, place) {
-  const shape = (ts) => 0.12 + 0.83 * nightCurve(nightHour(ts), venue.peakHour, venue.spread);
-  const offset = currentEst / 100 - shape(ref);
+  const tz = cityTz(venue.city); // peakHour is LOCAL time, so read night-hour in the venue's tz
+  const shape = (ts) => 0.12 + 0.83 * nightCurve(nightHour(ts, tz), venue.peakHour, venue.spread);
+  // anchor future hours to the live crowd level ONLY while the venue is open now;
+  // if it's closed now, currentEst is 0 and would wrongly drag the curve down, so
+  // forecast the pure historical pattern instead.
+  const openNow = resolveOpen(venue, ref, place).open;
+  const offset = openNow ? (currentEst / 100 - shape(ref)) : 0;
   // compact axis label ("11p", "3a", "12a") so 9 columns fit on a phone
-  const shortHour = (ts) => { const h = ((Math.floor(nightHour(ts)) % 24) + 24) % 24; return (h % 12 || 12) + (h < 12 ? 'a' : 'p'); };
+  const shortHour = (ts) => { const h = ((Math.floor(nightHour(ts, tz)) % 24) + 24) % 24; return (h % 12 || 12) + (h < 12 ? 'a' : 'p'); };
   const points = [0, 60, 120, 180, 240, 300, 360, 420, 480].map((mins) => {
     const ts = ref + mins * MIN;
     const open = resolveOpen(venue, ts, place).open;
@@ -412,7 +417,7 @@ function venueForecast(venue, currentEst, ref, place) {
   }
   return {
     points,
-    peakLabel: bestTs == null ? null : fmtHour(nightHour(bestTs)),
+    peakLabel: bestTs == null ? null : fmtHour(nightHour(bestTs, tz)),
     peakInMin: bestTs == null ? 0 : round((bestTs - ref) / MIN),
   };
 }
@@ -512,10 +517,11 @@ export function areaSnapshot(hood, ref = now()) {
   const packed = snaps.filter((s) => s.fullness.est >= 82).length;
   const surging = snaps.filter((s) => ['surging', 'exploding'].includes(s.momentum.state)).length;
   const heating = snaps.filter((s) => s.momentum.state === 'heating').length;
-  // district peak window from its busiest venues' forecasts
+  // district peak window from its busiest venues' forecasts (labels in local time)
+  const htz = cityTz(hood.city);
   const peaks = snaps.map((s) => s.forecast.peakInMin).sort((a, b) => a - b);
-  const peakStart = fmtHour(nightHour(ref + (peaks[0] ?? 30) * MIN));
-  const peakEnd = fmtHour(nightHour(ref + (peaks[peaks.length - 1] ?? 120) * MIN + 60 * MIN));
+  const peakStart = fmtHour(nightHour(ref + (peaks[0] ?? 30) * MIN, htz));
+  const peakEnd = fmtHour(nightHour(ref + (peaks[peaks.length - 1] ?? 120) * MIN + 60 * MIN, htz));
   return {
     id: hood.id,
     name: hood.name,

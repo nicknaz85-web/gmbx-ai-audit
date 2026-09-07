@@ -11,6 +11,7 @@ import { RESOLVED } from './resolved.js'; // real Google coords baked in (accura
 import { BAKED_PLACES } from './baked-places.js'; // real ratings + reviews + descriptions
 import { BAKED_INSTAGRAM } from './baked-instagram.js'; // resolved Instagram profile URLs
 import { BAKED_HOURS } from './baked-hours.js'; // real weekly opening-hours schedules
+import { cityTz } from './hours.js'; // per-city UTC offset so night curves read local time
 
 // Athens nightlife districts. `center` drives the stylized map projection and
 // the 400m cluster/proximity maths; the model is city-agnostic — add rows for
@@ -1053,8 +1054,9 @@ export function dayFactor(dow) {
 // Expected check-ins per 30 min for a venue at a given moment (its historical
 // baseline — the "normally 10 check-ins" figure the surge detector compares to).
 export function expectedRate(venue, ts = now()) {
-  const h = nightHour(ts);
-  const dow = dayOfWeek(ts);
+  const tz = cityTz(venue.city); // peakHour is local time — evaluate the curve in the venue's tz
+  const h = nightHour(ts, tz);
+  const dow = dayOfWeek(ts, tz);
   const curve = nightCurve(h, venue.peakHour, venue.spread);
   return venue.peakRate * curve * dayFactor(dow);
 }
