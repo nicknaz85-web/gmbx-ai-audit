@@ -143,6 +143,17 @@ function scheduleOpen(venue, ref) {
   return { open, source: 'schedule', opensLabel, closesLabel: fmtHour(closeH) };
 }
 
+// A "nightlife" opening period: starts in the evening, or runs past midnight,
+// or closes late. Used to discard bogus daytime (box-office) hours for clubs.
+function isNightPeriod(p) {
+  if (!p || !p.open) return false;
+  const oh = p.open.hour + (p.open.minute || 0) / 60;
+  if (oh >= 18) return true;                         // opens 6pm or later
+  if (!p.close) return true;                         // open-ended
+  const wrapsDay = p.close.day !== p.open.day;       // spans past midnight
+  const ch = p.close.hour + (p.close.minute || 0) / 60;
+  return wrapsDay || ch <= 6 || ch >= 22;            // closes after midnight / late
+}
 const WEEK_MIN = 7 * 1440;
 // Open/closed computed from real Google weekly periods (baked in), evaluated in
 // the venue's local time. `periods` = [{ open:{day,hour,minute}, close:{...} }],
@@ -226,7 +237,16 @@ export function resolveOpen(venue, ref, place) {
   // Empty periods means Google has no regular hours (irregular/event-based, e.g.
   // Berghain) — NOT 24/7 — so fall through to the schedule estimate instead.
   if (place && Array.isArray(place.periods) && place.periods.length) {
-    return openFromPeriods(place.periods, venue, ref);
+    let periods = place.periods;
+    // Google often lists a nightlife venue's box-office / daytime hours (e.g. a
+    // club "open 10am–6pm"). For evening-led venues, keep only genuine night
+    // periods; if none remain, the listing is mis-scheduled → use the nightlife
+    // estimate instead of claiming the club is open in the afternoon.
+    if (isClubLike(venue) || venue.kind === 'Venue') {
+      const night = periods.filter(isNightPeriod);
+      periods = night.length ? night : null;
+    }
+    if (periods) return openFromPeriods(periods, venue, ref);
   }
   // live openNow snapshot (only from a fresh confident live fetch)
   if (place && place.confident && typeof place.openNow === 'boolean') {
