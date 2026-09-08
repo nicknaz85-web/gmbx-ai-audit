@@ -343,9 +343,11 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     queueEstimated,
     queueEstMin: queueEstimated ? queueEst.mins : null,
     entry: consensus?.entry ?? (venue.price || 0),
-    entryLabel: formatMoney(consensus?.entry ?? (venue.price || 0), venue.city),
+    // Don't let one report overwrite the baseline (Google-informed) price — blend
+    // them into an estimated RANGE so both are respected.
+    entryLabel: entryRangeLabel(venue, consensus),
     currency: currencyInfo(venue.city),
-    entryEstimated: consensus?.entry == null, // true = seeded/typical, not community-reported
+    entryEstimated: consensus?.entry == null || consensus.entry !== (venue.price || 0), // range/seeded = estimate
 
     // recent named vibe reports (real users only) — newest first, for the
     // "Nick, 26 reported…" list on the venue card
@@ -440,6 +442,16 @@ function venueForecast(venue, currentEst, ref, place) {
 
 // PARTY RADAR SCORE — the flagship composite (hot + momentum + nearby + recency
 // + report confidence + event impact + historical expectation).
+// Entry price shown as an estimate: blend the seeded/Google baseline with any
+// community-reported price into a range, so a single report never overrides it.
+function entryRangeLabel(venue, consensus) {
+  const base = venue.price || 0;
+  const rep = consensus && typeof consensus.entry === 'number' ? consensus.entry : null;
+  if (rep == null) return formatMoney(base, venue.city);
+  if (rep === base) return formatMoney(rep, venue.city);
+  const lo = Math.min(base, rep), hi = Math.max(base, rep);
+  return (lo === 0 ? 'Free' : formatMoney(lo, venue.city)) + '–' + formatMoney(hi, venue.city);
+}
 function partyRadarScore({ hot, M, nearby, consensus, owner, expFrac, freshestSignalMin }) {
   const momentumNorm = clamp(50 + M * 1.6, 0, 100);
   const recency = 100 * decayWeight(

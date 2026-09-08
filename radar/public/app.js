@@ -636,6 +636,17 @@ async function openVenue(id) {
 }
 function closeVenue() { $('#venueOverlay').hidden = true; S.activeVenue = null; S.activeVenueData = null; map.selected = null; map.refreshSelection && map.refreshSelection(); }
 
+// tap any community photo/video to view it full screen
+function openLightbox(url, type) {
+  const lb = $('#lightbox'), stage = $('#lbStage'); if (!lb || !stage) return;
+  stage.innerHTML = (type === 'video')
+    ? `<video src="${url}" controls autoplay playsinline loop></video>`
+    : `<img src="${url}" alt="" />`;
+  lb.hidden = false;
+}
+function closeLightbox() { const lb = $('#lightbox'); if (!lb) return; lb.hidden = true; $('#lbStage').innerHTML = ''; }
+window.openLightbox = openLightbox;
+
 // A short "what this place is" line, used when Google has no editorial blurb.
 // ---- reporter levels (client-side; the more you report, the higher your tier) ----
 const LEVELS = [
@@ -804,7 +815,7 @@ function renderVenue(v) {
       <div class="stat"><div class="k">Entry</div><div class="v">${entryText(v)}</div>
         ${v.special ? `<div class="vs c-busy">${esc(v.special)}</div>` : `<div class="vs">${v.entryEstimated ? 'typical · varies by night' : 'reported'}</div>`}</div>
       <div class="stat"><div class="k">Music</div><div class="v" style="font-size:15px">${esc(v.music || v.musicHint || 'Mixed')}</div>
-        ${v.music ? '' : '<div class="vs">typical</div>'}</div>
+        <div class="vs">${v.music ? (v.musicHint && v.musicHint !== v.music ? 'reported · usually ' + esc(v.musicHint) : 'reported') : 'typical'}</div></div>
       <div class="stat"><div class="k">Activity</div><div class="v">${v.recentSignals}</div>
         <div class="vs">recent signals${v.lastReportAgeMin != null ? ` · report ${ago(v.lastReportAgeMin)} ago` : ''}</div></div>
     </div>
@@ -822,8 +833,8 @@ function renderVenue(v) {
       <div class="media-strip">${v.media.map(m => `<div class="media-thumbwrap">${
         m.by && m.by.photo ? `<img class="media-by" src="${esc(m.by.photo)}" alt="${esc(m.by.name || '')}" onerror="this.remove()" />` : ''}${
         m.type === 'video'
-        ? `<video class="media-thumb" src="${m.url}" muted playsinline loop preload="metadata" onclick="this.paused?this.play():this.pause()"></video>`
-        : `<img class="media-thumb" src="${m.url}" alt="Community photo" loading="lazy" />`}</div>`).join('')}</div>
+        ? `<video class="media-thumb" src="${m.url}" muted playsinline loop autoplay preload="metadata" onclick="openLightbox('${m.url}','video')"></video>`
+        : `<img class="media-thumb" src="${m.url}" alt="Community photo" loading="lazy" onclick="openLightbox('${m.url}','image')" />`}</div>`).join('')}</div>
     </div>` : ''}
 
     <div class="forecast">
@@ -969,9 +980,9 @@ function renderReport() {
   const step = REPORT_STEPS[R.step];
   const sel = R.answers[step.key];
   const inner = $('#reportInner');
-  const hint = step.type === 'media' ? "A photo or video is required — it's added to the venue's page"
-    : step.type === 'note' ? 'Optional — a few words about the venue or the night (max 500)'
-    : step.optional ? 'Optional — tap to add, or skip' : 'Tap your answer';
+  const hint = step.type === 'media' ? "A photo or video is required. It's added to the venue's page"
+    : step.type === 'note' ? 'Optional. A few words about the venue or the night (max 500)'
+    : step.optional ? 'Optional. Tap to add, or skip' : 'Tap your answer';
   // localise the entry-price chips to the venue's currency (€10 → 1000 din, etc.)
   const opts = (step.opts && step.key === 'entry' && venue) ? step.opts.map((o) =>
     (typeof o.v === 'number' && o.v > 0) ? { ...o, l: fmtCur(o.v, venue.currency) + (o.v >= 20 ? '+' : '') } : o) : step.opts;
@@ -1093,9 +1104,12 @@ async function submitReport() {
   const leveledUp = newLevel.name !== myLevel.name;
   const badge = res.badges && res.badges.length ? res.badges[res.badges.length - 1] : null;
   $('#reportInner').innerHTML = `<div class="rep-done">
-    <img class="rd-mascot" src="/clubbit-mascot.png" alt="Clubbit" onerror="this.style.display='none'" />
+    <div class="rd-duo">
+      <img class="rd-mascot" src="/clubbit-mascot.png" alt="" onerror="this.style.display='none'" />
+      <img class="rd-mascot rd-mascot-f" src="/clubbit-mascot-f.png" alt="" onerror="this.style.display='none'" />
+    </div>
     <h2>All good to go 🎉</h2>
-    <p>Thanks — you're on the radar. Now go enjoy the club!<br>Confidence: <b style="color:var(--blue)">${titleCase(res.confidenceTier || 'medium')}</b></p>
+    <p>Thanks, you're on the radar. Now go enjoy the club!<br>Confidence: <b style="color:var(--blue)">${titleCase(res.confidenceTier || 'medium')}</b></p>
     ${leveledUp
       ? `<div class="rep-badge">${newLevel.emoji} Level up! You're now a <b>${esc(newLevel.name)}</b></div>`
       : `<div class="rep-levelnote">${newLevel.emoji} ${esc(newLevel.name)} · ${newLevel.next ? `${newLevel.next.min - newLevel.count} more to ${esc(newLevel.next.name)}` : 'max level'}</div>`}
@@ -1746,8 +1760,8 @@ async function renderProfile() {
     ${p.profilePhoto ? `<button class="pedit-btn" id="removePicBtn" style="background:none;color:var(--muted);margin-top:8px">${t('removePhoto')}</button>` : ''}
     <div class="psec-h"><h3>${t('yourPhotos')}</h3><span class="count">${media.length}</span></div>
     ${media.length ? `<div class="media-grid">${media.map((m) => `<div class="media-cellwrap">${m.type === 'video'
-      ? `<video class="media-cell" src="${m.url}" muted playsinline loop preload="metadata" onclick="this.paused?this.play():this.pause()"></video>`
-      : `<img class="media-cell" src="${m.url}" loading="lazy" alt="Your photo" />`}<button class="media-del" title="Delete" onclick="deleteMyMedia('${m.id}')" aria-label="Delete photo">✕</button></div>`).join('')}</div>`
+      ? `<video class="media-cell" src="${m.url}" muted playsinline loop autoplay preload="metadata" onclick="openLightbox('${m.url}','video')"></video>`
+      : `<img class="media-cell" src="${m.url}" loading="lazy" alt="Your photo" onclick="openLightbox('${m.url}','image')" />`}<button class="media-del" title="Delete" onclick="event.stopPropagation();deleteMyMedia('${m.id}')" aria-label="Delete photo">✕</button></div>`).join('')}</div>`
       : `<div class="empty">${t('noPhotos')}</div>`}`;
   // pencil / change photo
   const picInput = $('#profilePicInput');
@@ -1861,6 +1875,9 @@ function initUI() {
   const ss = $('#settingsScrim'); if (ss) ss.addEventListener('click', () => closeMSheet('#settingsSheet', '#settingsScrim'));
   const lc = $('#langClose'); if (lc) lc.addEventListener('click', () => closeMSheet('#langSheet', '#langScrim'));
   const ls = $('#langScrim'); if (ls) ls.addEventListener('click', () => closeMSheet('#langSheet', '#langScrim'));
+  // fullscreen media viewer
+  const lbc = $('#lbClose'); if (lbc) lbc.addEventListener('click', closeLightbox);
+  const lbx = $('#lightbox'); if (lbx) lbx.addEventListener('click', (e) => { if (e.target === lbx) closeLightbox(); });
   document.querySelectorAll('[data-close]').forEach((s) => s.addEventListener('click', closeVenue));
 }
 

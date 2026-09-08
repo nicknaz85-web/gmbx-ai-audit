@@ -199,15 +199,19 @@ function parseCookies(req) {
 // or return anything that identifies a person — only salted hashes.
 function identity(req, res) {
   const cookies = parseCookies(req);
-  let anonId = cookies.prid;
+  // Prefer the app's stable id header — cross-origin cookies aren't reliably
+  // sent from the packaged app, so this keeps a user's reports/photos attributed
+  // to them across requests. Falls back to the cookie for the plain web app.
+  const hdr = String(req.headers['x-clubbit-uid'] || '').trim().slice(0, 64);
+  let anonId = hdr || cookies.prid;
   const setCookies = [];
   if (!anonId) {
     anonId = randId('a');
     setCookies.push(`prid=${anonId}; Path=/; Max-Age=31536000; SameSite=Lax`);
   }
   const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-  const deviceId = cookies.prdev || anonId;
-  if (!cookies.prdev) setCookies.push(`prdev=${deviceId}; Path=/; Max-Age=31536000; SameSite=Lax`);
+  const deviceId = hdr || cookies.prdev || anonId;
+  if (!hdr && !cookies.prdev) setCookies.push(`prdev=${deviceId}; Path=/; Max-Age=31536000; SameSite=Lax`);
   if (setCookies.length) res.setHeader('Set-Cookie', setCookies);
   return { uHash: anonHash('user', anonId), dHash: anonHash('dev', deviceId, ip.slice(0, 12)) };
 }
@@ -620,7 +624,7 @@ const server = http.createServer((req, res) => {
     res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Clubbit-Uid');
   }
   if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); } // preflight
   if (url.pathname.startsWith('/api/')) {

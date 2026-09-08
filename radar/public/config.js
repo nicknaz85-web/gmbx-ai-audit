@@ -19,12 +19,30 @@ window.CLUBBIT_API = window.CLUBBIT_API || 'https://clubbit.onrender.com';
       (u.indexOf('/api') === 0 || u.indexOf('/media') === 0);
   };
 
-  // 1) fetch() → hosted backend
+  // Stable per-device id — cross-origin cookies aren't reliably sent from the
+  // packaged app, so we identify the user with this header instead. This keeps
+  // reports / photos / contributions attributed to the same account.
+  var uid = function () {
+    try {
+      var k = 'clubbit_uid', v = localStorage.getItem(k);
+      if (!v) { v = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12); localStorage.setItem(k, v); }
+      return v;
+    } catch (e) { return ''; }
+  };
+
+  // 1) fetch() → hosted backend (+ stable identity header on /api)
   var _fetch = window.fetch ? window.fetch.bind(window) : null;
   if (_fetch) window.fetch = function (input, init) {
+    var isApi = false;
     try {
-      if (needsBase(input)) input = base + input;
-      else if (input && typeof input === 'object' && needsBase(input.url)) input = new Request(base + input.url, input);
+      if (needsBase(input)) { input = base + input; isApi = true; }
+      else if (input && typeof input === 'object' && needsBase(input.url)) { input = new Request(base + input.url, input); isApi = true; }
+      if (isApi) {
+        init = init || {};
+        var h = new Headers((init && init.headers) || (input && input.headers) || {});
+        h.set('X-Clubbit-Uid', uid());
+        init.headers = h;
+      }
     } catch (e) {}
     return _fetch(input, init);
   };
