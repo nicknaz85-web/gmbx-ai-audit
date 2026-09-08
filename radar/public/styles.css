@@ -326,12 +326,12 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .peak-flag{display:inline-flex;align-items:center;gap:7px;margin-top:11px;font-size:12px;color:var(--amber-d);background:#feefc3;padding:7px 11px;border-radius:8px}
 
 .decision{margin-top:16px;border-radius:12px;padding:15px}
-.decision.go{background:#e6f4ea;border:1px solid #ceead6}
-.decision.wait{background:#fce8e6;border:1px solid #f5c9c4}
+.decision.go{background:color-mix(in oklab,var(--green) 14%,var(--card));border:1px solid color-mix(in oklab,var(--green) 32%,transparent)}
+.decision.wait{background:color-mix(in oklab,var(--red) 13%,var(--card));border:1px solid color-mix(in oklab,var(--red) 30%,transparent)}
 .decision.your{background:var(--surface-2);border:1px solid var(--line2)}
 .dec-verdict{font-size:20px;font-weight:700;letter-spacing:.2px;display:flex;align-items:center;gap:9px}
-.decision.go .dec-verdict{color:var(--green-d)}
-.decision.wait .dec-verdict{color:var(--red-d)}
+.decision.go .dec-verdict{color:color-mix(in oklab,var(--green) 70%,var(--ink))}
+.decision.wait .dec-verdict{color:color-mix(in oklab,var(--red) 78%,var(--ink))}
 .decision.your .dec-verdict{color:var(--ink2)}
 .dec-head{font-size:13px;color:var(--ink2);margin-top:3px}
 .dec-reasons{list-style:none;margin-top:11px;display:flex;flex-direction:column;gap:6px}
