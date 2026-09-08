@@ -1195,9 +1195,32 @@ async function refresh() {
 let _rt;
 function refreshSoon() { clearTimeout(_rt); _rt = setTimeout(refresh, 900); }
 
+// Count the "notifications worth showing" — currently-OPEN nearby picks only.
+// Nothing is shown while nearby clubs are closed; once they open, the badge
+// reflects tonight's open picks (top pick + popping + peaking).
+function feedOpenCount() {
+  const d = S.data; if (!d) return 0;
+  let vs = [...d.venues];
+  if (S.userLoc) {
+    vs.forEach((v) => { v._dist = haversineKm(S.userLoc, v.coords); });
+    const near = vs.filter((v) => v._dist <= 40);
+    vs = near.length ? near : vs.sort((a, b) => a._dist - b._dist).slice(0, 20);
+  }
+  const openV = vs.filter((v) => v.open);
+  if (!openV.length) return 0;
+  const ids = new Set();
+  const top = openV.slice().sort((a, b) => b.radar.score - a.radar.score)[0];
+  if (top) ids.add(top.id);
+  openV.forEach((v) => { if (v.momentum && ['surging', 'exploding', 'heating'].includes(v.momentum.state)) ids.add(v.id); });
+  openV.forEach((v) => { if (v.expectedPeak) ids.add(v.id); });
+  return ids.size;
+}
 function updateChrome() {
   const d = S.data; if (!d) return;
-  $('#feedBadge').textContent = Math.min(99, d.feed.length);
+  const badge = $('#feedBadge'); if (!badge) return;
+  const n = feedOpenCount();
+  if (n > 0) { badge.textContent = Math.min(99, n); badge.style.display = 'flex'; }
+  else { badge.style.display = 'none'; }
 }
 
 /* ---- location gate: ask on open, then show best clubs near you ---- */
