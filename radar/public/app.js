@@ -698,7 +698,11 @@ function reportRundown(v, r, i) {
   if (r.entry != null) rows.push(['Entry', r.entry === 0 ? 'Free' : fmtCur(r.entry, v.currency)]);
   if (r.mix && MIX_LABEL[r.mix]) rows.push(['Crowd', MIX_LABEL[r.mix]]);
   if (r.music) rows.push(['Music', r.music]);
+  const photo = r.mediaUrl ? (r.mediaType === 'video'
+    ? `<video class="rr-media" src="${r.mediaUrl}" muted playsinline loop autoplay preload="metadata" onclick="event.stopPropagation();lbShow('${r.mediaId || ''}')"></video>`
+    : `<img class="rr-media" src="${r.mediaUrl}" alt="" loading="lazy" onclick="event.stopPropagation();lbShow('${r.mediaId || ''}')" />`) : '';
   return `<div class="rep-rundown" id="rr_${v.id}_${i}" hidden>
+    ${photo}
     ${rows.map(([k, val]) => `<div class="rr-row"><span class="rr-k">${esc(k)}</span><span class="rr-v">${esc(val)}</span></div>`).join('')}
     ${r.note ? `<div class="rr-note">“${esc(r.note)}”</div>` : ''}
   </div>`;
@@ -721,11 +725,27 @@ function recentReportsBlock(v) {
         <div class="rep-who"><b>${esc(r.name)}${r.age ? ', ' + r.age : ''}</b>${r.tag ? ` <span class="rep-tag">${esc(r.tag)}</span>` : ''} reported${r.mine ? ' <span class="rep-you">You</span>' : ''}</div>
         <div class="rep-sub">${esc(cap(VIBE_WORD[r.vibe] || r.vibe))} · ${ago(r.ageMin)} ago</div>
       </div>
-      ${r.mine && r.id ? `<button class="rep-del" onclick="event.stopPropagation();deleteMyReport('${r.id}')" aria-label="Delete your report">🗑</button>` : chev}
+      ${r.mine && r.id ? `<button class="rep-del" onclick="event.stopPropagation();deleteMyReport('${r.id}')" aria-label="Delete your report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>` : chev}
     </div>${reportRundown(v, r, i)}`).join('')}
   </div>`;
 }
 function cap(s) { return String(s || '').charAt(0).toUpperCase() + String(s || '').slice(1); }
+// "What people are saying" + the community photos, grouped into one block that
+// sits at the bottom of the venue card (below the buttons).
+function communityBlock(v) {
+  const reports = recentReportsBlock(v); // '' when there are none
+  const media = v.media || [];
+  const strip = media.length ? `<div class="vc-media"${reports ? ' style="margin-top:14px"' : ''}>
+      ${reports ? '<div class="cb-sub">Photos &amp; videos</div>' : '<div class="section-h"><h3>What people are saying</h3><span class="count">' + media.length + '</span></div>'}
+      <div class="media-strip">${media.map(m => `<div class="media-thumbwrap">${
+        m.by && m.by.photo ? `<img class="media-by" src="${esc(m.by.photo)}" alt="${esc(m.by.name || '')}" onerror="this.remove()" />` : ''}${
+        m.type === 'video'
+        ? `<video class="media-thumb" src="${m.url}" muted playsinline loop autoplay preload="metadata" onclick="lbShow('${m.id}')"></video>`
+        : `<img class="media-thumb" src="${m.url}" alt="Community photo" loading="lazy" onclick="lbShow('${m.id}')" />`}</div>`).join('')}</div>
+    </div>` : '';
+  if (!reports && !strip) return '';
+  return `<div class="community-block">${reports}${strip}</div>`;
+}
 
 // ---- best-effort photo moderation: block explicit/personal shots (NSFW) so the
 // gallery stays about the venue. Lazy-loads a small on-device model; fails open. ----
@@ -844,20 +864,9 @@ function renderVenue(v) {
 
     ${v.owner ? `<div class="owner-note"><b>Venue update</b> · ${ago(v.owner.ageMin)} ago: status ${esc(v.owner.status)}${v.owner.lastEntry ? ' · last entry ' + esc(v.owner.lastEntry) : ''}</div>` : ''}
 
-    ${recentReportsBlock(v)}
-
     ${reviewsBlock(v)}
 
     ${v.dress ? `<div class="dress"><span class="dress-ic">👔</span><div class="dress-txt"><b>Dress code · ${esc(v.dress.code)}</b><div class="dress-tip">${esc(v.dress.tip)}</div></div></div>` : ''}
-
-    ${v.media && v.media.length ? `<div class="vc-media">
-      <div class="section-h"><h3>Photos &amp; videos</h3><span class="count">${v.media.length}</span></div>
-      <div class="media-strip">${v.media.map(m => `<div class="media-thumbwrap">${
-        m.by && m.by.photo ? `<img class="media-by" src="${esc(m.by.photo)}" alt="${esc(m.by.name || '')}" onerror="this.remove()" />` : ''}${
-        m.type === 'video'
-        ? `<video class="media-thumb" src="${m.url}" muted playsinline loop autoplay preload="metadata" onclick="lbShow('${m.id}')"></video>`
-        : `<img class="media-thumb" src="${m.url}" alt="Community photo" loading="lazy" onclick="lbShow('${m.id}')" />`}</div>`).join('')}</div>
-    </div>` : ''}
 
     <div class="forecast">
       <div class="section-h"><h3>Forecast</h3><span class="count">next 8 hours</span></div>
@@ -891,6 +900,9 @@ function renderVenue(v) {
       <button class="btn btn-save full${isSaved(v.id) ? ' on' : ''}" onclick="toggleSave('${v.id}')">${isSaved(v.id) ? '★ Saved' : '☆ Save for later'}</button>
       <button class="btn btn-ghost full" onclick="startReport('${v.id}')">Report the vibe</button>
     </div>
+
+    ${communityBlock(v)}
+
     <div class="note">Anonymous and aggregated · no individual locations are ever shown</div>
   </div>`;
 }
@@ -1022,7 +1034,7 @@ function renderReport() {
         <div class="rep-notecount"><span id="noteCount">${noteVal.length}</span>/500</div>
       </div>`
     : `<div class="${step.grid ? 'rep-grid' : 'rep-opts'}">
-      ${opts.map(o => `<button class="rep-opt ${step.grid ? 'sm' : ''} ${sel === o.v ? 'sel' : ''}" onclick="pickReport('${step.key}', ${typeof o.v === 'number' ? o.v : `'${o.v}'`})">
+      ${opts.map(o => `<button class="rep-opt ${step.grid ? 'sm' : ''}${o.v === 'other' ? ' wide' : ''} ${sel === o.v ? 'sel' : ''}" onclick="pickReport('${step.key}', ${typeof o.v === 'number' ? o.v : `'${o.v}'`})">
         ${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`).join('')}
     </div>${otherInput}`;
   inner.innerHTML = `
@@ -1137,7 +1149,7 @@ async function submitReport() {
   const entryVal = a.entry === 'other' ? (a.entryOther != null ? a.entryOther : null) : a.entry;
   const musicVal = a.music === 'Other' ? (a.musicOther || null) : a.music;
   const payload = { venueId: R.venueId, vibe: a.vibe, queue: a.queue, entry: entryVal, mix: a.mix, music: musicVal, note: (a.note || '').trim().slice(0, 500) || null, coords, media: R.media, reporter };
-  $('#reportOverlay').classList.add('vibe');
+  $('#reportOverlay').classList.remove('vibe');
   $('#reportInner').innerHTML = `<div class="rep-done"><div class="big">•••</div><h2>Sending…</h2></div>`;
   const res = await API.report(payload);
   if (res && res.error) { toast(res.needMedia ? 'A photo or video is required' : ('Could not send: ' + res.error)); R.step = 1; renderReport(); return; }
@@ -1613,6 +1625,7 @@ const I18N = {
     signOut: 'Sign out', deleteAccount: 'Delete account', editProfile: 'Edit profile', changePhoto: 'Change photo',
     removePhoto: 'Remove photo (use default)', profile: 'Profile', reports: 'Reports', photos: 'Photos',
     contributions: 'contributions to the radar', yourPhotos: 'Your photos & videos', noPhotos: "You haven't added any photos yet.",
+    yourReports: 'Your reports', noReports: "You haven't reported yet. Report the vibe at a venue to build your overview.",
     toNext: 'to', maxLevel: 'Max level', email: 'Email', gender: 'Gender', dob: 'Date of birth',
     account: 'Account', prefs: 'Preferences' },
   es: { settings: 'Ajustes', appearance: 'Apariencia', light: 'Claro', dark: 'Oscuro', language: 'Idioma',
@@ -1763,6 +1776,7 @@ async function renderProfile() {
   const reports = me.reportsMade || 0, photos = me.photos || 0;
   const badges = me.badges || [];
   const media = me.media || [];
+  const myReports = me.reports || [];
   const p = loadLocalProfile();
   const name = p.firstName || 'You';
   const ava = p.profilePhoto || (p.gender === 'Woman' ? '/clubbit-face-f.png' : p.gender === 'Man' ? '/clubbit-face-m.png' : p.gender === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png');
@@ -1801,11 +1815,22 @@ async function renderProfile() {
     ${rows.length ? `<div class="pdetails">${rows.map(([k, v]) => `<div class="pdetail"><span class="pk">${k}</span><span class="pv">${v}</span></div>`).join('')}</div>` : ''}
     <button class="pedit-btn" id="editProfileBtn">${pencil} ${t('editProfile')}</button>
     ${p.profilePhoto ? `<button class="pedit-btn" id="removePicBtn" style="background:none;color:var(--muted);margin-top:8px">${t('removePhoto')}</button>` : ''}
-    <div class="psec-h"><h3>${t('yourPhotos')}</h3><span class="count">${media.length}</span></div>
-    ${media.length ? `<div class="media-grid">${media.map((m) => `<div class="media-cellwrap">${m.type === 'video'
-      ? `<video class="media-cell" src="${m.url}" muted playsinline loop autoplay preload="metadata" onclick="lbShowMine('${m.url}','video')"></video>`
-      : `<img class="media-cell" src="${m.url}" loading="lazy" alt="Your photo" onclick="lbShowMine('${m.url}','image')" />`}<button class="media-del" title="Delete" onclick="event.stopPropagation();deleteMyMedia('${m.id}')" aria-label="Delete photo">✕</button></div>`).join('')}</div>`
-      : `<div class="empty">${t('noPhotos')}</div>`}`;
+    <div class="psec-h"><h3>${t('yourReports')}</h3><span class="count">${myReports.length}</span></div>
+    ${myReports.length ? `<div class="myrep-list">${myReports.map((r) => `
+      <div class="myrep">
+        ${r.mediaUrl
+          ? (r.mediaType === 'video'
+            ? `<video class="myrep-media" src="${r.mediaUrl}" muted playsinline loop preload="metadata" onclick="lbShowMine('${r.mediaUrl}','video')"></video>`
+            : `<img class="myrep-media" src="${r.mediaUrl}" loading="lazy" alt="" onclick="lbShowMine('${r.mediaUrl}','image')" />`)
+          : `<div class="myrep-media noimg">📍</div>`}
+        <div class="myrep-txt">
+          <div class="myrep-venue">${esc(r.venueName)}</div>
+          <div class="myrep-meta">${esc(cap(VIBE_WORD[r.vibe] || r.vibe || 'reported'))}${r.entry != null ? ' · ' + (r.entry === 0 ? 'Free' : '€' + r.entry) : ''}${r.music ? ' · ' + esc(r.music) : ''}</div>
+          <div class="myrep-time">${ago(r.ageMin)} ago</div>
+        </div>
+        <button class="rep-del" onclick="deleteMyReport('${r.id}')" aria-label="Delete report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+      </div>`).join('')}</div>`
+      : `<div class="empty">${t('noReports')}</div>`}`;
   // pencil / change photo
   const picInput = $('#profilePicInput');
   const he = $('#heroEdit'); if (he) he.onclick = () => picInput && picInput.click();
@@ -1845,7 +1870,8 @@ async function deleteMyReport(id) {
     if (r && r.ok) {
       try { setReportCount(Math.max(0, reportCount() - 1)); } catch (e) {}
       toast('Report deleted');
-      if (S.activeVenue) openVenue(S.activeVenue); // reload the venue card
+      if (S.tab === 'profile') renderProfile();       // refresh the profile overview
+      else if (S.activeVenue) openVenue(S.activeVenue); // or reload the venue card
       refreshSoon();
     } else toast('Could not delete' + (r && r.error ? ': ' + r.error : ''));
   } catch { toast('Could not delete'); }

@@ -355,7 +355,10 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
       .filter((r) => r.reporter && r.reporter.name)
       .sort((a, b) => a.age - b.age)
       .slice(0, 6)
-      .map((r) => ({ id: r.id, mine: !!(opts.viewerHash && r.uHash === opts.viewerHash), name: r.reporter.name, age: r.reporter.age, tag: r.reporter.tag, photo: r.reporter.photo, vibe: r.vibe, queue: r.queue || null, entry: (r.entry != null ? r.entry : null), mix: r.mix || null, music: r.music || null, note: r.note || null, ageMin: round(r.age) })),
+      .map((r) => {
+        const m = r.mediaId ? db.media.find((x) => x.id === r.mediaId) : null;
+        return { id: r.id, mine: !!(opts.viewerHash && r.uHash === opts.viewerHash), name: r.reporter.name, age: r.reporter.age, tag: r.reporter.tag, photo: r.reporter.photo, vibe: r.vibe, queue: r.queue || null, entry: (r.entry != null ? r.entry : null), mix: r.mix || null, music: r.music || null, note: r.note || null, mediaId: m ? m.id : null, mediaUrl: m ? '/media/' + m.id + '.' + m.ext : null, mediaType: m ? m.type : null, ageMin: round(r.age) };
+      }),
     music: owner?.music || consensus?.music || null,
     musicHint: genreHint(venue), // deterministic typical genre when none reported
     special: owner?.specials || null,

@@ -328,12 +328,29 @@ async function api(req, res, url) {
       .sort((a, b) => b.ts - a.ts)
       .slice(0, 30)
       .map((m) => ({ id: m.id, url: '/media/' + m.id + '.' + m.ext, type: m.type, ageMin: round((now() - m.ts) / MIN) }));
+    // the user's own reports (with their photo) so the profile shows an overview
+    const reports = db.reports
+      .filter((r) => r.uHash === id.uHash)
+      .sort((a, b) => b.ts - a.ts)
+      .slice(0, 50)
+      .map((r) => {
+        const v = venueById(r.venueId);
+        const m = r.mediaId ? db.media.find((x) => x.id === r.mediaId) : null;
+        return {
+          id: r.id, venueId: r.venueId, venueName: v ? v.name : 'A venue',
+          vibe: r.vibe, queue: r.queue || null, entry: (r.entry != null ? r.entry : null),
+          mix: r.mix || null, music: r.music || null, note: r.note || null,
+          mediaUrl: m ? '/media/' + m.id + '.' + m.ext : null, mediaType: m ? m.type : null,
+          ageMin: round((now() - r.ts) / MIN),
+        };
+      });
     return send(res, 200, {
       badges,
       reportsMade: Math.round(u.reports),
       checkins: u.checkins,
       photos: mine.length,
       media,
+      reports,
     });
   }
 
