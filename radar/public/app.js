@@ -132,6 +132,8 @@ class RadarMap {
     if (window.ResizeObserver) { this._ro = new ResizeObserver(() => this._resize()); this._ro.observe(this.c.parentElement); }
     this.loop = this.loop.bind(this);
     requestAnimationFrame(this.loop);
+    // safety: never let the loading skeleton stick around forever
+    setTimeout(() => { const sk = document.getElementById('mapSkeleton'); if (sk && !sk.classList.contains('gone')) { sk.classList.add('gone'); setTimeout(() => { try { sk.remove(); } catch (e) {} }, 550); } }, 10000);
   }
   _initMap() {
     // slick DARK vector basemap, keyless (OpenFreeMap "Dark"): same streets/labels,
@@ -148,7 +150,7 @@ class RadarMap {
     // render as a 3D globe when zoomed out (MapLibre v5+); falls back silently
     const enableGlobe = () => { try { if (this.map && this.map.setProjection) this.map.setProjection({ type: 'globe' }); } catch (e) {} };
     this.map.on('style.load', enableGlobe);
-    const ready = () => { if (this._ready) return; this._ready = true; enableGlobe(); this._buildMarkers(); this._initialCamera(); };
+    const ready = () => { if (this._ready) return; this._ready = true; enableGlobe(); this._buildMarkers(); this._initialCamera(); this._maybeHideSkeleton(); };
     this.map.on('load', ready);
     this.map.on('idle', ready); // fires after first real render (self-heals a 0-size start)
     this.map.on('error', (e) => console.warn('map error', e && e.error && e.error.message));
@@ -172,6 +174,7 @@ class RadarMap {
     });
     const m = document.getElementById('map');
     if (m) m.style.background = '#14151c';
+    this._fallback = true; this._maybeHideSkeleton();
   }
   _resize() {
     const el = this.c.parentElement.getBoundingClientRect();
@@ -186,6 +189,14 @@ class RadarMap {
     this.bounds = d.bounds; this.venues = d.venues; this.areas = d.areas;
     if (!this.map || this._ready) this._buildMarkers();
     if (first) this._initialCamera();
+    this._maybeHideSkeleton();
+  }
+  // hide the loading skeleton once the map is up AND venues have loaded (or the
+  // simple fallback map is in use) — whichever finishes last
+  _maybeHideSkeleton() {
+    if (!((this._ready || this._fallback) && this.venues && this.venues.length)) return;
+    const sk = document.getElementById('mapSkeleton');
+    if (sk && !sk.classList.contains('gone')) { sk.classList.add('gone'); setTimeout(() => { try { sk.remove(); } catch (e) {} }, 550); }
   }
   // Create the DOM marker for one venue (structure only; live state via _applyPinState)
   _markerFor(v) {
@@ -328,9 +339,9 @@ class RadarMap {
   // you move, instead of only ~120ms after you stop.
   _syncSoon() {
     const t = Date.now();
-    if (this._lastSync && t - this._lastSync < 90) {
+    if (this._lastSync && t - this._lastSync < 140) {
       clearTimeout(this._syncT);
-      this._syncT = setTimeout(() => { this._lastSync = Date.now(); this._syncMarkers(); }, 90);
+      this._syncT = setTimeout(() => { this._lastSync = Date.now(); this._syncMarkers(); }, 140);
       return;
     }
     this._lastSync = t;
@@ -1770,10 +1781,14 @@ async function doDeleteAccount() {
   location.replace('/onboarding.html');
 }
 
+let _meCache = null;
 async function renderProfile() {
   const body = $('#profileBody');
   if (!body) return;
-  body.innerHTML = `
+  // instant: repaint the last-known profile from cache; only show the skeleton
+  // on the very first open when we have nothing cached yet
+  if (_meCache) paintProfile(_meCache);
+  else body.innerHTML = `
     <div class="phero">
       <div class="phero-ava"><div class="sk" style="width:112px;height:112px;border-radius:50%"></div></div>
       <div class="sk" style="width:130px;height:22px;border-radius:8px;margin-top:14px"></div>
@@ -1789,9 +1804,16 @@ async function renderProfile() {
       <div class="sk" style="height:15px;margin:15px 0;border-radius:6px"></div>
       <div class="sk" style="height:15px;margin:15px 0;border-radius:6px"></div>
     </div>`;
-  let me = {};
-  try { me = await API.me(); } catch { me = {}; }
+  // refresh in the background; repaint if the tab is still open
+  let me;
+  try { me = await API.me(); } catch { me = _meCache || { reportsMade: 0, photos: 0, badges: [], media: [], reports: [] }; }
   if (S.tab !== 'profile') return;
+  _meCache = me;
+  paintProfile(me);
+}
+function paintProfile(me) {
+  const body = $('#profileBody');
+  if (!body) return;
   const reports = me.reportsMade || 0, photos = me.photos || 0;
   const badges = me.badges || [];
   const media = me.media || [];

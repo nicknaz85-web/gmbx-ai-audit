@@ -848,3 +848,17 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   animation:skShimmer 1.25s infinite}
 @keyframes skShimmer{100%{transform:translateX(100%)}}
 @media (prefers-reduced-motion:reduce){.sk::after{animation:none}}
+
+/* map loading skeleton — dark map ground + shimmer pins so it's never blank */
+.map-skeleton{position:absolute;inset:0;z-index:20;background:var(--mapbg);overflow:hidden;transition:opacity .5s ease}
+.map-skeleton.gone{opacity:0;pointer-events:none}
+.mk-pin{position:absolute;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.06);
+  box-shadow:0 0 0 6px rgba(255,255,255,.03);overflow:hidden}
+.mk-pin::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);animation:skShimmer 1.3s infinite}
+.mk-loader{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:8px}
+.mk-loader span{width:10px;height:10px;border-radius:50%;background:var(--primary);opacity:.5;animation:mkPulse 1s ease-in-out infinite}
+.mk-loader span:nth-child(2){animation-delay:.15s}
+.mk-loader span:nth-child(3){animation-delay:.3s}
+@keyframes mkPulse{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+@media (prefers-reduced-motion:reduce){.mk-pin::after{animation:none}.mk-loader span{animation:none}}
