@@ -1320,9 +1320,11 @@ function renderFilters() {
 // sheet open/close (modal, on demand)
 function setBn(key) { document.querySelectorAll('.bn').forEach((x) => x.classList.toggle('active', x.dataset.nav === key)); }
 function setTab(t) {
+  if (t === 'profile') { showProfile(); return; }
   S.tab = t;
-  setBn(t === 'saved' ? 'saved' : t === 'profile' ? 'profile' : 'map');
-  if (t === 'profile') renderProfile(); else renderSheet();
+  setBn(t === 'saved' ? 'saved' : 'map');
+  hideProfile();
+  renderSheet();
 }
 
 function profFreqShort(f) {
@@ -1477,14 +1479,172 @@ function editProfile() {
   };
 }
 
+// ============================================================ THEME + LANGUAGE
+const LANGS = [
+  ['en', 'English', 'English'], ['es', 'Español', 'Spanish'], ['fr', 'Français', 'French'],
+  ['de', 'Deutsch', 'German'], ['pt', 'Português', 'Portuguese'], ['it', 'Italiano', 'Italian'],
+  ['nl', 'Nederlands', 'Dutch'], ['ru', 'Русский', 'Russian'], ['uk', 'Українська', 'Ukrainian'],
+  ['pl', 'Polski', 'Polish'], ['tr', 'Türkçe', 'Turkish'], ['el', 'Ελληνικά', 'Greek'],
+  ['sr', 'Српски', 'Serbian'], ['ro', 'Română', 'Romanian'], ['sv', 'Svenska', 'Swedish'],
+  ['no', 'Norsk', 'Norwegian'], ['da', 'Dansk', 'Danish'], ['fi', 'Suomi', 'Finnish'],
+  ['cs', 'Čeština', 'Czech'], ['hu', 'Magyar', 'Hungarian'], ['bg', 'Български', 'Bulgarian'],
+  ['hr', 'Hrvatski', 'Croatian'], ['ar', 'العربية', 'Arabic'], ['he', 'עברית', 'Hebrew'],
+  ['fa', 'فارسی', 'Persian'], ['hi', 'हिन्दी', 'Hindi'], ['id', 'Bahasa Indonesia', 'Indonesian'],
+  ['th', 'ไทย', 'Thai'], ['vi', 'Tiếng Việt', 'Vietnamese'], ['zh', '中文', 'Chinese'],
+  ['ja', '日本語', 'Japanese'], ['ko', '한국어', 'Korean'],
+];
+const RTL_LANGS = ['ar', 'he', 'fa', 'ur'];
+const I18N = {
+  en: { settings: 'Settings', appearance: 'Appearance', light: 'Light', dark: 'Dark', language: 'Language',
+    signOut: 'Sign out', deleteAccount: 'Delete account', editProfile: 'Edit profile', changePhoto: 'Change photo',
+    removePhoto: 'Remove photo (use default)', profile: 'Profile', reports: 'Reports', photos: 'Photos',
+    contributions: 'contributions to the radar', yourPhotos: 'Your photos & videos', noPhotos: "You haven't added any photos yet.",
+    toNext: 'to', maxLevel: 'Max level', email: 'Email', gender: 'Gender', dob: 'Date of birth',
+    account: 'Account', prefs: 'Preferences' },
+  es: { settings: 'Ajustes', appearance: 'Apariencia', light: 'Claro', dark: 'Oscuro', language: 'Idioma',
+    signOut: 'Cerrar sesión', deleteAccount: 'Eliminar cuenta', editProfile: 'Editar perfil', changePhoto: 'Cambiar foto',
+    removePhoto: 'Quitar foto (usar predeterminada)', profile: 'Perfil', reports: 'Reportes', photos: 'Fotos',
+    contributions: 'aportes al radar', yourPhotos: 'Tus fotos y vídeos', noPhotos: 'Aún no has añadido fotos.',
+    toNext: 'para', maxLevel: 'Nivel máximo', email: 'Correo', gender: 'Género', dob: 'Fecha de nacimiento',
+    account: 'Cuenta', prefs: 'Preferencias' },
+  fr: { settings: 'Paramètres', appearance: 'Apparence', light: 'Clair', dark: 'Sombre', language: 'Langue',
+    signOut: 'Se déconnecter', deleteAccount: 'Supprimer le compte', editProfile: 'Modifier le profil', changePhoto: 'Changer la photo',
+    removePhoto: 'Retirer la photo (par défaut)', profile: 'Profil', reports: 'Rapports', photos: 'Photos',
+    contributions: 'contributions au radar', yourPhotos: 'Vos photos et vidéos', noPhotos: "Vous n'avez pas encore ajouté de photos.",
+    toNext: 'pour', maxLevel: 'Niveau max', email: 'E-mail', gender: 'Genre', dob: 'Date de naissance',
+    account: 'Compte', prefs: 'Préférences' },
+  de: { settings: 'Einstellungen', appearance: 'Darstellung', light: 'Hell', dark: 'Dunkel', language: 'Sprache',
+    signOut: 'Abmelden', deleteAccount: 'Konto löschen', editProfile: 'Profil bearbeiten', changePhoto: 'Foto ändern',
+    removePhoto: 'Foto entfernen (Standard)', profile: 'Profil', reports: 'Meldungen', photos: 'Fotos',
+    contributions: 'Beiträge zum Radar', yourPhotos: 'Deine Fotos & Videos', noPhotos: 'Du hast noch keine Fotos hinzugefügt.',
+    toNext: 'bis', maxLevel: 'Höchststufe', email: 'E-Mail', gender: 'Geschlecht', dob: 'Geburtsdatum',
+    account: 'Konto', prefs: 'Einstellungen' },
+  pt: { settings: 'Definições', appearance: 'Aparência', light: 'Claro', dark: 'Escuro', language: 'Idioma',
+    signOut: 'Terminar sessão', deleteAccount: 'Eliminar conta', editProfile: 'Editar perfil', changePhoto: 'Alterar foto',
+    removePhoto: 'Remover foto (usar padrão)', profile: 'Perfil', reports: 'Relatórios', photos: 'Fotos',
+    contributions: 'contribuições para o radar', yourPhotos: 'As tuas fotos e vídeos', noPhotos: 'Ainda não adicionaste fotos.',
+    toNext: 'para', maxLevel: 'Nível máximo', email: 'E-mail', gender: 'Género', dob: 'Data de nascimento',
+    account: 'Conta', prefs: 'Preferências' },
+  it: { settings: 'Impostazioni', appearance: 'Aspetto', light: 'Chiaro', dark: 'Scuro', language: 'Lingua',
+    signOut: 'Esci', deleteAccount: 'Elimina account', editProfile: 'Modifica profilo', changePhoto: 'Cambia foto',
+    removePhoto: 'Rimuovi foto (predefinita)', profile: 'Profilo', reports: 'Segnalazioni', photos: 'Foto',
+    contributions: 'contributi al radar', yourPhotos: 'Le tue foto e video', noPhotos: 'Non hai ancora aggiunto foto.',
+    toNext: 'a', maxLevel: 'Livello massimo', email: 'Email', gender: 'Genere', dob: 'Data di nascita',
+    account: 'Account', prefs: 'Preferenze' },
+};
+function currentLang() { try { return localStorage.getItem('clubbit_lang') || 'en'; } catch { return 'en'; } }
+function t(key) { const l = currentLang(); return (I18N[l] && I18N[l][key]) || I18N.en[key] || key; }
+function applyLang(code) {
+  try { localStorage.setItem('clubbit_lang', code); } catch {}
+  document.documentElement.lang = code;
+  document.documentElement.dir = RTL_LANGS.includes(code) ? 'rtl' : 'ltr';
+}
+function currentTheme() { try { return localStorage.getItem('clubbit_theme') || 'light'; } catch { return 'light'; } }
+function applyTheme(mode) {
+  try { localStorage.setItem('clubbit_theme', mode); } catch {}
+  document.documentElement.setAttribute('data-theme', mode);
+}
+
+// ---- full-screen profile show/hide ----
+function showProfile() {
+  closeSheet();
+  S.tab = 'profile'; setBn('profile');
+  const scr = $('#profileScreen'); if (scr) scr.hidden = false;
+  renderProfile();
+}
+function hideProfile() { const scr = $('#profileScreen'); if (scr) scr.hidden = true; }
+
+// ---- settings + language bottom sheets ----
+function openMSheet(sheetId, scrimId) {
+  const s = $(sheetId), sc = $(scrimId);
+  if (sc) sc.hidden = false; if (s) { s.hidden = false; requestAnimationFrame(() => s.classList.add('open')); }
+}
+function closeMSheet(sheetId, scrimId) {
+  const s = $(sheetId), sc = $(scrimId);
+  if (s) s.classList.remove('open');
+  setTimeout(() => { if (s) s.hidden = true; if (sc) sc.hidden = true; }, 320);
+}
+function openSettings() {
+  renderSettings();
+  openMSheet('#settingsSheet', '#settingsScrim');
+}
+function renderSettings() {
+  const body = $('#settingsBody'); if (!body) return;
+  $('#setTitle').textContent = t('settings');
+  const th = currentTheme();
+  const lang = LANGS.find((l) => l[0] === currentLang()) || LANGS[0];
+  const gear = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+  const chev = gear('<path d="M9 18l6-6-6-6"/>');
+  body.innerHTML = `
+    <div class="setgrp">
+      <div class="setrow" style="align-items:flex-start;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:13px;width:100%">
+          <span class="sr-ic">${gear('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>')}</span>
+          <span class="sr-main"><span class="sr-label">${t('appearance')}</span></span>
+        </div>
+        <div class="segtoggle" style="width:100%">
+          <button data-theme-set="light" class="${th === 'light' ? 'on' : ''}">${gear('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>')} ${t('light')}</button>
+          <button data-theme-set="dark" class="${th === 'dark' ? 'on' : ''}">${gear('<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>')} ${t('dark')}</button>
+        </div>
+      </div>
+      <button class="setrow" id="setLangRow">
+        <span class="sr-ic">${gear('<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/>')}</span>
+        <span class="sr-main"><span class="sr-label">${t('language')}</span></span>
+        <span class="sr-val">${esc(lang[1])} ${chev}</span>
+      </button>
+    </div>
+    <div class="setgrp">
+      <button class="setrow" id="setSignOut">
+        <span class="sr-ic">${gear('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>')}</span>
+        <span class="sr-main"><span class="sr-label">${t('signOut')}</span></span>
+      </button>
+      <button class="setrow danger" id="setDelete">
+        <span class="sr-ic danger">${gear('<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>')}</span>
+        <span class="sr-main"><span class="sr-label">${t('deleteAccount')}</span></span>
+      </button>
+    </div>`;
+  body.querySelectorAll('[data-theme-set]').forEach((b) => b.onclick = () => {
+    applyTheme(b.dataset.themeSet); renderSettings();
+  });
+  $('#setLangRow').onclick = openLanguage;
+  $('#setSignOut').onclick = doSignOut;
+  $('#setDelete').onclick = doDeleteAccount;
+}
+function openLanguage() {
+  const body = $('#langBody'); if (!body) return;
+  $('#langTitle').textContent = t('language');
+  const cur = currentLang();
+  const check = '<span class="li-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>';
+  body.innerHTML = LANGS.map((l) => `<button class="lang-item ${l[0] === cur ? 'sel' : ''}" data-lang="${l[0]}">
+      <span><span class="li-native">${esc(l[1])}</span><span class="li-en" style="display:block">${esc(l[2])}</span></span>${check}</button>`).join('');
+  body.querySelectorAll('[data-lang]').forEach((b) => b.onclick = () => {
+    applyLang(b.dataset.lang);
+    closeMSheet('#langSheet', '#langScrim');
+    renderSettings(); renderProfile();
+  });
+  openMSheet('#langSheet', '#langScrim');
+}
+function doSignOut() {
+  if (!confirm('Sign out of Clubbit? Your profile is saved to your account — sign back in anytime to restore it.')) return;
+  try { ['clubbit_onboarding_complete', 'clubbit_profile', 'clubbit_onboarding', 'clubbit_token'].forEach((k) => localStorage.removeItem(k)); } catch {}
+  location.replace('/onboarding.html');
+}
+async function doDeleteAccount() {
+  if (!confirm('Delete your account permanently? This erases your account, saved profile and level. This cannot be undone.')) return;
+  let token = ''; try { token = localStorage.getItem('clubbit_token') || ''; } catch {}
+  try { await API.deleteAccount(token); } catch (e) {}
+  try { ['clubbit_onboarding_complete', 'clubbit_profile', 'clubbit_onboarding', 'clubbit_token', 'clubbit_reports_count', 'pr_saved', 'pr_loc'].forEach((k) => localStorage.removeItem(k)); } catch {}
+  location.replace('/onboarding.html');
+}
+
 async function renderProfile() {
-  const body = $('#sheetBody');
+  const body = $('#profileBody');
+  if (!body) return;
   body.innerHTML = '<div class="empty">Loading your profile…</div>';
   let me = {};
   try { me = await API.me(); } catch { me = {}; }
   if (S.tab !== 'profile') return;
-  const reports = me.reportsMade || 0, checkins = me.checkins || 0, photos = me.photos || 0;
-  const total = reports + checkins + photos;
+  const reports = me.reportsMade || 0, photos = me.photos || 0;
   const badges = me.badges || [];
   const media = me.media || [];
   const p = loadLocalProfile();
@@ -1494,50 +1654,45 @@ async function renderProfile() {
   if (p.calculatedAge) subBits.push(p.calculatedAge);
   if (p.gender) subBits.push(profGender(p.gender));
   const sub = subBits.length ? subBits.join(' · ') : `Local · ${esc((S.data && S.data.city) || 'Greece')}`;
-  // detail rows (only what we have)
   const rows = [];
-  if (p.email) rows.push(['Email', esc(p.email)]);
-  if (p.gender) rows.push(['Gender', esc(profGender(p.gender))]);
-  if (p.dateOfBirth) rows.push(['Date of birth', esc(profDob(p.dateOfBirth)) + (p.calculatedAge ? ` · ${p.calculatedAge} yrs` : '')]);
-  // reporter level (from the number of vibe reports posted on this device)
+  if (p.email) rows.push([t('email'), esc(p.email)]);
+  if (p.gender) rows.push([t('gender'), esc(profGender(p.gender))]);
+  if (p.dateOfBirth) rows.push([t('dob'), esc(profDob(p.dateOfBirth)) + (p.calculatedAge ? ` · ${p.calculatedAge} yrs` : '')]);
   const lvl = levelFor(reportCount());
   const pct = lvl.next ? Math.round(((lvl.count - lvl.min) / (lvl.next.min - lvl.min)) * 100) : 100;
-  const levelBlock = `<div class="prof-level">
-    <div class="pl-top"><span class="pl-tag">${lvl.emoji} ${esc(lvl.name)}</span>
-      <span class="pl-count">${lvl.next ? `${lvl.next.min - lvl.count} to ${esc(lvl.next.name)}` : 'Max level'}</span></div>
-    <div class="pl-track"><i style="width:${pct}%"></i></div></div>`;
-  body.innerHTML = `<div class="profile">
-    <div class="prof-head">
-      <div class="prof-ava"><img src="${esc(ava)}" alt="${esc(name)}" onerror="this.replaceWith(document.createTextNode('🧑'))" /></div>
-      <div class="prof-id"><div class="prof-name">${esc(name)} <span class="pl-tag sm">${lvl.emoji} ${esc(lvl.name)}</span></div><div class="prof-sub">${sub}</div></div>
+  const pencil = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+  body.innerHTML = `
+    <div class="phero">
+      <div class="phero-ava">
+        <img src="${esc(ava)}" alt="${esc(name)}" onerror="this.src='/clubbit-mascot.png'" />
+        <button class="phero-edit" id="heroEdit" aria-label="${t('changePhoto')}">${pencil}</button>
+      </div>
+      <div class="phero-name">${esc(name)}</div>
+      <div class="phero-sub">${sub}</div>
+      <span class="phero-tag">${lvl.emoji} ${esc(lvl.name)}</span>
     </div>
-    ${levelBlock}
-    ${rows.length ? `<div class="prof-details">${rows.map(([k, v]) => `<div class="prof-row"><span class="prk">${k}</span><span class="prv">${v}</span></div>`).join('')}</div>` : ''}
-    <div class="prof-actions">
-      <button class="btn btn-ghost" id="changePicBtn">Change profile picture</button>
-      <button class="btn btn-ghost" id="editProfileBtn">Edit profile</button>
+    <div class="pcard-l">
+      <div class="pl-top"><span class="pl-name">${lvl.emoji} ${esc(lvl.name)}</span>
+        <span class="pl-next">${lvl.next ? `${lvl.next.min - lvl.count} ${t('toNext')} ${esc(lvl.next.name)}` : t('maxLevel')}</span></div>
+      <div class="pl-track"><i style="width:${pct}%"></i></div>
     </div>
-    ${p.profilePhoto ? `<button class="btn btn-ghost prof-removepic" id="removePicBtn" style="width:100%;margin-top:10px">Remove photo (use default)</button>` : ''}
-    <input type="file" id="profilePicInput" accept="image/*" style="display:none" />
-    <div class="prof-stats">
-      <div class="pstat"><div class="pv">${reports}</div><div class="pk">Reports</div></div>
-      <div class="pstat"><div class="pv">${photos}</div><div class="pk">Photos</div></div>
+    <div class="pstats">
+      <div class="pstat2"><div class="pv">${reports}</div><div class="pk">${t('reports')}</div></div>
+      <div class="pstat2"><div class="pv">${photos}</div><div class="pk">${t('photos')}</div></div>
     </div>
-    <div class="prof-total">${reports + photos} contribution${(reports + photos) === 1 ? '' : 's'} to the radar</div>
-    ${badges.length ? `<div class="prof-badges">${badges.map((b) => `<span class="chip bg-heat">🏅 ${esc(b.label || b)}</span>`).join('')}</div>` : ''}
-    <div class="section-h" style="margin-top:16px"><h3>Your photos &amp; videos</h3><span class="count">${media.length}</span></div>
+    <div class="pcard-total" style="text-align:center;font-size:12.5px;color:var(--muted);margin-top:10px">${reports + photos} ${t('contributions')}</div>
+    ${badges.length ? `<div class="pbadges">${badges.map((b) => `<span class="pbadge">🏅 ${esc(b.label || b)}</span>`).join('')}</div>` : ''}
+    ${rows.length ? `<div class="pdetails">${rows.map(([k, v]) => `<div class="pdetail"><span class="pk">${k}</span><span class="pv">${v}</span></div>`).join('')}</div>` : ''}
+    <button class="pedit-btn" id="editProfileBtn">${pencil} ${t('editProfile')}</button>
+    ${p.profilePhoto ? `<button class="pedit-btn" id="removePicBtn" style="background:none;color:var(--muted);margin-top:8px">${t('removePhoto')}</button>` : ''}
+    <div class="psec-h"><h3>${t('yourPhotos')}</h3><span class="count">${media.length}</span></div>
     ${media.length ? `<div class="media-grid">${media.map((m) => `<div class="media-cellwrap">${m.type === 'video'
       ? `<video class="media-cell" src="${m.url}" muted playsinline loop preload="metadata" onclick="this.paused?this.play():this.pause()"></video>`
       : `<img class="media-cell" src="${m.url}" loading="lazy" alt="Your photo" />`}<button class="media-del" title="Delete" onclick="deleteMyMedia('${m.id}')" aria-label="Delete photo">✕</button></div>`).join('')}</div>`
-      : `<div class="empty">You haven't added any photos yet.<br>Report the vibe at a venue to add your first one.</div>`}
-    <button class="btn btn-ghost prof-signout" id="signOutBtn" style="width:100%;margin-top:22px">Sign out</button>
-    <button class="btn prof-delete" id="deleteAcctBtn" style="width:100%;margin-top:10px">Delete account</button>
-  </div>`;
-  // change profile picture
+      : `<div class="empty">${t('noPhotos')}</div>`}`;
+  // pencil / change photo
   const picInput = $('#profilePicInput');
-  const pickPic = () => picInput && picInput.click();
-  const cpb = $('#changePicBtn'); if (cpb) cpb.onclick = pickPic;
-  // reset to the default (gender-matched) avatar
+  const he = $('#heroEdit'); if (he) he.onclick = () => picInput && picInput.click();
   const rpb = $('#removePicBtn');
   if (rpb) rpb.onclick = () => {
     const prof = loadLocalProfile();
@@ -1555,37 +1710,17 @@ async function renderProfile() {
     if (!f.type.startsWith('image/')) return toast('Please choose an image');
     let dataUrl;
     try { dataUrl = await cropPhoto(f); } catch { return toast('Could not read that image'); }
-    if (!dataUrl) return; // cancelled
+    if (!dataUrl) return;
     toast('Updating photo…');
     const prof = loadLocalProfile();
     prof.profilePhoto = dataUrl;
     if (prof.public) prof.public.profilePhoto = dataUrl;
     saveProfileEverywhere(prof);
-    // reflect immediately in the header avatar too
     const hdr = document.querySelector('.avatar img'); if (hdr) hdr.src = dataUrl;
     toast('Profile picture updated ✓');
     renderProfile();
   };
-
-  // edit profile info
   const epb = $('#editProfileBtn'); if (epb) epb.onclick = () => editProfile();
-
-  const so = $('#signOutBtn');
-  if (so) so.onclick = () => {
-    if (!confirm('Sign out of Clubbit? Your profile is saved to your account — sign back in anytime to restore it.')) return;
-    try { ['clubbit_onboarding_complete', 'clubbit_profile', 'clubbit_onboarding', 'clubbit_token'].forEach((k) => localStorage.removeItem(k)); } catch {}
-    location.replace('/onboarding.html');
-  };
-  const del = $('#deleteAcctBtn');
-  if (del) del.onclick = async () => {
-    if (!confirm('Delete your account permanently? This erases your account, saved profile and level. This cannot be undone.')) return;
-    del.disabled = true; del.textContent = 'Deleting…';
-    let token = ''; try { token = localStorage.getItem('clubbit_token') || ''; } catch {}
-    try { await API.deleteAccount(token); } catch (e) {}
-    // wipe everything on this device
-    try { ['clubbit_onboarding_complete', 'clubbit_profile', 'clubbit_onboarding', 'clubbit_token', 'clubbit_reports_count', 'pr_saved', 'pr_loc'].forEach((k) => localStorage.removeItem(k)); } catch {}
-    location.replace('/onboarding.html');
-  };
 }
 async function deleteMyMedia(id) {
   if (!confirm('Delete this photo? This can’t be undone.')) return;
@@ -1598,10 +1733,13 @@ async function deleteMyMedia(id) {
 window.deleteMyMedia = deleteMyMedia;
 
 function openSheet(tab) {
+  if (tab === 'profile') { showProfile(); return; }
   if (tab) setTab(tab);
+  hideProfile();
   $('#sheet').classList.add('open'); $('#sheetScrim').hidden = false; S.sheetOpen = true;
 }
 function closeSheet() {
+  hideProfile();
   $('#sheet').classList.remove('open'); $('#sheetScrim').hidden = true;
   S.sheetOpen = false; S.reportPick = false;
   $('#sheetSearch').hidden = true; S.query = ''; const si = $('#searchInput'); if (si) si.value = '';
@@ -1654,6 +1792,13 @@ function initUI() {
   document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => setTab(t.dataset.tab)));
   $('#sheetGrip').addEventListener('click', closeSheet);
   $('#sheetScrim').addEventListener('click', closeSheet);
+
+  // settings + language sheets
+  const sb = $('#settingsBtn'); if (sb) sb.addEventListener('click', openSettings);
+  const sc = $('#settingsClose'); if (sc) sc.addEventListener('click', () => closeMSheet('#settingsSheet', '#settingsScrim'));
+  const ss = $('#settingsScrim'); if (ss) ss.addEventListener('click', () => closeMSheet('#settingsSheet', '#settingsScrim'));
+  const lc = $('#langClose'); if (lc) lc.addEventListener('click', () => closeMSheet('#langSheet', '#langScrim'));
+  const ls = $('#langScrim'); if (ls) ls.addEventListener('click', () => closeMSheet('#langSheet', '#langScrim'));
   document.querySelectorAll('[data-close]').forEach((s) => s.addEventListener('click', closeVenue));
 }
 

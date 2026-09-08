@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <script src="/config.js"></script>
 <script>try{if(!localStorage.getItem('clubbit_onboarding_complete'))location.replace('/onboarding.html');}catch(e){}</script>
+<script>/* apply saved theme + language before first paint (no flash) */try{var _t=localStorage.getItem('clubbit_theme');if(_t==='dark'||_t==='light')document.documentElement.setAttribute('data-theme',_t);var _l=localStorage.getItem('clubbit_lang');if(_l){document.documentElement.lang=_l;if(/^(ar|he|fa|ur)$/.test(_l))document.documentElement.dir='rtl';}}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#ffffff" />
 <title>PARTY RADAR — Live Crowd Intelligence</title>
@@ -144,6 +145,35 @@
       </div>
     </div>
   </div>
+
+  <!-- Full-screen profile -->
+  <div class="pscreen" id="profileScreen" hidden>
+    <div class="pscreen-top">
+      <button class="ptop-btn" id="settingsBtn" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+      <div class="ptop-title" id="profTitle">Profile</div>
+      <div style="width:40px"></div>
+    </div>
+    <div class="pscreen-body" id="profileBody"></div>
+    <input type="file" id="profilePicInput" accept="image/*" style="display:none" />
+  </div>
+
+  <!-- Settings sheet -->
+  <div class="msheet-scrim" id="settingsScrim" hidden></div>
+  <section class="msheet" id="settingsSheet" hidden>
+    <div class="msheet-grip"></div>
+    <div class="msheet-head"><h2 id="setTitle">Settings</h2><button class="msheet-x" id="settingsClose" aria-label="Close">✕</button></div>
+    <div class="msheet-body" id="settingsBody"></div>
+  </section>
+
+  <!-- Language picker sheet -->
+  <div class="msheet-scrim" id="langScrim" hidden></div>
+  <section class="msheet" id="langSheet" hidden>
+    <div class="msheet-grip"></div>
+    <div class="msheet-head"><h2 id="langTitle">Language</h2><button class="msheet-x" id="langClose" aria-label="Close">✕</button></div>
+    <div class="msheet-body" id="langBody"></div>
+  </section>
 
   <!-- Toast -->
   <div class="toast" id="toast" hidden></div>
