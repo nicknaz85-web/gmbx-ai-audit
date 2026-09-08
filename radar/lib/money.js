@@ -138,11 +138,16 @@ export function currencyInfo(city) {
   return CUR[CURRENCY_BY_CITY[city] || 'EUR'];
 }
 
+// Only these three have a universally-unambiguous symbol; every other currency
+// shows its ISO code (e.g. 1300 RSD, 20 BGN, 1300 JPY) so it's never misread
+// (lv, din, ¥ shared by JPY/CNY, $ shared by many, etc.).
+const PREFIX_SYMBOL = { EUR: '€', USD: '$', GBP: '£' };
 // Format a EUR base amount in a city's local currency. 0 → "Free", null → null.
 export function formatMoney(eur, city) {
   if (eur == null) return null;
   if (eur === 0) return 'Free';
   const c = currencyInfo(city);
   const amt = Math.max(c.step, Math.round((eur * c.rate) / c.step) * c.step);
-  return c.pre ? `${c.symbol}${amt}` : `${amt} ${c.symbol}`;
+  const sym = PREFIX_SYMBOL[c.code];
+  return sym ? `${sym}${amt}` : `${amt} ${c.code}`;
 }

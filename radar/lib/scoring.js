@@ -446,14 +446,14 @@ function venueForecast(venue, currentEst, ref, place) {
 // PARTY RADAR SCORE — the flagship composite (hot + momentum + nearby + recency
 // + report confidence + event impact + historical expectation).
 // Entry price shown as an estimate: blend the seeded/Google baseline with any
-// community-reported price into a range, so a single report never overrides it.
+// community-reported price into a single mid-point figure (no range/dashes), so
+// one report never fully overrides the baseline.
 function entryRangeLabel(venue, consensus) {
   const base = venue.price || 0;
   const rep = consensus && typeof consensus.entry === 'number' ? consensus.entry : null;
   if (rep == null) return formatMoney(base, venue.city);
-  if (rep === base) return formatMoney(rep, venue.city);
-  const lo = Math.min(base, rep), hi = Math.max(base, rep);
-  return (lo === 0 ? 'Free' : formatMoney(lo, venue.city)) + '–' + formatMoney(hi, venue.city);
+  const mid = Math.round((base + rep) / 2);
+  return formatMoney(mid, venue.city);
 }
 function partyRadarScore({ hot, M, nearby, consensus, owner, expFrac, freshestSignalMin }) {
   const momentumNorm = clamp(50 + M * 1.6, 0, 100);

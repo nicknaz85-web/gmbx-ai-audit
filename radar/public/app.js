@@ -101,7 +101,9 @@ function fmtCur(eur, cur) {
   if (eur === 0) return 'Free';
   if (!cur || !cur.rate) return '€' + eur;
   const amt = Math.max(cur.step, Math.round(eur * cur.rate / cur.step) * cur.step);
-  return cur.pre ? cur.symbol + amt : amt + ' ' + cur.symbol;
+  const PRE = { EUR: '€', USD: '$', GBP: '£' };
+  const sym = PRE[cur.code];
+  return sym ? sym + amt : amt + ' ' + cur.code;
 }
 
 // ---------- tiny DOM utils ----------
@@ -988,7 +990,7 @@ const REPORT_STEPS = [
   { key: 'media', q: 'Add a photo or video', type: 'media', required: true },
   { key: 'queue', q: 'Queue?', grid: true, opts: [
     { v: 'none', l: 'None' }, { v: '<10', l: 'Under 10 min' }, { v: '10-20', l: '10–20 min' },
-    { v: '20-30', l: '20–30 min' }, { v: '30+', l: '30+ min' }] },
+    { v: '20-30', l: '20–30 min' }, { v: '30+', l: '30+ min', wide: true }] },
   { key: 'entry', q: 'Entry?', grid: true, opts: [
     { v: 0, l: 'Free' }, { v: 5, l: '€5' }, { v: 10, l: '€10' }, { v: 15, l: '€15' },
     { v: 20, l: '€20+' }, { v: 'guestlist', l: 'Guest list' }, { v: 'other', l: 'Other' }] },
@@ -1034,7 +1036,7 @@ function renderReport() {
         <div class="rep-notecount"><span id="noteCount">${noteVal.length}</span>/500</div>
       </div>`
     : `<div class="${step.grid ? 'rep-grid' : 'rep-opts'}">
-      ${opts.map(o => `<button class="rep-opt ${step.grid ? 'sm' : ''}${o.v === 'other' ? ' wide' : ''} ${sel === o.v ? 'sel' : ''}" onclick="pickReport('${step.key}', ${typeof o.v === 'number' ? o.v : `'${o.v}'`})">
+      ${opts.map(o => `<button class="rep-opt ${step.grid ? 'sm' : ''}${(o.v === 'other' || o.wide) ? ' wide' : ''} ${sel === o.v ? 'sel' : ''}" onclick="pickReport('${step.key}', ${typeof o.v === 'number' ? o.v : `'${o.v}'`})">
         ${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`).join('')}
     </div>${otherInput}`;
   inner.innerHTML = `
@@ -1777,6 +1779,7 @@ async function renderProfile() {
   const badges = me.badges || [];
   const media = me.media || [];
   const myReports = me.reports || [];
+  S.myReports = myReports;
   const p = loadLocalProfile();
   const name = p.firstName || 'You';
   const ava = p.profilePhoto || (p.gender === 'Woman' ? '/clubbit-face-f.png' : p.gender === 'Man' ? '/clubbit-face-m.png' : p.gender === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png');
@@ -1823,10 +1826,10 @@ async function renderProfile() {
             ? `<video class="myrep-media" src="${r.mediaUrl}" muted playsinline loop preload="metadata" onclick="lbShowMine('${r.mediaUrl}','video')"></video>`
             : `<img class="myrep-media" src="${r.mediaUrl}" loading="lazy" alt="" onclick="lbShowMine('${r.mediaUrl}','image')" />`)
           : `<div class="myrep-media noimg">📍</div>`}
-        <div class="myrep-txt">
+        <div class="myrep-txt" onclick="showMyReportDetail('${r.id}')">
           <div class="myrep-venue">${esc(r.venueName)}</div>
           <div class="myrep-meta">${esc(cap(VIBE_WORD[r.vibe] || r.vibe || 'reported'))}${r.entry != null ? ' · ' + (r.entry === 0 ? 'Free' : '€' + r.entry) : ''}${r.music ? ' · ' + esc(r.music) : ''}</div>
-          <div class="myrep-time">${ago(r.ageMin)} ago</div>
+          <div class="myrep-time">${ago(r.ageMin)} ago · tap for details</div>
         </div>
         <button class="rep-del" onclick="deleteMyReport('${r.id}')" aria-label="Delete report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
       </div>`).join('')}</div>`
@@ -1863,6 +1866,34 @@ async function renderProfile() {
   };
   const epb = $('#editProfileBtn'); if (epb) epb.onclick = () => editProfile();
 }
+function showMyReportDetail(id) {
+  const r = (S.myReports || []).find((x) => x.id === id); if (!r) return;
+  const items = [['Venue', esc(r.venueName)], ['Vibe', esc(cap(VIBE_WORD[r.vibe] || r.vibe || '—'))]];
+  if (r.queue && QUEUE_LABEL[r.queue]) items.push(['Queue', QUEUE_LABEL[r.queue]]);
+  if (r.entry != null) items.push(['Entry', r.entry === 0 ? 'Free' : '€' + r.entry]);
+  if (r.mix && MIX_LABEL[r.mix]) items.push(['Crowd', MIX_LABEL[r.mix]]);
+  if (r.music) items.push(['Music', esc(r.music)]);
+  items.push(['Reported', ago(r.ageMin) + ' ago']);
+  const media = r.mediaUrl ? (r.mediaType === 'video'
+    ? `<video class="rd-hero" src="${r.mediaUrl}" muted playsinline loop autoplay onclick="lbShowMine('${r.mediaUrl}','video')"></video>`
+    : `<img class="rd-hero" src="${r.mediaUrl}" alt="" onclick="lbShowMine('${r.mediaUrl}','image')" />`) : '';
+  const el = document.createElement('div');
+  el.className = 'rdetail-ov';
+  el.innerHTML = `<div class="rdetail-scrim"></div>
+    <div class="rdetail-card">
+      <div class="rdetail-head"><h3>${esc(r.venueName)}</h3><button class="msheet-x rd-x">✕</button></div>
+      ${media}
+      <div class="rdetail-rows">${items.map(([k, v]) => `<div class="pdetail"><span class="pk">${k}</span><span class="pv">${v}</span></div>`).join('')}</div>
+      ${r.note ? `<div class="rr-note">“${esc(r.note)}”</div>` : ''}
+      <button class="pedit-btn rd-del" style="background:color-mix(in oklab,var(--red) 12%,transparent);color:var(--red);margin-top:14px">Delete report</button>
+    </div>`;
+  document.body.appendChild(el);
+  const close = () => el.remove();
+  el.querySelector('.rdetail-scrim').onclick = close;
+  el.querySelector('.rd-x').onclick = close;
+  el.querySelector('.rd-del').onclick = () => { close(); deleteMyReport(r.id); };
+}
+window.showMyReportDetail = showMyReportDetail;
 async function deleteMyReport(id) {
   if (!confirm('Delete your report? This removes your report and its photo from this venue.')) return;
   try {

@@ -672,10 +672,10 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .phero-ava{position:relative;width:112px;height:112px;margin-bottom:6px}
 .phero-ava>img{width:112px;height:112px;border-radius:50%;object-fit:cover;background:var(--avatar-bg);
   box-shadow:0 0 0 3px var(--primary),0 0 0 6px var(--card),var(--shadow-lg)}
-.phero-edit{position:absolute;bottom:0;right:0;width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;
+.phero-edit{position:absolute;bottom:0;right:0;width:31px;height:31px;border-radius:50%;background:var(--primary);color:#fff;
   display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3),0 0 0 3px var(--card)}
 .phero-edit:active{filter:brightness(1.08)}
-.phero-edit svg{width:18px;height:18px}
+.phero-edit svg{width:16px;height:16px}
 .phero-name{font-size:23px;font-weight:700;color:var(--ink);letter-spacing:-.02em;margin-top:4px}
 .phero-sub{font-size:13.5px;color:var(--muted)}
 .phero-tag{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;font-weight:600;
@@ -766,7 +766,9 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);background:var(--avatar-bg);z-index:1}
 /* recent reports: tap to expand a rundown of what was reported */
 .rep-item{cursor:pointer}
+.rep-txt{flex:1}
 .rep-item .rep-chev{margin-left:auto;color:var(--faint);transition:transform .2s}
+.rep-item .rep-del{margin-left:auto;align-self:center}
 .rep-item.open .rep-chev{transform:rotate(90deg)}
 .rep-rundown{margin:2px 0 10px 51px;padding:12px 14px;background:var(--surface-3);border:1px solid var(--line);border-radius:12px}
 .rep-rundown .rr-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:4px 0}
@@ -803,9 +805,9 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .lb-by span{color:#fff;font-size:13px;font-weight:600}
 
 /* report flow: mascot duo for personality */
-.rep-mascots{display:flex;align-items:flex-end;justify-content:center;gap:0;margin:12vh auto 2px;height:170px}
-.rep-mascots img{height:170px;width:auto;display:block;filter:drop-shadow(0 12px 20px rgba(124,58,237,.22))}
-.rep-mascots img.f{height:152px;transform:scaleX(-1);margin-left:-12px}
+.rep-mascots{display:flex;align-items:flex-end;justify-content:center;gap:0;margin:9vh auto 2px;height:210px}
+.rep-mascots img{height:210px;width:auto;display:block;filter:drop-shadow(0 14px 22px rgba(124,58,237,.24))}
+.rep-mascots img.f{height:188px;transform:scaleX(-1);margin-left:-14px}
 /* full-width "Other" chip in a 2-col grid */
 .rep-grid .rep-opt.wide{grid-column:1 / -1}
 /* your-own-report controls on the venue card */
@@ -828,3 +830,12 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .rr-media{width:100%;max-height:300px;border-radius:12px;object-fit:cover;display:block;margin-bottom:10px;cursor:pointer;background:var(--surface-2)}
 .community-block{margin-top:10px}
 .cb-sub{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px}
+
+/* profile: tap-a-report detail modal */
+.rdetail-ov{position:fixed;inset:0;z-index:2500;display:flex;align-items:center;justify-content:center;padding:20px}
+.rdetail-scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px)}
+.rdetail-card{position:relative;z-index:1;width:100%;max-width:420px;max-height:86vh;overflow-y:auto;background:var(--card);color:var(--ink);border-radius:18px;padding:18px;box-shadow:var(--shadow-lg)}
+.rdetail-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.rdetail-head h3{font-size:18px;font-weight:700;color:var(--ink)}
+.rd-hero{width:100%;max-height:300px;object-fit:cover;border-radius:12px;margin-bottom:12px;background:var(--surface-2);cursor:pointer;display:block}
+.rdetail-rows{background:var(--surface-3);border:1px solid var(--line);border-radius:14px;padding:2px 14px}

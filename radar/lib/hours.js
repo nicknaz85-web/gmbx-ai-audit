@@ -70,7 +70,64 @@ const CITY_OFFSET = {
   // South America (more)
   'Camboriú': -3,
 };
+// Real IANA zones so the UTC offset is always DST-correct year-round (the static
+// CITY_OFFSET table above is only a fallback if Intl fails). Only non-Euro-default
+// cities need listing; EEST→Athens, WEST/UK→London, everything else→Berlin (CET).
+const CITY_IANA = {
+  'New York': 'America/New_York', Miami: 'America/New_York', Washington: 'America/New_York',
+  Detroit: 'America/New_York', Atlanta: 'America/New_York', Montreal: 'America/Toronto', Toronto: 'America/Toronto',
+  Chicago: 'America/Chicago', Austin: 'America/Chicago', 'New Orleans': 'America/Chicago',
+  Houston: 'America/Chicago', Dallas: 'America/Chicago', 'San Antonio': 'America/Chicago',
+  'Los Angeles': 'America/Los_Angeles', 'Las Vegas': 'America/Los_Angeles', 'San Francisco': 'America/Los_Angeles',
+  Vancouver: 'America/Vancouver', 'Mexico City': 'America/Mexico_City', 'Cancún': 'America/Cancun', Tulum: 'America/Cancun',
+  'Panama City': 'America/Panama', 'San José': 'America/Costa_Rica', 'Guatemala City': 'America/Guatemala',
+  'San Salvador': 'America/El_Salvador', Havana: 'America/Havana', 'San Juan': 'America/Puerto_Rico',
+  'São Paulo': 'America/Sao_Paulo', 'Rio de Janeiro': 'America/Sao_Paulo', 'Camboriú': 'America/Sao_Paulo',
+  'Buenos Aires': 'America/Argentina/Buenos_Aires', 'Bogotá': 'America/Bogota', 'Medellín': 'America/Bogota',
+  Cartagena: 'America/Bogota', Lima: 'America/Lima', Santiago: 'America/Santiago', Montevideo: 'America/Montevideo',
+  Bangkok: 'Asia/Bangkok', 'Ho Chi Minh City': 'Asia/Ho_Chi_Minh', Hanoi: 'Asia/Ho_Chi_Minh',
+  Tokyo: 'Asia/Tokyo', Osaka: 'Asia/Tokyo', Seoul: 'Asia/Seoul', Bali: 'Asia/Makassar', Jakarta: 'Asia/Jakarta',
+  Singapore: 'Asia/Singapore', Dubai: 'Asia/Dubai', 'Tel Aviv': 'Asia/Jerusalem',
+  Mumbai: 'Asia/Kolkata', Delhi: 'Asia/Kolkata', Bangalore: 'Asia/Kolkata', Goa: 'Asia/Kolkata',
+  Shanghai: 'Asia/Shanghai', Beijing: 'Asia/Shanghai', Chengdu: 'Asia/Shanghai', Shenzhen: 'Asia/Shanghai',
+  'Hong Kong': 'Asia/Hong_Kong', Taipei: 'Asia/Taipei', 'Kuala Lumpur': 'Asia/Kuala_Lumpur', Manila: 'Asia/Manila',
+  Beirut: 'Asia/Beirut', Tbilisi: 'Asia/Tbilisi', Tashkent: 'Asia/Tashkent', Almaty: 'Asia/Almaty',
+  Baku: 'Asia/Baku', Yerevan: 'Asia/Yerevan',
+  Minsk: 'Europe/Minsk', Vilnius: 'Europe/Vilnius', Riga: 'Europe/Riga', Tallinn: 'Europe/Tallinn',
+  Istanbul: 'Europe/Istanbul', Kyiv: 'Europe/Kyiv', Moscow: 'Europe/Moscow', 'Saint Petersburg': 'Europe/Moscow',
+  Sydney: 'Australia/Sydney', Melbourne: 'Australia/Melbourne', Brisbane: 'Australia/Brisbane',
+  Perth: 'Australia/Perth', Auckland: 'Pacific/Auckland',
+  'Cape Town': 'Africa/Johannesburg', Durban: 'Africa/Johannesburg', Johannesburg: 'Africa/Johannesburg',
+  Lagos: 'Africa/Lagos', Nairobi: 'Africa/Nairobi', Marrakech: 'Africa/Casablanca', Casablanca: 'Africa/Casablanca',
+  Cairo: 'Africa/Cairo', Accra: 'Africa/Accra', Dakar: 'Africa/Dakar', 'Addis Ababa': 'Africa/Addis_Ababa',
+  Reykjavik: 'Atlantic/Reykjavik',
+};
+function ianaFor(city) {
+  if (CITY_IANA[city]) return CITY_IANA[city];
+  if (EEST_CITIES.has(city)) return 'Europe/Athens';
+  if (WEST_CITIES.has(city)) return 'Europe/London';
+  return 'Europe/Berlin'; // default: central-European venues (CET/CEST)
+}
+const _offCache = new Map();
+function offsetForZone(zone) {
+  const key = zone + '|' + Math.floor(Date.now() / 36e5); // refresh hourly (covers DST changes)
+  if (_offCache.has(key)) return _offCache.get(key);
+  let off = null;
+  try {
+    const d = new Date();
+    const p = new Intl.DateTimeFormat('en-US', { timeZone: zone, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+      .formatToParts(d).reduce((a, x) => (a[x.type] = x.value, a), {});
+    let hh = +p.hour; if (hh === 24) hh = 0;
+    const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, hh, +p.minute);
+    off = Math.round((asUTC - d.getTime()) / 60000) / 60;
+  } catch (e) { off = null; }
+  _offCache.set(key, off);
+  return off;
+}
 export function cityTz(city) {
+  const off = offsetForZone(ianaFor(city));
+  if (off != null) return off;
+  // fallback to the static tables if Intl is unavailable
   if (CITY_OFFSET[city] !== undefined) return CITY_OFFSET[city];
   if (EEST_CITIES.has(city)) return 3;
   if (WEST_CITIES.has(city)) return 1;
