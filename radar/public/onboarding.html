@@ -79,11 +79,14 @@
           <button class="sbtn email" data-auth="email">
             <svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/></svg>
             Continue with email</button>
+          <button class="sbtn signin" data-auth="signin">
+            <svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+            Sign in</button>
         </div>
 
         <!-- step: enter email -->
         <div class="authstep" id="authEmail" hidden>
-          <div class="field"><input type="email" id="emailInput" placeholder="you@email.com" autocomplete="email" inputmode="email" enterkeyhint="go" /><div class="err" id="emailErr"></div></div>
+          <div class="field"><input type="email" id="emailInput" placeholder="Email address" autocomplete="email" inputmode="email" enterkeyhint="go" /><div class="err" id="emailErr"></div></div>
           <button class="cta" id="emailGo" style="margin-top:14px">Send code</button>
         </div>
 
@@ -98,8 +101,10 @@
         <!-- step: create password (new user) -->
         <div class="authstep" id="authNew" hidden>
           <p class="authnote">Create a password for <b id="newEmail"></b></p>
-          <div class="field"><input type="password" id="newPass" placeholder="Password (min 6 characters)" autocomplete="new-password" /></div>
-          <div class="field" style="margin-top:10px"><input type="password" id="newPass2" placeholder="Confirm password" autocomplete="new-password" enterkeyhint="done" /><div class="err" id="newErr"></div></div>
+          <div class="field"><input type="password" id="newPass" placeholder="Password" autocomplete="new-password" /></div>
+          <div class="field" style="margin-top:12px"><input type="password" id="newPass2" placeholder="Confirm password" autocomplete="new-password" enterkeyhint="done" /><div class="err" id="newErr"></div></div>
+          <div class="pw-strength" id="pwStrength" hidden><div class="pw-bar"><i></i></div><span class="pw-label"></span></div>
+          <div class="pw-hint">Use at least 8 characters, including a number and a special character.</div>
           <button class="cta" id="newGo" style="margin-top:14px" disabled>Create account</button>
         </div>
 

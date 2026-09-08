@@ -840,3 +840,11 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .rdetail-head h3{font-size:18px;font-weight:700;color:var(--ink)}
 .rd-hero{width:100%;max-height:300px;object-fit:cover;border-radius:12px;margin-bottom:12px;background:var(--surface-2);cursor:pointer;display:block}
 .rdetail-rows{background:var(--surface-3);border:1px solid var(--line);border-radius:14px;padding:2px 14px}
+
+/* skeleton shimmer placeholders (profile loading) */
+.sk{background:var(--surface-2);border-radius:12px;position:relative;overflow:hidden}
+.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,color-mix(in oklab,var(--ink) 8%,transparent),transparent);
+  animation:skShimmer 1.25s infinite}
+@keyframes skShimmer{100%{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.sk::after{animation:none}}

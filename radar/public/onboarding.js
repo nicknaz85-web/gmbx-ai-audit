@@ -260,17 +260,36 @@
 
   // step 3 → create a password (new account)
   const newPass = $('#newPass'), newPass2 = $('#newPass2'), newGo = $('#newGo');
+  // password strength: 1 weak / 2 fair / 3 strong. We require fair+ (>=2) so
+  // no weak passwords get through.
+  function scorePassword(pw) {
+    if (!pw) return { score: 0, label: '' };
+    if (pw.length < 8) return { score: 1, label: 'Weak' };
+    let variety = 0;
+    if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) variety++;
+    if (/\d/.test(pw)) variety++;
+    if (/[^a-zA-Z0-9]/.test(pw)) variety++;
+    const strong = (pw.length >= 12 && variety >= 2) || variety >= 3;
+    const score = strong ? 3 : (variety >= 1 ? 2 : 1);
+    return { score, label: score === 3 ? 'Strong' : score === 2 ? 'Fair' : 'Weak' };
+  }
   function checkNew() {
     const a = newPass.value, b = newPass2.value;
-    newGo.disabled = !(a.length >= 6 && a === b);
-    $('#newErr').textContent = (b && a !== b) ? 'Passwords don\'t match.' : '';
+    const st = scorePassword(a);
+    const box = $('#pwStrength');
+    if (box) { box.hidden = !a; box.setAttribute('data-score', st.score); const l = box.querySelector('.pw-label'); if (l) l.textContent = st.label; }
+    const ok = a.length >= 8 && st.score >= 2;
+    newGo.disabled = !(ok && a === b);
+    $('#newErr').textContent = (b && a !== b) ? "Passwords don't match."
+      : (a && !ok) ? 'Use 8+ characters with a mix of letters, numbers or symbols.' : '';
   }
   newPass.addEventListener('input', checkNew);
   newPass2.addEventListener('input', checkNew);
   newPass2.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !newGo.disabled) newGo.click(); });
   newGo.addEventListener('click', async () => {
     const pw = newPass.value;
-    if (pw.length < 6) { $('#newErr').textContent = 'Password must be at least 6 characters.'; return; }
+    if (pw.length < 8) { $('#newErr').textContent = 'Password must be at least 8 characters.'; return; }
+    if (scorePassword(pw).score < 2) { $('#newErr').textContent = 'Password is too weak — add letters, numbers or symbols.'; return; }
     if (pw !== newPass2.value) { $('#newErr').textContent = 'Passwords don\'t match.'; return; }
     haptic(); busy(newGo, true, 'Creating…');
     const { ok, data } = await post('/api/auth/set-password', { email: authEmail, code: authCode, password: pw });

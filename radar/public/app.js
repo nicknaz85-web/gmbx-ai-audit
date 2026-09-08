@@ -1773,7 +1773,22 @@ async function doDeleteAccount() {
 async function renderProfile() {
   const body = $('#profileBody');
   if (!body) return;
-  body.innerHTML = '<div class="empty">Loading your profile…</div>';
+  body.innerHTML = `
+    <div class="phero">
+      <div class="phero-ava"><div class="sk" style="width:112px;height:112px;border-radius:50%"></div></div>
+      <div class="sk" style="width:130px;height:22px;border-radius:8px;margin-top:14px"></div>
+      <div class="sk" style="width:92px;height:13px;border-radius:6px;margin-top:9px"></div>
+    </div>
+    <div class="pcard-l"><div class="sk" style="width:100%;height:40px;border-radius:8px"></div></div>
+    <div class="pstats">
+      <div class="pstat2"><div class="sk" style="width:64%;height:44px;border-radius:8px;margin:0 auto"></div></div>
+      <div class="pstat2"><div class="sk" style="width:64%;height:44px;border-radius:8px;margin:0 auto"></div></div>
+    </div>
+    <div class="pdetails">
+      <div class="sk" style="height:15px;margin:15px 0;border-radius:6px"></div>
+      <div class="sk" style="height:15px;margin:15px 0;border-radius:6px"></div>
+      <div class="sk" style="height:15px;margin:15px 0;border-radius:6px"></div>
+    </div>`;
   let me = {};
   try { me = await API.me(); } catch { me = {}; }
   if (S.tab !== 'profile') return;
