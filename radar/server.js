@@ -411,6 +411,7 @@ async function api(req, res, url) {
       entry: typeof body.entry === 'number' ? clamp(body.entry, 0, 200) : (body.entry === 'guestlist' ? 0 : null),
       mix: safeEnum(body.mix, ['more_women', 'even', 'more_men']),
       music: safeEnum(body.music, ['House', 'Techno', 'Hip-Hop', 'R&B', 'Afrobeats', 'Commercial', 'Latin', 'Other', 'Tech House', 'Live']),
+      note: (typeof body.note === 'string' ? body.note.trim().slice(0, 500) : '') || null,
       confidence, mediaId: saved.entry.id, reporter,
     });
     const badges = refreshBadges(u).map((b) => b.label);

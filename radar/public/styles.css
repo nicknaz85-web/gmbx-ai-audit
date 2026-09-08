@@ -746,8 +746,26 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .lang-item.sel .li-check{opacity:1}
 .lang-item .li-check svg{width:20px;height:20px}
 
-/* dark mode: keep the branded logo header on white (the banner art is white-backed),
-   with dark icons so they stay visible */
-:root[data-theme="dark"] .appbar{background:#fff}
-:root[data-theme="dark"] .ab-ic{color:#3c4043}
-:root[data-theme="dark"] .ab-ic:active{background:#f1f3f4}
+/* dark mode: the header goes dark too; the logo swaps to a transparent-bg
+   variant (mascot-dark.png) via JS so it reads on the dark bar */
+:root[data-theme="dark"] .avatar{box-shadow:0 0 0 2px var(--primary),0 0 0 4px var(--card)}
+
+/* report: free-text note step */
+.rep-note{display:flex;flex-direction:column;gap:6px;margin-bottom:auto}
+.rep-note textarea{width:100%;min-height:160px;border:1.5px solid var(--line2);border-radius:14px;background:var(--surface-3);
+  padding:14px;font-family:inherit;font-size:15px;color:var(--ink);resize:none;line-height:1.5}
+.rep-note textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(124,58,237,.15)}
+.rep-notecount{align-self:flex-end;font-size:12px;color:var(--muted);font-family:var(--mono)}
+/* venue media: reporter avatar badge (top-left) */
+.media-thumbwrap{position:relative;flex:0 0 auto}
+.media-by{position:absolute;top:6px;left:6px;width:26px;height:26px;border-radius:50%;object-fit:cover;
+  border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);background:var(--avatar-bg);z-index:1}
+/* recent reports: tap to expand a rundown of what was reported */
+.rep-item{cursor:pointer}
+.rep-item .rep-chev{margin-left:auto;color:var(--faint);transition:transform .2s}
+.rep-item.open .rep-chev{transform:rotate(90deg)}
+.rep-rundown{margin:2px 0 10px 51px;padding:12px 14px;background:var(--surface-3);border:1px solid var(--line);border-radius:12px}
+.rep-rundown .rr-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:4px 0}
+.rep-rundown .rr-k{color:var(--muted)}
+.rep-rundown .rr-v{color:var(--ink);font-weight:500;text-align:right}
+.rep-rundown .rr-note{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:13.5px;color:var(--ink);line-height:1.5}

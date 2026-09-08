@@ -353,7 +353,7 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
       .filter((r) => r.reporter && r.reporter.name)
       .sort((a, b) => a.age - b.age)
       .slice(0, 6)
-      .map((r) => ({ name: r.reporter.name, age: r.reporter.age, tag: r.reporter.tag, photo: r.reporter.photo, vibe: r.vibe, ageMin: round(r.age) })),
+      .map((r) => ({ name: r.reporter.name, age: r.reporter.age, tag: r.reporter.tag, photo: r.reporter.photo, vibe: r.vibe, queue: r.queue || null, entry: (r.entry != null ? r.entry : null), mix: r.mix || null, music: r.music || null, note: r.note || null, ageMin: round(r.age) })),
     music: owner?.music || consensus?.music || null,
     musicHint: genreHint(venue), // deterministic typical genre when none reported
     special: owner?.specials || null,
@@ -367,7 +367,11 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
       .filter((m) => m.venueId === venue.id)
       .sort((a, b) => b.ts - a.ts)
       .slice(0, 12)
-      .map((m) => ({ id: m.id, url: '/media/' + m.id + '.' + m.ext, type: m.type, ageMin: round(ageMinutes(m.ts, ref)) })),
+      .map((m) => {
+        const rep = db.reports.find((r) => r.mediaId === m.id && r.reporter && r.reporter.name);
+        return { id: m.id, url: '/media/' + m.id + '.' + m.ext, type: m.type, ageMin: round(ageMinutes(m.ts, ref)),
+          by: rep ? { name: rep.reporter.name, photo: rep.reporter.photo || null } : null };
+      }),
   };
 }
 

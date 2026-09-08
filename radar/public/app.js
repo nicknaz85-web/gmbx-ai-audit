@@ -657,18 +657,39 @@ function myFace(p) { p = p || myProfile(); return p.profilePhoto || (p.gender ==
 
 // "Nick, 26 · Scout reported — packed · 12 min ago" cards
 const VIBE_WORD = { dead: 'quiet', chill: 'chilled', popping: 'popping', packed: 'packed' };
+const QUEUE_LABEL = { none: 'No queue', '<10': 'Under 10 min', '10-20': '10–20 min', '20-30': '20–30 min', '30+': '30+ min', guestlist: 'Guest list' };
+const MIX_LABEL = { more_women: 'More women', even: 'Even mix', more_men: 'More men' };
+function reportRundown(v, r, i) {
+  const rows = [['Vibe', cap(VIBE_WORD[r.vibe] || r.vibe)]];
+  if (r.queue && QUEUE_LABEL[r.queue]) rows.push(['Queue', QUEUE_LABEL[r.queue]]);
+  if (r.entry != null) rows.push(['Entry', r.entry === 0 ? 'Free' : fmtCur(r.entry, v.currency)]);
+  if (r.mix && MIX_LABEL[r.mix]) rows.push(['Crowd', MIX_LABEL[r.mix]]);
+  if (r.music) rows.push(['Music', r.music]);
+  return `<div class="rep-rundown" id="rr_${v.id}_${i}" hidden>
+    ${rows.map(([k, val]) => `<div class="rr-row"><span class="rr-k">${esc(k)}</span><span class="rr-v">${esc(val)}</span></div>`).join('')}
+    ${r.note ? `<div class="rr-note">“${esc(r.note)}”</div>` : ''}
+  </div>`;
+}
+function toggleRundown(id) {
+  const el = document.getElementById(id); if (!el) return;
+  el.hidden = !el.hidden;
+  const item = el.previousElementSibling; if (item) item.classList.toggle('open', !el.hidden);
+}
+window.toggleRundown = toggleRundown;
 function recentReportsBlock(v) {
   const rs = (v.recentReports || []).filter((r) => r && r.name);
   if (!rs.length) return '';
+  const chev = '<svg class="rep-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
   return `<div class="reports-block">
     <div class="section-h"><h3>What people are saying</h3><span class="count">${rs.length}</span></div>
-    ${rs.map((r) => `<div class="rep-item">
+    ${rs.map((r, i) => `<div class="rep-item" onclick="toggleRundown('rr_${v.id}_${i}')">
       <img class="rep-face" src="${esc(r.photo || '/clubbit-mascot.png')}" alt="" onerror="this.src='/clubbit-mascot.png'" />
       <div class="rep-txt">
         <div class="rep-who"><b>${esc(r.name)}${r.age ? ', ' + r.age : ''}</b>${r.tag ? ` <span class="rep-tag">${esc(r.tag)}</span>` : ''} reported</div>
         <div class="rep-sub">${esc(cap(VIBE_WORD[r.vibe] || r.vibe))} · ${ago(r.ageMin)} ago</div>
       </div>
-    </div>`).join('')}
+      ${chev}
+    </div>${reportRundown(v, r, i)}`).join('')}
   </div>`;
 }
 function cap(s) { return String(s || '').charAt(0).toUpperCase() + String(s || '').slice(1); }
@@ -798,9 +819,11 @@ function renderVenue(v) {
 
     ${v.media && v.media.length ? `<div class="vc-media">
       <div class="section-h"><h3>Photos &amp; videos</h3><span class="count">${v.media.length}</span></div>
-      <div class="media-strip">${v.media.map(m => m.type === 'video'
+      <div class="media-strip">${v.media.map(m => `<div class="media-thumbwrap">${
+        m.by && m.by.photo ? `<img class="media-by" src="${esc(m.by.photo)}" alt="${esc(m.by.name || '')}" onerror="this.remove()" />` : ''}${
+        m.type === 'video'
         ? `<video class="media-thumb" src="${m.url}" muted playsinline loop preload="metadata" onclick="this.paused?this.play():this.pause()"></video>`
-        : `<img class="media-thumb" src="${m.url}" alt="Community photo" loading="lazy" />`).join('')}</div>
+        : `<img class="media-thumb" src="${m.url}" alt="Community photo" loading="lazy" />`}</div>`).join('')}</div>
     </div>` : ''}
 
     <div class="forecast">
@@ -930,6 +953,7 @@ const REPORT_STEPS = [
     { v: 'House', l: 'House' }, { v: 'Techno', l: 'Techno' }, { v: 'Hip-Hop', l: 'Hip-hop' },
     { v: 'R&B', l: 'R&B' }, { v: 'Afrobeats', l: 'Afrobeats' }, { v: 'Commercial', l: 'Commercial' },
     { v: 'Latin', l: 'Latin' }, { v: 'Other', l: 'Other' }] },
+  { key: 'note', q: 'Anything to add?', type: 'note', optional: true },
 ];
 const R = { venueId: null, step: 0, answers: {}, media: null };
 function startReport(id) {
@@ -946,11 +970,17 @@ function renderReport() {
   const sel = R.answers[step.key];
   const inner = $('#reportInner');
   const hint = step.type === 'media' ? "A photo or video is required — it's added to the venue's page"
+    : step.type === 'note' ? 'Optional — a few words about the venue or the night (max 500)'
     : step.optional ? 'Optional — tap to add, or skip' : 'Tap your answer';
   // localise the entry-price chips to the venue's currency (€10 → 1000 din, etc.)
-  const opts = (step.key === 'entry' && venue) ? step.opts.map((o) =>
+  const opts = (step.opts && step.key === 'entry' && venue) ? step.opts.map((o) =>
     (typeof o.v === 'number' && o.v > 0) ? { ...o, l: fmtCur(o.v, venue.currency) + (o.v >= 20 ? '+' : '') } : o) : step.opts;
+  const noteVal = R.answers.note || '';
   const mid = step.type === 'media' ? mediaStepHtml()
+    : step.type === 'note' ? `<div class="rep-note">
+        <textarea id="repNote" maxlength="500" placeholder="e.g. great crowd, easy door, live DJ till late…">${esc(noteVal)}</textarea>
+        <div class="rep-notecount"><span id="noteCount">${noteVal.length}</span>/500</div>
+      </div>`
     : `<div class="${step.grid ? 'rep-grid' : 'rep-opts'}">
       ${opts.map(o => `<button class="rep-opt ${step.grid ? 'sm' : ''} ${sel === o.v ? 'sel' : ''}" onclick="pickReport('${step.key}', ${typeof o.v === 'number' ? o.v : `'${o.v}'`})">
         ${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`).join('')}
@@ -970,6 +1000,10 @@ function renderReport() {
         ${R.step === REPORT_STEPS.length - 1 ? 'Submit' : 'Next'}</button>
     </div>`;
   if (step.type === 'media') wireMediaStep();
+  if (step.type === 'note') {
+    const ta = $('#repNote');
+    if (ta) { ta.oninput = () => { R.answers.note = ta.value; const c = $('#noteCount'); if (c) c.textContent = ta.value.length; }; }
+  }
 }
 
 function mediaStepHtml() {
@@ -978,9 +1012,9 @@ function mediaStepHtml() {
     ? `<video class="media-preview" src="${m.dataUrl}" muted playsinline autoplay loop></video>`
     : `<img class="media-preview" src="${m.dataUrl}" alt="preview" />`);
   return `<div class="rep-media">
-    <input type="file" id="mediaInput" accept="image/*,video/*" capture="environment" style="display:none" />
+    <input type="file" id="mediaInput" accept="image/*,video/*" style="display:none" />
     <button class="media-drop ${m ? 'has' : ''}" id="mediaDrop">
-      ${preview || `<span class="md-ic">📷</span><span class="md-t">Tap to take a photo or video</span><span class="md-s">or pick one from your gallery</span>`}
+      ${preview || `<span class="md-ic">📷</span><span class="md-t">Add a photo or video</span><span class="md-s">Take one now or pick from your gallery</span>`}
     </button>
     ${m ? `<button class="media-retake" id="mediaRetake">Choose a different one</button>` : ''}
   </div>`;
@@ -1048,7 +1082,7 @@ async function submitReport() {
   const beforeCount = reportCount();
   const myLevel = levelFor(beforeCount);
   const reporter = { name: prof.firstName || null, age: prof.calculatedAge || null, tag: myLevel.name, photo: myFace(prof) };
-  const payload = { venueId: R.venueId, vibe: a.vibe, queue: a.queue, entry: a.entry, mix: a.mix, music: a.music, coords, media: R.media, reporter };
+  const payload = { venueId: R.venueId, vibe: a.vibe, queue: a.queue, entry: a.entry, mix: a.mix, music: a.music, note: (a.note || '').trim().slice(0, 500) || null, coords, media: R.media, reporter };
   $('#reportOverlay').classList.add('vibe');
   $('#reportInner').innerHTML = `<div class="rep-done"><div class="big">•••</div><h2>Sending…</h2></div>`;
   const res = await API.report(payload);
@@ -1566,6 +1600,8 @@ function currentTheme() { try { return localStorage.getItem('clubbit_theme') || 
 function applyTheme(mode) {
   try { localStorage.setItem('clubbit_theme', mode); } catch {}
   document.documentElement.setAttribute('data-theme', mode);
+  const logo = document.getElementById('brandHome');
+  if (logo) logo.src = mode === 'dark' ? '/mascot-dark.png' : '/mascot.png';
 }
 
 // ---- full-screen profile show/hide ----
@@ -1815,6 +1851,9 @@ function initUI() {
   document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => setTab(t.dataset.tab)));
   $('#sheetGrip').addEventListener('click', closeSheet);
   $('#sheetScrim').addEventListener('click', closeSheet);
+
+  // match the header logo to the saved theme on load (dark uses a transparent-bg logo)
+  if (currentTheme() === 'dark') { const _logo = $('#brandHome'); if (_logo) _logo.src = '/mascot-dark.png'; }
 
   // settings + language sheets
   const sb = $('#settingsBtn'); if (sb) sb.addEventListener('click', openSettings);
