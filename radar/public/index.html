@@ -44,6 +44,7 @@
   })();</script>
   <!-- First-run welcome carousel (shown once, right after onboarding) -->
   <div class="wintro" id="welcomeIntro" hidden>
+    <div class="wintro-stars" id="wiStars" aria-hidden="true"></div>
     <div class="wintro-inner">
       <div class="wintro-carousel">
         <div class="wintro-track" id="wiTrack">
@@ -201,6 +202,9 @@
     var x0=null;
     ov.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;},{passive:true});
     ov.addEventListener('touchend',function(e){if(x0==null)return;var dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>45)goTo(i+(dx<0?1:-1));},{passive:true});
+    // twinkling stars to match the onboarding background
+    var sb=document.getElementById('wiStars');
+    if(sb){for(var s=0;s<26;s++){var st=document.createElement('i');st.style.left=(Math.random()*100)+'%';st.style.top=(Math.random()*100)+'%';st.style.animationDelay=(Math.random()*4)+'s';sb.appendChild(st);}}
     ov.hidden=false; render();
   })();</script>
 </body>
