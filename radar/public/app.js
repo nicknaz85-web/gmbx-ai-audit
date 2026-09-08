@@ -238,8 +238,13 @@ class RadarMap {
   _wantedVenues() {
     const matching = this.venues.filter(venueMatches);
     const inView = this._inViewFn();
-    const vis = matching.filter((v) => inView(v.coords));
-    return vis.length ? vis : matching; // fallback if getBounds glitches
+    let vis = matching.filter((v) => inView(v.coords));
+    if (!vis.length) vis = matching; // fallback if getBounds glitches
+    // cap the number of DOM pins so a dense city stays smooth to zoom/pan —
+    // keep the highest Party-Radar-score venues in view
+    const CAP = 70;
+    if (vis.length > CAP) vis = vis.slice().sort((a, b) => b.radar.score - a.radar.score).slice(0, CAP);
+    return vis;
   }
   // A count "cluster" bubble marker for a city — shows how many venues are there.
   _clusterFor(w) {
@@ -1161,10 +1166,7 @@ async function submitReport() {
   const leveledUp = newLevel.name !== myLevel.name;
   const badge = res.badges && res.badges.length ? res.badges[res.badges.length - 1] : null;
   $('#reportInner').innerHTML = `<div class="rep-done">
-    <div class="rd-duo">
-      <img class="rd-mascot" src="/clubbit-mascot.png" alt="" onerror="this.style.display='none'" />
-      <img class="rd-mascot rd-mascot-f" src="/clubbit-mascot-f.png" alt="" onerror="this.style.display='none'" />
-    </div>
+    <img class="rd-mascot solo" src="/clubbit-mascot.png" alt="" onerror="this.style.display='none'" />
     <h2>All good to go 🎉</h2>
     <p>Thanks, you're on the radar. Now go enjoy the club!<br>Confidence: <b style="color:var(--blue)">${titleCase(res.confidenceTier || 'medium')}</b></p>
     ${leveledUp

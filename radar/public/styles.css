@@ -447,6 +447,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 /* report: done-screen mascot */
 .rep-done .rd-mascot{width:180px;max-width:52vw;height:auto;margin:0 auto 6px;display:block;
   filter:drop-shadow(0 14px 24px rgba(124,58,237,.2));animation:riPop .5s cubic-bezier(.2,.8,.3,1.2) both}
+.rep-done .rd-mascot.solo{width:220px;max-width:62vw}
 @keyframes riPop{0%{opacity:0;transform:translateY(14px) scale(.9)}100%{opacity:1;transform:none}}
 
 
