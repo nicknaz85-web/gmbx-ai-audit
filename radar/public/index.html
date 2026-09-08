@@ -42,6 +42,33 @@
     var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
     setTimeout(function(){s.classList.add('gone');setTimeout(function(){s.remove();},480);},reduce?700:1900);
   })();</script>
+  <!-- First-run welcome carousel (shown once, right after onboarding) -->
+  <div class="wintro" id="welcomeIntro" hidden>
+    <div class="wintro-inner">
+      <div class="wintro-carousel">
+        <div class="wintro-track" id="wiTrack">
+          <div class="wintro-slide">
+            <img class="wi-mascot" src="/clubbit-mascot.png" alt="" onerror="this.style.display='none'" />
+            <h2>Welcome to Clubbit</h2>
+            <p>See how busy every club and bar is around you — live, right now, from real people on the ground.</p>
+          </div>
+          <div class="wintro-slide">
+            <img class="wi-mascot" src="/clubbit-mascot-f.png" alt="" onerror="this.style.display='none'" />
+            <h2>You're the radar</h2>
+            <p>Reports from clubbers like you keep it accurate — the vibe, the queue, the music, the door.</p>
+          </div>
+          <div class="wintro-slide">
+            <img class="wi-mascot" src="/clubbit-mascot.png" alt="" onerror="this.style.display='none'" />
+            <h2>Add your vibe</h2>
+            <p>Tap a place and tell everyone what it's like tonight. Takes about 15 seconds.</p>
+          </div>
+        </div>
+      </div>
+      <div class="wintro-dots" id="wiDots"><i class="on"></i><i></i><i></i></div>
+      <button class="wintro-cta" id="wiCta">Next</button>
+    </div>
+  </div>
+
   <!-- Top app bar -->
   <header class="appbar">
     <img class="appbar-scene" id="brandHome" src="/mascot.png" alt="Party Radar" onerror="this.style.display='none'" />
@@ -150,5 +177,31 @@
   try{var _p=JSON.parse(localStorage.getItem('clubbit_profile'));if(_p){var _a=document.querySelector('.avatar img');
     var _src=_p.profilePhoto||(_p.gender==='Woman'?'/clubbit-face-f.png':_p.gender==='Man'?'/clubbit-face-m.png':_p.gender==='Non-binary'?'/clubbit-face-nb.png':null);
     if(_a&&_src)_a.src=_src;}}catch(e){}</script>
+  <script>/* First-run welcome carousel — shown once, right after finishing onboarding */
+  (function(){
+    var SEEN='clubbit_welcome_seen', DONE='clubbit_onboarding_complete';
+    function get(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+    // only for users who completed onboarding and haven't seen this yet
+    // (?welcome forces it for testing)
+    var force=/[?&]welcome\b/.test(location.search);
+    if(!force && (!get(DONE) || get(SEEN))) return;
+    var ov=document.getElementById('welcomeIntro'); if(!ov) return;
+    var track=document.getElementById('wiTrack'), cta=document.getElementById('wiCta'), dotsBox=document.getElementById('wiDots');
+    var N=track.children.length, i=0;
+    function render(){
+      track.style.transform='translateX('+(i*-100)+'%)';
+      [].forEach.call(dotsBox.children,function(d,n){d.classList.toggle('on',n===i);});
+      cta.textContent=(i===N-1)?"Let's go":'Next';
+    }
+    function goTo(n){n=Math.max(0,Math.min(N-1,n));if(n===i)return;i=n;try{navigator.vibrate&&navigator.vibrate(8);}catch(e){}render();}
+    function finish(){try{localStorage.setItem(SEEN,'1');}catch(e){} ov.classList.add('gone'); setTimeout(function(){ov.hidden=true;ov.remove();},450);}
+    cta.addEventListener('click',function(){try{navigator.vibrate&&navigator.vibrate(10);}catch(e){} if(i<N-1)goTo(i+1); else finish();});
+    dotsBox.addEventListener('click',function(e){var n=[].indexOf.call(dotsBox.children,e.target);if(n>=0)goTo(n);});
+    // swipe
+    var x0=null;
+    ov.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;},{passive:true});
+    ov.addEventListener('touchend',function(e){if(x0==null)return;var dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>45)goTo(i+(dx<0?1:-1));},{passive:true});
+    ov.hidden=false; render();
+  })();</script>
 </body>
 </html>

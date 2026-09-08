@@ -165,28 +165,6 @@ button{font-family:inherit;color:inherit;border:none;background:none;cursor:poin
 .disco.l{left:12%} .disco.r{right:12%;animation-delay:1.5s}
 @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 
-/* welcome carousel (3 slides + rotating dot pager) */
-.wc-carousel{width:100%;overflow:hidden}
-.wc-track{display:flex;transition:transform .42s var(--ease)}
-.wc-slide{flex:0 0 100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:0 8px;box-sizing:border-box}
-.wc-slide .mascot{width:min(56vw,236px);margin:0 auto}
-.wc-slide .brand{display:flex;align-items:center;justify-content:center;margin-top:14px}
-.wc-slide .brand img{width:56vw;max-width:210px;height:auto;object-fit:contain}
-.wc-slide .h1{margin-top:16px}
-.wc-slide .sub{margin:12px auto 0}
-.wc-dots{display:flex;gap:11px;justify-content:center;align-items:center;margin:22px auto 4px}
-.wc-dots i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.22);position:relative;
-  transition:background .3s var(--ease),transform .3s var(--ease);cursor:pointer}
-.wc-dots i.on{background:var(--violet-2);transform:scale(1.25)}
-.wc-dots i.on::after{content:"";position:absolute;inset:-5px;border-radius:50%;
-  background:conic-gradient(var(--gold),rgba(246,201,68,0) 72%);
-  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 0);
-  mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 0);
-  animation:wcRing .6s linear}
-@keyframes wcRing{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.wc-dots i.on::after{animation:none}}
-
 /* ---------- cards (gender / frequency) ---------- */
 .cards{display:flex;flex-direction:column;gap:12px;margin-top:22px}
 /* centre the helper text under the option cards */

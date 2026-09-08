@@ -433,6 +433,38 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   filter:drop-shadow(0 14px 24px rgba(124,58,237,.2));animation:riPop .5s cubic-bezier(.2,.8,.3,1.2) both}
 @keyframes riPop{0%{opacity:0;transform:translateY(14px) scale(.9)}100%{opacity:1;transform:none}}
 
+/* ================================ FIRST-RUN WELCOME CAROUSEL (after onboarding) */
+.wintro{position:fixed;inset:0;z-index:2000;display:flex;align-items:stretch;justify-content:center;
+  background:
+    radial-gradient(120% 70% at 50% 12%, #f4ecff 0%, rgba(244,236,255,0) 62%),
+    linear-gradient(180deg, #faf6ff 0%, #fdfbff 46%, #ffffff 100%);
+  transition:opacity .4s ease}
+.wintro.gone{opacity:0;pointer-events:none}
+.wintro-inner{width:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;
+  padding:calc(env(safe-area-inset-top) + 24px) 22px calc(env(safe-area-inset-bottom) + 24px)}
+.wintro-carousel{flex:1;overflow:hidden;display:flex;align-items:center}
+.wintro-track{display:flex;width:100%;transition:transform .42s cubic-bezier(.3,.7,.25,1)}
+.wintro-slide{flex:0 0 100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:0 6px;box-sizing:border-box}
+.wintro-slide .wi-mascot{width:210px;max-width:58vw;height:auto;display:block;
+  filter:drop-shadow(0 14px 24px rgba(124,58,237,.18));animation:riPop .5s cubic-bezier(.2,.8,.3,1.2) both}
+.wintro-slide h2{font-size:25px;font-weight:600;color:var(--ink);margin:18px 0 0;letter-spacing:-.02em}
+.wintro-slide p{font-size:15px;color:var(--muted);line-height:1.55;margin:12px 0 0;max-width:300px}
+.wintro-dots{display:flex;gap:11px;justify-content:center;align-items:center;margin:6px 0 20px}
+.wintro-dots i{width:9px;height:9px;border-radius:50%;background:#dcdfe4;position:relative;
+  transition:background .3s ease,transform .3s ease;cursor:pointer}
+.wintro-dots i.on{background:var(--primary);transform:scale(1.25)}
+.wintro-dots i.on::after{content:"";position:absolute;inset:-5px;border-radius:50%;
+  background:conic-gradient(var(--primary),rgba(124,58,237,0) 72%);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 0);
+  mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 0);
+  animation:wiRing .6s linear}
+@keyframes wiRing{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+.wintro-cta{width:100%;font-weight:600;font-size:16px;padding:16px;border-radius:26px;
+  background:var(--primary);color:#fff;flex:0 0 auto}
+.wintro-cta:active{filter:brightness(1.05)}
+@media (prefers-reduced-motion:reduce){.wintro-dots i.on::after{animation:none}.wintro-track{transition:none}}
+
 /* recent named vibe reports on the venue card */
 .reports-block{margin:18px 0 4px}
 .rep-item{display:flex;align-items:center;gap:11px;padding:9px 0;border-top:1px solid var(--line,#eee)}

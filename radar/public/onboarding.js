@@ -133,41 +133,6 @@
   // ---- WELCOME ----
   $$('[data-act="start"], [data-act="start2"]').forEach((b) => b.addEventListener('click', () => { haptic(); go('signin'); }));
 
-  // ---- WELCOME CAROUSEL (3 slides, rotating dot pager) ----
-  const WC_COUNT = 3;
-  let wcIndex = 0;
-  const wcTrack = $('#wcTrack'), wcCta = $('#wcCta'), wcDotsBox = $('#wcDots');
-  function wcRender() {
-    if (wcTrack) wcTrack.style.transform = `translateX(${wcIndex * -100}%)`;
-    $$('#wcDots i').forEach((d, i) => d.classList.toggle('on', i === wcIndex));
-    if (wcCta) wcCta.textContent = (wcIndex === WC_COUNT - 1) ? "I'm Ready" : 'Next';
-  }
-  function wcGo(i) {
-    i = Math.max(0, Math.min(WC_COUNT - 1, i));
-    if (i === wcIndex) return;
-    wcIndex = i; haptic(8); wcRender();
-  }
-  if (wcCta) wcCta.addEventListener('click', () => {
-    haptic();
-    if (wcIndex < WC_COUNT - 1) wcGo(wcIndex + 1);
-    else go('signin');
-  });
-  if (wcDotsBox) wcDotsBox.addEventListener('click', (e) => {
-    const i = $$('#wcDots i').indexOf(e.target); if (i >= 0) wcGo(i);
-  });
-  // swipe left/right between slides
-  (() => {
-    const c = $('#wcCarousel'); if (!c) return;
-    let x0 = null;
-    c.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
-    c.addEventListener('touchend', (e) => {
-      if (x0 == null) return;
-      const dx = e.changedTouches[0].clientX - x0; x0 = null;
-      if (Math.abs(dx) > 45) wcGo(wcIndex + (dx < 0 ? 1 : -1));
-    }, { passive: true });
-  })();
-  wcRender();
-
   // ---- BACK buttons ----
   // On the sign-in screen the sub-steps (choose → email → code/password) are
   // toggled in place, so a plain back() would jump all the way out to welcome.
