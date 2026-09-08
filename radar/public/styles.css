@@ -253,6 +253,10 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .feed-item{display:flex;gap:11px;padding:11px 4px;border-bottom:1px solid var(--line)}
 .feed-time{font-family:var(--mono);font-size:10.5px;color:var(--faint);min-width:40px;padding-top:3px}
 .feed-ic{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
+.feed-ic.photo{position:relative;background:var(--surface-2);overflow:visible}
+.feed-ic.photo img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+.feed-ic.photo .feed-ic-tag{position:absolute;right:-3px;bottom:-3px;width:16px;height:16px;border-radius:50%;background:var(--card);
+  display:flex;align-items:center;justify-content:center;font-size:9px;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .feed-txt{flex:1;font-size:13px;color:var(--ink2);line-height:1.4}
 .feed-txt .fsub{font-size:12px;font-weight:500;margin-top:1px}
 .feed-txt .farea{font-size:11px;color:var(--muted)}
@@ -785,3 +789,24 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .rep-done .rd-duo .rd-mascot{width:132px;max-width:38vw;height:auto;margin:0;display:block;
   filter:drop-shadow(0 14px 24px rgba(124,58,237,.2));animation:riPop .5s cubic-bezier(.2,.8,.3,1.2) both}
 .rep-done .rd-duo .rd-mascot-f{width:116px;max-width:34vw;transform:scaleX(-1);margin-left:-6px}
+
+/* report: "Other" custom input (entry price / music genre) */
+.rep-other{margin-top:12px}
+.rep-other input{width:100%;height:52px;border:1.5px solid var(--line2);border-radius:14px;background:var(--surface-3);
+  padding:0 16px;font-size:16px;color:var(--ink);font-family:inherit}
+.rep-other input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(124,58,237,.15)}
+
+/* lightbox: poster avatar badge (top-left) */
+.lb-by{position:absolute;top:calc(env(safe-area-inset-top) + 14px);left:16px;z-index:1;display:flex;align-items:center;gap:8px;
+  background:rgba(0,0,0,.4);border-radius:22px;padding:4px 12px 4px 4px}
+.lb-by img{width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #fff;background:var(--avatar-bg)}
+.lb-by span{color:#fff;font-size:13px;font-weight:600}
+
+/* report flow: small mascot duo for personality */
+.rep-mascots{display:flex;align-items:flex-end;justify-content:center;gap:0;margin:10px auto 0;height:56px}
+.rep-mascots img{height:56px;width:auto;display:block;filter:drop-shadow(0 8px 14px rgba(124,58,237,.18))}
+.rep-mascots img.f{height:50px;transform:scaleX(-1);margin-left:-6px}
+/* your-own-report controls on the venue card */
+.rep-you{font-size:10px;font-weight:700;color:var(--primary);background:var(--tint-blue);padding:1px 7px;border-radius:10px;margin-left:4px;vertical-align:middle}
+.rep-del{flex:none;width:34px;height:34px;border-radius:50%;background:none;color:var(--muted);font-size:15px;display:flex;align-items:center;justify-content:center}
+.rep-del:active{background:color-mix(in oklab,var(--red) 14%,transparent);color:var(--red)}

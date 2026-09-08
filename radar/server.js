@@ -297,7 +297,7 @@ async function api(req, res, url) {
     if (!v) return send(res, 404, { error: 'not found' });
     if (btEnabled()) { try { await btRefresh(v); } catch (e) {} } // opportunistic real busyness
     if (gpEnabled() && process.env.PLACES_LIVE) { try { await gpRefresh(v); } catch (e) {} }  // baked data covers this; live gated
-    return send(res, 200, venueSnapshot(v, now()));
+    return send(res, 200, venueSnapshot(v, now(), { viewerHash: id.uHash }));
   }
 
   // GET /api/area/:id
@@ -414,7 +414,12 @@ async function api(req, res, url) {
       queue: safeEnum(body.queue, ['none', '<10', '10-20', '20-30', '30+', 'guestlist', 'unknown']),
       entry: typeof body.entry === 'number' ? clamp(body.entry, 0, 200) : (body.entry === 'guestlist' ? 0 : null),
       mix: safeEnum(body.mix, ['more_women', 'even', 'more_men']),
-      music: safeEnum(body.music, ['House', 'Techno', 'Hip-Hop', 'R&B', 'Afrobeats', 'Commercial', 'Latin', 'Other', 'Tech House', 'Live']),
+      music: (() => {
+        const known = safeEnum(body.music, ['House', 'Techno', 'Hip-Hop', 'R&B', 'Afrobeats', 'Commercial', 'Latin', 'Other', 'Tech House', 'Live']);
+        if (known) return known;
+        if (typeof body.music === 'string') { const s = body.music.trim().replace(/[^\p{L}\p{N} &/'\-]/gu, '').slice(0, 24); return s || null; }
+        return null;
+      })(),
       note: (typeof body.note === 'string' ? body.note.trim().slice(0, 500) : '') || null,
       confidence, mediaId: saved.entry.id, reporter,
     });
@@ -476,13 +481,31 @@ async function api(req, res, url) {
   }
 
   // POST /api/media/delete { id } — remove one of the user's OWN photos/videos
+  // (also removes the report that photo belongs to, so it's a full undo)
   if (method === 'POST' && route === 'media/delete') {
     const body = await readBody(req);
     const m = db.media.find((x) => x.id === body.id);
     if (!m) return send(res, 404, { error: 'not found' });
     if (m.uHash !== id.uHash) return send(res, 403, { error: 'not your photo' });
     db.media = db.media.filter((x) => x.id !== m.id);
+    db.reports = db.reports.filter((r) => r.mediaId !== m.id); // remove the linked report
     try { fs.unlinkSync(path.join(MEDIA_DIR, m.id + '.' + m.ext)); } catch (e) { /* file may already be gone */ }
+    saveSnapshotSoon();
+    return send(res, 200, { ok: true });
+  }
+
+  // POST /api/report/delete { id } — remove one of the user's OWN reports + its photo
+  if (method === 'POST' && route === 'report/delete') {
+    const body = await readBody(req);
+    const r = db.reports.find((x) => x.id === body.id);
+    if (!r) return send(res, 404, { error: 'not found' });
+    if (r.uHash !== id.uHash) return send(res, 403, { error: 'not your report' });
+    db.reports = db.reports.filter((x) => x.id !== r.id);
+    if (r.mediaId) {
+      const m = db.media.find((x) => x.id === r.mediaId);
+      db.media = db.media.filter((x) => x.id !== r.mediaId);
+      if (m) { try { fs.unlinkSync(path.join(MEDIA_DIR, m.id + '.' + m.ext)); } catch (e) {} }
+    }
     saveSnapshotSoon();
     return send(res, 200, { ok: true });
   }

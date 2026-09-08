@@ -12,6 +12,7 @@ const API = {
   pulse: (venueId, state) => post('/api/pulse', { venueId, state }),
   me: () => fetch('/api/me').then(r => r.json()),
   deleteMedia: (id) => post('/api/media/delete', { id }),
+  deleteReport: (id) => post('/api/report/delete', { id }),
   deleteAccount: (token) => post('/api/auth/delete', { token }),
 };
 function post(url, body) {
@@ -594,8 +595,12 @@ function feedRows() {
   const rows = [];
   const add = (v, emoji, text, sub) => {
     if (seen.has(v.id) || rows.length >= 14) return; seen.add(v.id);
+    // show the club's photo when we have one; fall back to the coloured emoji tile
+    const ic = v.googlePhoto
+      ? `<div class="feed-ic photo"><img src="${esc(v.googlePhoto)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('photo');this.parentNode.style.background='${BAND_COLOR[bandKey(v.radar.score)].core}';this.replaceWith(document.createTextNode('${emoji}'))" /><span class="feed-ic-tag">${emoji}</span></div>`
+      : `<div class="feed-ic" style="background:${BAND_COLOR[bandKey(v.radar.score)].core}">${emoji}</div>`;
     rows.push(`<div class="feed-item" onclick="rowClick('${v.id}')">
-      <div class="feed-ic" style="background:${BAND_COLOR[bandKey(v.radar.score)].core}">${emoji}</div>
+      ${ic}
       <div class="feed-txt"><b>${esc(text)}</b>
         <div class="fsub">${esc(sub)}</div>
         ${v.instagram ? `<button class="feed-ig" onclick="event.stopPropagation();openInsta('${v.id}')">
@@ -636,16 +641,33 @@ async function openVenue(id) {
 }
 function closeVenue() { $('#venueOverlay').hidden = true; S.activeVenue = null; S.activeVenueData = null; map.selected = null; map.refreshSelection && map.refreshSelection(); }
 
-// tap any community photo/video to view it full screen
-function openLightbox(url, type) {
+// tap any community photo/video to view it full screen, with the poster's avatar
+function openLightbox(url, type, by) {
   const lb = $('#lightbox'), stage = $('#lbStage'); if (!lb || !stage) return;
   stage.innerHTML = (type === 'video')
     ? `<video src="${url}" controls autoplay playsinline loop></video>`
     : `<img src="${url}" alt="" />`;
+  const badge = $('#lbBy');
+  if (badge) {
+    if (by && by.photo) { badge.innerHTML = `<img src="${by.photo}" alt="" onerror="this.remove()" />${by.name ? `<span>${esc(by.name)}</span>` : ''}`; badge.hidden = false; }
+    else badge.hidden = true;
+  }
   lb.hidden = false;
 }
 function closeLightbox() { const lb = $('#lightbox'); if (!lb) return; lb.hidden = true; $('#lbStage').innerHTML = ''; }
 window.openLightbox = openLightbox;
+// venue media: resolve the poster's avatar from the loaded venue data (avoids
+// putting a big data-URL in an onclick attribute)
+window.lbShow = function (id) {
+  const list = (S.activeVenueData && S.activeVenueData.media) || [];
+  const m = list.find((x) => x.id === id); if (!m) return;
+  openLightbox(m.url, m.type, m.by || null);
+};
+// profile media: it's the current user's own upload → show their avatar
+window.lbShowMine = function (url, type) {
+  const p = myProfile();
+  openLightbox(url, type, { photo: myFace(p), name: p.firstName || 'You' });
+};
 
 // A short "what this place is" line, used when Google has no editorial blurb.
 // ---- reporter levels (client-side; the more you report, the higher your tier) ----
@@ -696,10 +718,10 @@ function recentReportsBlock(v) {
     ${rs.map((r, i) => `<div class="rep-item" onclick="toggleRundown('rr_${v.id}_${i}')">
       <img class="rep-face" src="${esc(r.photo || '/clubbit-mascot.png')}" alt="" onerror="this.src='/clubbit-mascot.png'" />
       <div class="rep-txt">
-        <div class="rep-who"><b>${esc(r.name)}${r.age ? ', ' + r.age : ''}</b>${r.tag ? ` <span class="rep-tag">${esc(r.tag)}</span>` : ''} reported</div>
+        <div class="rep-who"><b>${esc(r.name)}${r.age ? ', ' + r.age : ''}</b>${r.tag ? ` <span class="rep-tag">${esc(r.tag)}</span>` : ''} reported${r.mine ? ' <span class="rep-you">You</span>' : ''}</div>
         <div class="rep-sub">${esc(cap(VIBE_WORD[r.vibe] || r.vibe))} · ${ago(r.ageMin)} ago</div>
       </div>
-      ${chev}
+      ${r.mine && r.id ? `<button class="rep-del" onclick="event.stopPropagation();deleteMyReport('${r.id}')" aria-label="Delete your report">🗑</button>` : chev}
     </div>${reportRundown(v, r, i)}`).join('')}
   </div>`;
 }
@@ -833,8 +855,8 @@ function renderVenue(v) {
       <div class="media-strip">${v.media.map(m => `<div class="media-thumbwrap">${
         m.by && m.by.photo ? `<img class="media-by" src="${esc(m.by.photo)}" alt="${esc(m.by.name || '')}" onerror="this.remove()" />` : ''}${
         m.type === 'video'
-        ? `<video class="media-thumb" src="${m.url}" muted playsinline loop autoplay preload="metadata" onclick="openLightbox('${m.url}','video')"></video>`
-        : `<img class="media-thumb" src="${m.url}" alt="Community photo" loading="lazy" onclick="openLightbox('${m.url}','image')" />`}</div>`).join('')}</div>
+        ? `<video class="media-thumb" src="${m.url}" muted playsinline loop autoplay preload="metadata" onclick="lbShow('${m.id}')"></video>`
+        : `<img class="media-thumb" src="${m.url}" alt="Community photo" loading="lazy" onclick="lbShow('${m.id}')" />`}</div>`).join('')}</div>
     </div>` : ''}
 
     <div class="forecast">
@@ -957,7 +979,7 @@ const REPORT_STEPS = [
     { v: '20-30', l: '20–30 min' }, { v: '30+', l: '30+ min' }] },
   { key: 'entry', q: 'Entry?', grid: true, opts: [
     { v: 0, l: 'Free' }, { v: 5, l: '€5' }, { v: 10, l: '€10' }, { v: 15, l: '€15' },
-    { v: 20, l: '€20+' }, { v: 'guestlist', l: 'Guest list' }] },
+    { v: 20, l: '€20+' }, { v: 'guestlist', l: 'Guest list' }, { v: 'other', l: 'Other' }] },
   { key: 'mix', q: 'Crowd mix?', grid: true, optional: true, opts: [
     { v: 'more_women', l: 'More women' }, { v: 'even', l: 'Even mix' }, { v: 'more_men', l: 'More men' }] },
   { key: 'music', q: 'Music right now?', grid: true, optional: true, opts: [
@@ -987,6 +1009,13 @@ function renderReport() {
   const opts = (step.opts && step.key === 'entry' && venue) ? step.opts.map((o) =>
     (typeof o.v === 'number' && o.v > 0) ? { ...o, l: fmtCur(o.v, venue.currency) + (o.v >= 20 ? '+' : '') } : o) : step.opts;
   const noteVal = R.answers.note || '';
+  // free-text "Other" input for entry (custom price) and music (custom genre)
+  const otherInput =
+    (step.key === 'entry' && sel === 'other')
+      ? `<div class="rep-other"><input id="repOther" type="number" inputmode="numeric" min="0" max="500" placeholder="Enter amount" value="${R.answers.entryOther != null ? esc(String(R.answers.entryOther)) : ''}" /></div>`
+      : (step.key === 'music' && sel === 'Other')
+      ? `<div class="rep-other"><input id="repOther" type="text" maxlength="24" placeholder="Type the genre" value="${R.answers.musicOther ? esc(R.answers.musicOther) : ''}" /></div>`
+      : '';
   const mid = step.type === 'media' ? mediaStepHtml()
     : step.type === 'note' ? `<div class="rep-note">
         <textarea id="repNote" maxlength="500" placeholder="e.g. great crowd, easy door, live DJ till late…">${esc(noteVal)}</textarea>
@@ -995,13 +1024,17 @@ function renderReport() {
     : `<div class="${step.grid ? 'rep-grid' : 'rep-opts'}">
       ${opts.map(o => `<button class="rep-opt ${step.grid ? 'sm' : ''} ${sel === o.v ? 'sel' : ''}" onclick="pickReport('${step.key}', ${typeof o.v === 'number' ? o.v : `'${o.v}'`})">
         ${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`).join('')}
-    </div>`;
+    </div>${otherInput}`;
   inner.innerHTML = `
     <div class="rep-head">
       <div class="rep-venue">Reporting · <b>${esc(venue.name)}</b></div>
       <button class="rep-x" onclick="closeReport()">✕</button>
     </div>
     <div class="rep-progress">${REPORT_STEPS.map((_, i) => `<i class="${i <= R.step ? 'on' : ''}"></i>`).join('')}</div>
+    ${step.type !== 'media' ? `<div class="rep-mascots" aria-hidden="true">
+      <img src="/clubbit-mascot.png" alt="" onerror="this.style.display='none'" />
+      <img class="f" src="/clubbit-mascot-f.png" alt="" onerror="this.style.display='none'" />
+    </div>` : ''}
     <div class="rep-q">${step.q}</div>
     <div class="rep-hint">${hint}</div>
     ${mid}
@@ -1014,6 +1047,14 @@ function renderReport() {
   if (step.type === 'note') {
     const ta = $('#repNote');
     if (ta) { ta.oninput = () => { R.answers.note = ta.value; const c = $('#noteCount'); if (c) c.textContent = ta.value.length; }; }
+  }
+  const other = $('#repOther');
+  if (other) {
+    other.focus();
+    other.oninput = () => {
+      if (step.key === 'entry') { const n = parseInt(other.value, 10); R.answers.entryOther = (isFinite(n) && n >= 0) ? Math.min(n, 500) : null; }
+      else if (step.key === 'music') { R.answers.musicOther = other.value.trim().slice(0, 24) || null; }
+    };
   }
 }
 
@@ -1093,7 +1134,9 @@ async function submitReport() {
   const beforeCount = reportCount();
   const myLevel = levelFor(beforeCount);
   const reporter = { name: prof.firstName || null, age: prof.calculatedAge || null, tag: myLevel.name, photo: myFace(prof) };
-  const payload = { venueId: R.venueId, vibe: a.vibe, queue: a.queue, entry: a.entry, mix: a.mix, music: a.music, note: (a.note || '').trim().slice(0, 500) || null, coords, media: R.media, reporter };
+  const entryVal = a.entry === 'other' ? (a.entryOther != null ? a.entryOther : null) : a.entry;
+  const musicVal = a.music === 'Other' ? (a.musicOther || null) : a.music;
+  const payload = { venueId: R.venueId, vibe: a.vibe, queue: a.queue, entry: entryVal, mix: a.mix, music: musicVal, note: (a.note || '').trim().slice(0, 500) || null, coords, media: R.media, reporter };
   $('#reportOverlay').classList.add('vibe');
   $('#reportInner').innerHTML = `<div class="rep-done"><div class="big">•••</div><h2>Sending…</h2></div>`;
   const res = await API.report(payload);
@@ -1760,8 +1803,8 @@ async function renderProfile() {
     ${p.profilePhoto ? `<button class="pedit-btn" id="removePicBtn" style="background:none;color:var(--muted);margin-top:8px">${t('removePhoto')}</button>` : ''}
     <div class="psec-h"><h3>${t('yourPhotos')}</h3><span class="count">${media.length}</span></div>
     ${media.length ? `<div class="media-grid">${media.map((m) => `<div class="media-cellwrap">${m.type === 'video'
-      ? `<video class="media-cell" src="${m.url}" muted playsinline loop autoplay preload="metadata" onclick="openLightbox('${m.url}','video')"></video>`
-      : `<img class="media-cell" src="${m.url}" loading="lazy" alt="Your photo" onclick="openLightbox('${m.url}','image')" />`}<button class="media-del" title="Delete" onclick="event.stopPropagation();deleteMyMedia('${m.id}')" aria-label="Delete photo">✕</button></div>`).join('')}</div>`
+      ? `<video class="media-cell" src="${m.url}" muted playsinline loop autoplay preload="metadata" onclick="lbShowMine('${m.url}','video')"></video>`
+      : `<img class="media-cell" src="${m.url}" loading="lazy" alt="Your photo" onclick="lbShowMine('${m.url}','image')" />`}<button class="media-del" title="Delete" onclick="event.stopPropagation();deleteMyMedia('${m.id}')" aria-label="Delete photo">✕</button></div>`).join('')}</div>`
       : `<div class="empty">${t('noPhotos')}</div>`}`;
   // pencil / change photo
   const picInput = $('#profilePicInput');
@@ -1795,8 +1838,21 @@ async function renderProfile() {
   };
   const epb = $('#editProfileBtn'); if (epb) epb.onclick = () => editProfile();
 }
+async function deleteMyReport(id) {
+  if (!confirm('Delete your report? This removes your report and its photo from this venue.')) return;
+  try {
+    const r = await API.deleteReport(id);
+    if (r && r.ok) {
+      try { setReportCount(Math.max(0, reportCount() - 1)); } catch (e) {}
+      toast('Report deleted');
+      if (S.activeVenue) openVenue(S.activeVenue); // reload the venue card
+      refreshSoon();
+    } else toast('Could not delete' + (r && r.error ? ': ' + r.error : ''));
+  } catch { toast('Could not delete'); }
+}
+window.deleteMyReport = deleteMyReport;
 async function deleteMyMedia(id) {
-  if (!confirm('Delete this photo? This can’t be undone.')) return;
+  if (!confirm('Delete this photo? This also removes the report it belongs to.')) return;
   try {
     const r = await API.deleteMedia(id);
     if (r && r.ok) { toast('Photo deleted'); renderProfile(); }
