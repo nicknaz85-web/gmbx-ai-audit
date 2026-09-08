@@ -18,9 +18,13 @@
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
-        <!-- Android 12+ system splash: white background so it blends into the
-             white HTML splash instead of flashing a separate branded screen -->
+        <!-- White background + a transparent icon so the OS system splash shows
+             nothing but white, then flows straight into the white HTML splash.
+             Both androidx-compat and platform (API 31+) attrs are set. -->
+        <item name="windowSplashScreenBackground">@android:color/white</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_blank</item>
         <item name="android:windowSplashScreenBackground">@android:color/white</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_blank</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 </resources>
