@@ -8,7 +8,7 @@
   const screenEl = (name) => $(`.screen[data-screen="${name}"]`);
 
   // flow order; steps 3–7 carry the "1/5…5/5" progress
-  const ORDER = ['welcome', 'signin', 'name', 'gender', 'dob', 'frequency', 'photo', 'howto', 'done'];
+  const ORDER = ['welcome', 'signin', 'name', 'gender', 'dob', 'frequency', 'photo', 'intro'];
   const PROGRESS = { name: 1, gender: 2, dob: 3, frequency: 4, photo: 5 };
   const SAVE_KEY = 'clubbit_onboarding';
   const PROFILE_KEY = 'clubbit_profile';
@@ -115,7 +115,7 @@
   function onEnter(name) {
     if (name === 'dob') buildWheelsOnce();
     if (name === 'photo') fillPhotoPreview();
-    if (name === 'done') fillDone();
+    if (name === 'intro') { ocIndex = 0; if (typeof ocRender === 'function') ocRender(); }
   }
   // show the gender-matched mascot as the default profile-picture preview
   // (until the user picks a real photo)
@@ -469,10 +469,8 @@
   $('[data-act="photoNext"]').addEventListener('click', () => {
     haptic();
     if (!D.profilePhoto) { D.profilePhoto = null; persist(); }
-    go('howto');
+    go('intro');
   });
-  // how-it-works step → finish
-  $('[data-act="howtoNext"]').addEventListener('click', () => { haptic(); go('done'); });
   function updatePhotoCta() {
     const b = $('#photoCta'); if (b) b.textContent = D.profilePhoto ? 'Continue' : 'Skip for now';
   }
@@ -542,24 +540,43 @@
   });
 
   // ============================================================
-  //  DONE
+  //  WELCOME CAROUSEL (3 steps) — ends onboarding
   // ============================================================
-  function fillDone() {
-    haptic(20);
-    $('#pcName').textContent = D.firstName || 'You';
-    const meta = [];
-    if (D.calculatedAge) meta.push(String(D.calculatedAge));
-    if (D.frequency) meta.push(freqShort(D.frequency));
-    $('#pcMeta').innerHTML = meta.join('<br>');
-    const ava = $('#pcAva');
-    ava.innerHTML = `<img src="${D.profilePhoto || faceSrc()}" alt="" />`;
-    burstConfetti();
+  var ocIndex = 0;
+  const OC_COUNT = 3;
+  const ocTrack = $('#ocTrack'), ocCta = $('#ocCta'), ocDotsBox = $('#ocDots');
+  function ocRender() {
+    if (ocTrack) ocTrack.style.transform = `translateX(${ocIndex * -100}%)`;
+    $$('#ocDots i').forEach((d, i) => d.classList.toggle('on', i === ocIndex));
+    if (ocCta) ocCta.textContent = (ocIndex === OC_COUNT - 1) ? "Find what's popping" : 'Next';
   }
-  function freqShort(f) {
-    return { 'Less than once a month': '<1 night a month', '1–2 times a month': '1–2 nights a month',
-      '3–5 times a month': '3–5 nights a month', '6–10 times a month': '6–10 nights a month',
-      'More than 10 times a month': '10+ nights a month' }[f] || f;
+  function ocGo(i) {
+    i = Math.max(0, Math.min(OC_COUNT - 1, i));
+    if (i === ocIndex) return;
+    const toLast = (i === OC_COUNT - 1);
+    ocIndex = i; haptic(8); ocRender();
+    if (toLast) burstConfetti();
   }
+  if (ocCta) ocCta.addEventListener('click', () => {
+    haptic();
+    if (ocIndex < OC_COUNT - 1) ocGo(ocIndex + 1);
+    else finishOnboarding();
+  });
+  if (ocDotsBox) ocDotsBox.addEventListener('click', (e) => {
+    const i = $$('#ocDots i').indexOf(e.target); if (i >= 0) ocGo(i);
+  });
+  // swipe left/right between steps
+  (() => {
+    const c = $('#ocCarousel'); if (!c) return;
+    let x0 = null;
+    c.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    c.addEventListener('touchend', (e) => {
+      if (x0 == null) return;
+      const dx = e.changedTouches[0].clientX - x0; x0 = null;
+      if (Math.abs(dx) > 45) ocGo(ocIndex + (dx < 0 ? 1 : -1));
+    }, { passive: true });
+  })();
+
   function burstConfetti() {
     const box = $('#confetti'); if (!box) return; box.innerHTML = '';
     const cols = ['#8b5cf6', '#f6c944', '#ffffff', '#c4b5fd', '#7c3aed'];
@@ -575,7 +592,7 @@
     setTimeout(() => { box.innerHTML = ''; }, 4200);
   }
 
-  $('#finishBtn').addEventListener('click', async () => {
+  async function finishOnboarding() {
     haptic(24);
     const nowIso = new Date().toISOString();
     const existing = (() => { try { return JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}; } catch { return {}; } })();
@@ -593,14 +610,14 @@
       localStorage.setItem(DONE_KEY, '1');
       localStorage.removeItem(SAVE_KEY);
     } catch {}
-    const btn = $('#finishBtn'); btn.textContent = 'Finding your night…'; btn.disabled = true;
+    if (ocCta) { ocCta.textContent = 'Finding your night…'; ocCta.disabled = true; }
     // save the profile to the account so it's there on any future sign-in
     const token = getToken();
     if (token) {
       try { await Promise.race([saveProfileToServer(token, profile), new Promise((r) => setTimeout(r, 1500))]); } catch {}
     }
     location.replace('/');
-  });
+  }
   async function saveProfileToServer(token, profile) {
     await fetch('/api/auth/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, profile }) });
   }

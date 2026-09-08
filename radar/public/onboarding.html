@@ -39,6 +39,10 @@
   </style>
   <script>(function(){var s=document.getElementById('clubbit-splash');if(!s)return;
     try{var P=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.SplashScreen;if(P&&P.hide)P.hide();}catch(e){}
+    // show the animated splash only once per app-open (survives the onboarding→app navigation)
+    var shown=false;try{shown=sessionStorage.getItem('clubbit_splash_shown');}catch(e){}
+    if(shown){s.remove();return;}
+    try{sessionStorage.setItem('clubbit_splash_shown','1');}catch(e){}
     var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
     setTimeout(function(){s.classList.add('gone');setTimeout(function(){s.remove();},480);},reduce?700:1900);
   })();</script>
@@ -213,37 +217,30 @@
       <input type="file" id="fileChoose" accept="image/*" hidden />
     </section>
 
-    <!-- ============ 7.5 · HOW IT WORKS (report the vibe) ============ -->
-    <section class="screen" data-screen="howto">
-      <div class="topbar"><button class="back" data-act="back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><div style="flex:1"></div></div>
-      <div class="body">
-        <div class="mascot-corner" aria-hidden="true"><img src="/clubbit-mascot.png" alt="" /></div>
-        <h1 class="h1">Report the vibe.</h1>
-        <p class="sub">You're the radar. A quick report keeps the map live for everyone out tonight.</p>
-        <div class="howto-list">
-          <div class="howto-item"><span class="howto-ic">📸</span><div><b>Snap the room</b><span>Add a photo and tell everyone how packed it is, the queue and the music.</span></div></div>
-          <div class="howto-item"><span class="howto-ic">🛰️</span><div><b>Help other clubbers</b><span>Your report updates the live crowd view so people pick the right spot.</span></div></div>
-          <div class="howto-item"><span class="howto-ic">🏆</span><div><b>Level up</b><span>Every report earns you a higher tier.</span></div></div>
-        </div>
-        <div class="spacer"></div>
-        <button class="cta" data-act="howtoNext">Got it</button>
-      </div>
-    </section>
-
-    <!-- ============ 8 · DONE ============ -->
-    <section class="screen done" data-screen="done">
+    <!-- ============ 7.5 · WELCOME CAROUSEL (3 steps; ends onboarding) ============ -->
+    <section class="screen intro" data-screen="intro">
       <div class="confetti" id="confetti" aria-hidden="true"></div>
-      <div class="spacer"></div>
-      <div class="mascot m-celebrate" aria-hidden="true"><div class="shine"></div><img src="/clubbit-mascot.png" alt="" /></div>
-      <div class="mascot-shadow" aria-hidden="true"></div>
-      <h1 class="h1 big">You're in.</h1>
-      <p class="sub" style="margin-left:auto;margin-right:auto">Clubbit is ready to find your night.</p>
-      <div class="pcard" id="profileCard">
-        <div class="pc-ava" id="pcAva"><img src="/clubbit-mascot.png" alt="" /></div>
-        <div><div class="pc-name" id="pcName">You</div><div class="pc-meta" id="pcMeta"></div></div>
+      <div class="oc-carousel" id="ocCarousel">
+        <div class="oc-track" id="ocTrack">
+          <div class="oc-slide">
+            <div class="mascot m-idle" aria-hidden="true"><div class="shine"></div><img src="/clubbit-mascot.png" alt="" /></div>
+            <h1 class="h1 big">Welcome to Clubbit</h1>
+            <p class="sub">See how busy every club and bar is right now.</p>
+          </div>
+          <div class="oc-slide">
+            <div class="mascot m-idle" aria-hidden="true"><div class="shine shine-f"></div><img src="/clubbit-mascot-f.png" alt="" /></div>
+            <h1 class="h1 big">You're the radar</h1>
+            <p class="sub">Real reports keep the vibe, queue and music accurate.</p>
+          </div>
+          <div class="oc-slide">
+            <div class="mascot m-celebrate" aria-hidden="true"><div class="shine"></div><img src="/clubbit-mascot.png" alt="" /></div>
+            <h1 class="h1 big">Welcome</h1>
+            <p class="sub">You're all set. Let's find your night.</p>
+          </div>
+        </div>
       </div>
-      <div class="spacer"></div>
-      <button class="cta" id="finishBtn" data-act="finish">Find what's popping</button>
+      <div class="oc-dots" id="ocDots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+      <button class="cta" id="ocCta">Next</button>
     </section>
 
   </div>
