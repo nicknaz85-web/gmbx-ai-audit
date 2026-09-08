@@ -413,7 +413,11 @@
   function range(a, b) { const r = []; if (a >= b) for (let i = a; i >= b; i--) r.push(i); else for (let i = a; i <= b; i++) r.push(i); return r; }
   function fillDayWheel() {
     const n = daysIn(wsel.m, wsel.y); if (wsel.d > n) wsel.d = n;
-    fillWheel($('#wDay'), range(1, n).map(String), String(wsel.d));
+    const wheel = $('#wDay');
+    // only rebuild when the number of days changed (e.g. → Feb / 30-day month);
+    // otherwise leave the day column untouched so it doesn't flash on month/year scroll
+    if (wheel._items && wheel._items.length === n) return;
+    fillWheel(wheel, range(1, n).map(String), String(wsel.d));
   }
   function fillWheel(wheel, items, selectedVal) {
     wheel.innerHTML = '<div class="pad"></div>' + items.map((v) => `<div class="w-item" data-v="${v}">${v}</div>`).join('') + '<div class="pad"></div>';
@@ -490,13 +494,17 @@
   function openCrop(src) {
     const img = new Image();
     img.onload = () => {
-      const S = cropCircle.clientWidth;
-      const coverBase = Math.max(S / img.naturalWidth, S / img.naturalHeight);
-      cst = { src, iw: img.naturalWidth, ih: img.naturalHeight, S, coverBase, zoom: 1, ox: 0, oy: 0 };
-      cropImg.src = src; cropImg.style.transform = 'none';
-      cropZoom.value = '1';
-      layoutCrop();
+      // show the modal FIRST so the circle has real dimensions, then measure —
+      // measuring while display:none gives clientWidth 0 and the image renders black
       crop.classList.add('open');
+      requestAnimationFrame(() => {
+        const S = cropCircle.clientWidth || Math.min(window.innerWidth * 0.74, 300);
+        const coverBase = Math.max(S / img.naturalWidth, S / img.naturalHeight);
+        cst = { src, iw: img.naturalWidth, ih: img.naturalHeight, S, coverBase, zoom: 1, ox: 0, oy: 0 };
+        cropImg.src = src; cropImg.style.transform = 'none';
+        cropZoom.value = '1';
+        layoutCrop();
+      });
     };
     img.src = src;
   }

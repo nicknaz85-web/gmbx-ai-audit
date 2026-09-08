@@ -245,17 +245,21 @@ button{font-family:inherit;color:inherit;border:none;background:none;cursor:poin
 .photo-actions .cta{height:52px;font-size:15px}
 
 /* crop overlay */
-.crop{position:fixed;inset:0;z-index:40;background:rgba(8,4,18,.92);display:none;flex-direction:column;
+.crop{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;
+  background:
+    radial-gradient(120% 80% at 50% -10%, #2a1550 0%, rgba(42,21,80,0) 60%),
+    linear-gradient(180deg,#1a0f33,#120a22);
   padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
 .crop.open{display:flex}
 .crop h3{text-align:center;font-size:17px;font-weight:700;margin-bottom:14px}
 .crop-stage{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .crop-circle{position:relative;width:min(74vw,300px);height:min(74vw,300px);border-radius:50%;overflow:hidden;
-  box-shadow:0 0 0 3px var(--violet-2),0 0 0 2000px rgba(8,4,18,.72);touch-action:none;background:#000}
+  box-shadow:0 0 0 3px var(--violet-2),0 0 0 2000px rgba(10,6,22,.82);touch-action:none;background:var(--card-solid)}
 .crop-circle img{position:absolute;left:50%;top:50%;transform-origin:center;user-select:none;-webkit-user-drag:none;will-change:transform}
 .crop-zoom{display:flex;align-items:center;gap:12px;margin:18px 4px 6px}
 .crop-zoom input{flex:1;accent-color:var(--violet-2)}
 .crop-btns{display:flex;gap:10px;margin-top:8px}
+.crop-btns .cta{flex:1;width:auto}
 
 /* ---------- done ---------- */
 .done{align-items:center;text-align:center;justify-content:center}
