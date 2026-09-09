@@ -834,6 +834,12 @@ function renderVenue(v) {
         ? (v.season && v.season.closed ? 'Closed for the season · reopens ' + (v.season.reopen || v.hours.opensLabel) : 'Closed · opens ' + v.hours.opensLabel)
         : 'Open now · till ' + v.hours.closesLabel}</span>` : '';
   const seasonTag = v.season ? `<span class="season-tag">☀️ ${esc(v.season.label)}</span>` : '';
+  // when the venue is in a different timezone than you, make clear its hours are
+  // shown in the VENUE's local time (so "opens 11 PM Fri" is the club's time)
+  const userOff = -new Date().getTimezoneOffset() / 60;
+  const tzNote = (v.tzOffset != null && v.hours && Math.round(v.tzOffset) !== Math.round(userOff))
+    ? `<div class="vc-tznote"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Hours shown in the venue's local time · it's ${esc(v.localTime || '')} there now</div>`
+    : '';
 
   $('#venueCard').innerHTML = `
   <div class="vc-grip"><span></span></div>
@@ -851,6 +857,7 @@ function renderVenue(v) {
         <div class="vc-status">${openChip}${gRating}</div>
       </div>
     </div>
+    ${tzNote}
 
     <div class="pr-block">
       <div class="pr-num" style="color:${bc.core}">${v.radar.score}</div>

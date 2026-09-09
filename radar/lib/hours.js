@@ -119,7 +119,10 @@ function offsetForZone(zone) {
       .formatToParts(d).reduce((a, x) => (a[x.type] = x.value, a), {});
     let hh = +p.hour; if (hh === 24) hh = 0;
     const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, hh, +p.minute);
-    off = Math.round((asUTC - d.getTime()) / 60000) / 60;
+    // compare both at minute precision (Intl parts have no seconds) so the
+    // offset lands on a clean value (e.g. -4, +2) instead of -4.0166…
+    const realUTC = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes());
+    off = Math.round((asUTC - realUTC) / 60000) / 60;
   } catch (e) { off = null; }
   _offCache.set(key, off);
   return off;

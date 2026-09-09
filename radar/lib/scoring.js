@@ -328,6 +328,9 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     source,
     open: openState.open,
     hours: { open: openState.open, source: openState.source, opensLabel: openState.opensLabel, closesLabel: openState.closesLabel },
+    // the venue's own timezone context so the app can label foreign hours as local
+    tzOffset: cityTz(venue.city),
+    localTime: (() => { const ln = new Date(ref + cityTz(venue.city) * 3600 * 1000); let h = ln.getUTCHours(); const m = ln.getUTCMinutes(); return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; })(),
     season: venue.season ? { label: seasonRange(venue.season) || 'Seasonal', reopen: openState.opensLabel || null, closed: !!openState.seasonalClosed } : null,
     google,
     googlePhoto: place?.googlePhoto || null,
