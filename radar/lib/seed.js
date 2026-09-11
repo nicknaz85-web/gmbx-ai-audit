@@ -1400,6 +1400,14 @@ const VENUE_DEFS = [
   ['Cebu Club', 'laganas', 'Dancing', 'Club', 400, 0, 13, 18, { mult: 1, trend: 0.6 }, true],
   ['Barrage Club', 'laganas', 'Dancing', 'Club', 400, 0, 14, 18, { mult: 1, trend: 0.6 }, true],
   ['Jade Club', 'zurich', 'Dancing', 'Club', 400, 0, 13, 10, { mult: 1, trend: 0.6 }, true],
+  // --- named + top-up (Google Places) ---
+  ['Mazel Tov', 'erzsebetvaros', 'Bars', 'Bar', 180, 0, 20, 0, { mult: 1, trend: 0.6 }, true],
+  ['Doboz', 'erzsebetvaros', 'Dancing', 'Club', 400, 0, 18, 10, { mult: 1, trend: 0.6 }, true],
+  ['Kőleves kert', 'erzsebetvaros', 'Bars', 'Bar', 180, 0, 18, 0, { mult: 1, trend: 0.6 }, true],
+  ['Little Bar', 'chengdu', 'Bars', 'Bar', 180, 0, 8, 0, { mult: 1, trend: 0.6 }, true],
+  ['Wuzao', 'chengdu', 'Bars', 'Bar', 180, 0, 8, 0, { mult: 1, trend: 0.6 }, true],
+  // --- named + top-up (Google Places) ---
+  ['Shamrock Irish Bar and Restaurant', 'chengdu', 'Bars', 'Bar', 180, 0, 9, 0, { mult: 1, trend: 0.6 }, true],
 ];
 
 function jitter(center, seed, spreadM = 140) {
