@@ -300,7 +300,7 @@ async function api(req, res, url) {
     if (!v) return send(res, 404, { error: 'not found' });
     if (btEnabled()) { try { await btRefresh(v); } catch (e) {} } // opportunistic real busyness
     if (gpEnabled() && process.env.PLACES_LIVE) { try { await gpRefresh(v); } catch (e) {} }  // baked data covers this; live gated
-    return send(res, 200, venueSnapshot(v, now(), { viewerHash: id.uHash }));
+    return send(res, 200, venueSnapshot(v, now(), { viewerHash: id.uHash, fullEvents: true }));
   }
 
   // GET /api/area/:id

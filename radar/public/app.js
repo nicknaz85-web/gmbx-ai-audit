@@ -855,14 +855,19 @@ function renderVenue(v) {
   const tzNote = (v.tzOffset != null && v.hours && Math.round(v.tzOffset) !== Math.round(userOff))
     ? `<div class="vc-tznote"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Hours shown in the venue's local time<br>It's ${esc(v.localTime || '')} there now</span></div>`
     : '';
+  S.cardEvents = v.tonight || null; // full week's list for the events modal
   const eventBlock = v.tonight ? (() => {
     const ev = v.tonight;
     const when = ev.isTonight ? 'Tonight' : eventDay(ev.date);
     const who = ev.artists && ev.artists.length ? ev.artists.join(', ') : ev.name;
-    return `<a class="vc-event"${ev.url ? ` href="${esc(ev.url)}" target="_blank" rel="noopener"` : ''}>
-      <span class="ve-ic">🎤</span>
-      <span class="ve-txt"><b>${when}${ev.time ? ' · ' + esc(ev.time) : ''}</b><span class="ve-name">${esc(who)}</span>${ev.more ? `<span class="ve-more">+${ev.more} more this week</span>` : ''}</span>
-      ${ev.url ? '<span class="ve-go">Tickets ›</span>' : ''}</a>`;
+    const cover = ev.image
+      ? `<span class="ve-cover"><img src="${esc(ev.image)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('noimg');this.remove()"/></span>`
+      : `<span class="ve-cover noimg">🎤</span>`;
+    const multi = (ev.count || 1) > 1;
+    const inner = `${cover}<span class="ve-txt"><b>${when}${ev.time ? ' · ' + esc(ev.time) : ''}</b><span class="ve-name">${esc(who)}</span>${multi ? `<span class="ve-more">+${ev.more} more this week</span>` : ''}</span>${multi ? `<span class="ve-go">All ${ev.count} ›</span>` : (ev.url ? '<span class="ve-go">Tickets ›</span>' : '')}`;
+    return multi
+      ? `<button type="button" class="vc-event" onclick="showVenueEvents()">${inner}</button>`
+      : `<a class="vc-event"${ev.url ? ` href="${esc(ev.url)}" target="_blank" rel="noopener"` : ''}>${inner}</a>`;
   })() : '';
 
   $('#venueCard').innerHTML = `
@@ -1997,6 +2002,35 @@ function showMyReportDetail(id) {
   el.querySelector('.rd-del').onclick = () => { close(); deleteMyReport(r.id); };
 }
 window.showMyReportDetail = showMyReportDetail;
+// scrollable list of every event this week at the open venue (Ticketmaster)
+function showVenueEvents() {
+  const t = S.cardEvents; if (!t || !t.events || !t.events.length) return;
+  const rows = t.events.map((e) => {
+    const when = e.isTonight ? 'Tonight' : eventDay(e.date);
+    const who = e.artists && e.artists.length ? e.artists.join(', ') : e.name;
+    const cover = e.image
+      ? `<span class="evr-cover"><img src="${esc(e.image)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('noimg');this.remove()"/></span>`
+      : `<span class="evr-cover noimg">🎤</span>`;
+    return `<a class="evrow"${e.url ? ` href="${esc(e.url)}" target="_blank" rel="noopener"` : ''}>
+      ${cover}
+      <span class="evr-txt"><b>${when}${e.time ? ' · ' + esc(e.time) : ''}</b>
+        <span class="evr-name">${esc(who)}</span>
+        ${e.artists && e.artists.length && e.name !== who ? `<span class="evr-sub">${esc(e.name)}</span>` : ''}</span>
+      ${e.url ? '<span class="evr-go">Tickets ›</span>' : ''}</a>`;
+  }).join('');
+  const el = document.createElement('div');
+  el.className = 'rdetail-ov';
+  el.innerHTML = `<div class="rdetail-scrim"></div>
+    <div class="rdetail-card">
+      <div class="rdetail-head"><h3>This week · ${t.events.length} event${t.events.length === 1 ? '' : 's'}</h3><button class="msheet-x ev-x">✕</button></div>
+      <div class="evlist">${rows}</div>
+    </div>`;
+  document.body.appendChild(el);
+  const close = () => el.remove();
+  el.querySelector('.rdetail-scrim').onclick = close;
+  el.querySelector('.ev-x').onclick = close;
+}
+window.showVenueEvents = showVenueEvents;
 async function deleteMyReport(id) {
   if (!confirm('Delete your report? This removes your report and its photo from this venue.')) return;
   try {

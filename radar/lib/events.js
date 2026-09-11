@@ -23,20 +23,35 @@ function localDateOf(city, ref) {
   const d = new Date(ref + cityTz(city) * 3600 * 1000);
   return d.toISOString().slice(0, 10);
 }
+// pick a good wide cover from Ticketmaster's images (prefer 16:9, widest, non-fallback)
+function bestImage(images) {
+  if (!Array.isArray(images) || !images.length) return null;
+  const real = images.filter((i) => i && i.url && !i.fallback);
+  const pool = real.length ? real : images.filter((i) => i && i.url);
+  if (!pool.length) return null;
+  const wide = pool.filter((i) => i.ratio === '16_9');
+  const pick = (wide.length ? wide : pool).sort((a, b) => (b.width || 0) - (a.width || 0))[0];
+  return pick ? pick.url : null;
+}
 function fmtTime(t) { // "23:00:00" -> "11:00 PM"
   if (!t) return null;
   let [h, m] = t.split(':').map(Number); const ap = h >= 12 ? 'PM' : 'AM';
   h = h % 12 || 12; return `${h}${m ? ':' + String(m).padStart(2, '0') : ''} ${ap}`;
 }
 
-// The soonest upcoming event for a venue (today first), + whether it's tonight.
-export function upcomingFor(venueId, city, ref = Date.now()) {
+// Upcoming events for a venue (today first). Returns the soonest for the card
+// chip plus the full week's list (each with a Ticketmaster cover image) for the
+// "all events this week" modal. `full` includes the whole list; without it we
+// keep the payload light (soonest + count only) for the big /api/state response.
+export function upcomingFor(venueId, city, ref = Date.now(), full = false) {
   const list = CACHE[venueId]; if (!list || !list.length) return null;
   const today = localDateOf(city, ref);
   const future = list.filter((e) => e.date >= today).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
   if (!future.length) return null;
   const e = future[0];
-  return { name: e.name, artists: e.artists || [], time: e.time || null, url: e.url || null, date: e.date, isTonight: e.date === today, more: Math.max(0, future.length - 1) };
+  const out = { image: e.image || null, name: e.name, artists: e.artists || [], time: e.time || null, url: e.url || null, date: e.date, isTonight: e.date === today, count: future.length, more: Math.max(0, future.length - 1) };
+  if (full) out.events = future.map((x) => ({ image: x.image || null, name: x.name, artists: x.artists || [], time: x.time || null, url: x.url || null, date: x.date, isTonight: x.date === today }));
+  return out;
 }
 
 async function fetchCity(center, key, startISO, endISO) {
@@ -77,18 +92,25 @@ export async function refreshEvents(venues) {
         if (!tmV) continue;
         const loc = tmV.location ? { lat: +tmV.location.latitude, lng: +tmV.location.longitude } : null;
         const tmName = norm(tmV.name);
-        // match to one of our venues in this city: name hit, else closest within 400m
-        let best = null, bestKm = Infinity;
+        const isMusic = ((ev.classifications) || []).some((c) => c && c.segment && c.segment.name === 'Music');
+        // match to one of our venues: prefer a NAME match (that's genuinely an event
+        // AT this venue, so accept any type); otherwise a proximity match, but only
+        // for music/club events — so nearby tourist attractions (a zipline, an
+        // observation wheel across the street) never get attached to a nightclub.
+        let named = null, near = null, nearKm = Infinity;
         for (const v of vs) {
           const vn = norm(v.name);
           const nameHit = vn && tmName && (vn === tmName || (vn.length >= 4 && (tmName.includes(vn) || vn.includes(tmName))));
           const km = loc ? haversineKm(v.coords, loc) : Infinity;
-          if (nameHit && km < 3) { best = v; bestKm = 0; break; }
-          if (km < bestKm) { bestKm = km; best = v; }
+          if (nameHit && km < 3) { named = v; break; }
+          if (km < nearKm) { nearKm = km; near = v; }
         }
-        if (!best || bestKm > 0.4) continue; // no confident venue match → drop
+        let best = null;
+        if (named) best = named;
+        else if (isMusic && near && nearKm <= 0.2) best = near; // ~200m and it's a music event
+        if (!best) continue;
         const artists = ((ev._embedded && ev._embedded.attractions) || []).map((a) => a.name).filter(Boolean).slice(0, 4);
-        const rec = { date: ev.dates && ev.dates.start && ev.dates.start.localDate, time: fmtTime(ev.dates && ev.dates.start && ev.dates.start.localTime), name: ev.name, artists, url: ev.url || null };
+        const rec = { date: ev.dates && ev.dates.start && ev.dates.start.localDate, time: fmtTime(ev.dates && ev.dates.start && ev.dates.start.localTime), name: ev.name, artists, url: ev.url || null, image: bestImage(ev.images) };
         if (!rec.date) continue;
         (next[best.id] || (next[best.id] = [])).push(rec);
       }

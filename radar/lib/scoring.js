@@ -329,8 +329,9 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     source,
     open: openState.open,
     hours: { open: openState.open, source: openState.source, opensLabel: openState.opensLabel, closesLabel: openState.closesLabel, nextCloseLabel: openState.nextCloseLabel || null },
-    // tonight's real event/lineup (Ticketmaster), when we have a confident match
-    tonight: upcomingFor(venue.id, venue.city, ref),
+    // tonight's real event/lineup (Ticketmaster), when we have a confident match.
+    // The single-venue detail passes fullEvents so the card can list the whole week.
+    tonight: upcomingFor(venue.id, venue.city, ref, !!opts.fullEvents),
     // the venue's own timezone context so the app can label foreign hours as local
     tzOffset: cityTz(venue.city),
     localTime: (() => { const ln = new Date(ref + cityTz(venue.city) * 3600 * 1000); let h = ln.getUTCHours(); const m = ln.getUTCMinutes(); return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; })(),
