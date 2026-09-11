@@ -155,7 +155,7 @@ function sanitizeProfile(p) {
 // in which case the caller reveals the code to the client for testing.
 async function sendVerificationCode(email, code) {
   const key = process.env.RESEND_API_KEY;
-  const from = process.env.MAIL_FROM || 'Clubbit <onboarding@resend.dev>';
+  const from = process.env.MAIL_FROM || 'Clubbit <clubbit@clubbit.app>';
   if (!key) return { sent: false };
   try {
     const r = await fetch('https://api.resend.com/emails', {
