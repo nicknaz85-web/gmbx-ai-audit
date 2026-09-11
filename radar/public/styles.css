@@ -864,6 +864,6 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 @media (prefers-reduced-motion:reduce){.mk-pin::after{animation:none}.mk-loader span{animation:none}}
 
 /* venue card: "hours are in the venue's local time" note (foreign venues) */
-.vc-tznote{display:flex;align-items:center;gap:7px;margin-top:10px;font-size:12px;color:var(--muted);
-  background:var(--surface-3);border:1px solid var(--line);border-radius:10px;padding:8px 11px;line-height:1.35}
-.vc-tznote svg{flex:none;color:var(--primary)}
+.vc-tznote{display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:12px;color:var(--muted);
+  background:var(--surface-3);border:1px solid var(--line);border-radius:10px;padding:9px 12px;line-height:1.5}
+.vc-tznote svg{flex:none;color:var(--primary);margin-top:2px}

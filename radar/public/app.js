@@ -838,7 +838,7 @@ function renderVenue(v) {
   // shown in the VENUE's local time (so "opens 11 PM Fri" is the club's time)
   const userOff = -new Date().getTimezoneOffset() / 60;
   const tzNote = (v.tzOffset != null && v.hours && Math.round(v.tzOffset) !== Math.round(userOff))
-    ? `<div class="vc-tznote"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Hours shown in the venue's local time · it's ${esc(v.localTime || '')} there now</div>`
+    ? `<div class="vc-tznote"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Hours shown in the venue's local time<br>It's ${esc(v.localTime || '')} there now</span></div>`
     : '';
 
   $('#venueCard').innerHTML = `
