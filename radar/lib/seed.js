@@ -12,6 +12,7 @@ import { BAKED_PLACES } from './baked-places.js'; // real ratings + reviews + de
 import { BAKED_INSTAGRAM } from './baked-instagram.js'; // resolved Instagram profile URLs
 import { BAKED_HOURS } from './baked-hours.js'; // real weekly opening-hours schedules
 import { BAKED_PHOTOS } from './baked-photos.js'; // first Google photo per venue (keyless URL)
+import { KIND_OVERRIDES } from './baked-kinds.js'; // kind/category corrections verified vs Google primaryType
 import { cityTz } from './hours.js'; // per-city UTC offset so night curves read local time
 
 // Athens nightlife districts. `center` drives the stylized map projection and
@@ -1566,11 +1567,14 @@ export function seed() {
   const seenIds = new Set();
   db.venues = VENUE_DEFS.map(([name, hood, category, kind, capacity, peakOffset, peakRate, price, sim, verified, lgbtq, ig], i) => {
     const n = NEIGHBORHOODS.find((x) => x.id === hood);
-    const peakHour = peakHourFor(kind, category, n.city, peakOffset); // culture + type aware
     // stable id from name+hood so adding/removing venues never shifts other ids
     let id = slugify(name) + '_' + hood;
     while (seenIds.has(id)) id += '_2';
     seenIds.add(id);
+    // apply Google-verified kind/category corrections before anything derives from them
+    const ov = KIND_OVERRIDES[id];
+    if (ov) { if (ov.kind) kind = ov.kind; if (ov.category) category = ov.category; }
+    const peakHour = peakHourFor(kind, category, n.city, peakOffset); // culture + type aware
     return {
       id,
       name,

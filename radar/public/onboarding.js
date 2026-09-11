@@ -439,10 +439,15 @@
     fillWheel(wheel, range(1, n).map(String), String(wsel.d));
   }
   function fillWheel(wheel, items, selectedVal) {
+    const idx = Math.max(0, items.indexOf(selectedVal));
     wheel.innerHTML = '<div class="pad"></div>' + items.map((v) => `<div class="w-item" data-v="${v}">${v}</div>`).join('') + '<div class="pad"></div>';
     wheel._items = items;
-    const idx = Math.max(0, items.indexOf(selectedVal));
-    requestAnimationFrame(() => { wheel.scrollTop = idx * 40; markWheel(wheel); });
+    // position synchronously BEFORE the browser paints so the day column never
+    // flashes at "1" and jumps — reading scrollHeight forces the needed layout
+    void wheel.scrollHeight;
+    wheel.scrollTop = idx * 40; markWheel(wheel);
+    // safety net for the very first build, when layout may not be ready yet
+    requestAnimationFrame(() => { if (Math.abs(wheel.scrollTop - idx * 40) > 1) wheel.scrollTop = idx * 40; markWheel(wheel); });
   }
   function markWheel(wheel) {
     const idx = Math.round(wheel.scrollTop / 40);

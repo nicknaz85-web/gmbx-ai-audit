@@ -428,6 +428,18 @@ class RadarMap {
     }
     this.zoomed = false; const zr = document.getElementById('zoomReset'); if (zr) zr.hidden = true;
   }
+  // Frame a set of venues (e.g. search results) so their pins are actually on
+  // screen — otherwise a search for an area lists results in the sheet but the
+  // map stays on your location and looks empty.
+  fitToVenues(vs) {
+    if (!this.map || !this._ready || !vs || !vs.length) return;
+    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180, n = 0;
+    for (const v of vs) { const c = v.coords; if (!c) continue; n++; minLat = Math.min(minLat, c.lat); maxLat = Math.max(maxLat, c.lat); minLng = Math.min(minLng, c.lng); maxLng = Math.max(maxLng, c.lng); }
+    if (!n) return;
+    if (maxLat - minLat < 0.01 && maxLng - minLng < 0.01) { this.flyToLatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2, 13.5); }
+    else this.map.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 56, duration: 700, maxZoom: 14 });
+    this.zoomed = true; const zr = document.getElementById('zoomReset'); if (zr) zr.hidden = false;
+  }
   focusArea(area) {
     if (this.map && this._ready) this.map.flyTo({ center: [area.center.lng, area.center.lat], zoom: 15.5, duration: 800 });
     this.zoomed = true; const zr = document.getElementById('zoomReset'); if (zr) zr.hidden = false;
@@ -1317,7 +1329,7 @@ async function refresh() {
     updateChrome();
   } catch (e) { console.error(e); }
 }
-let _rt;
+let _rt, _searchFlyT;
 function refreshSoon() { clearTimeout(_rt); _rt = setTimeout(refresh, 900); }
 
 // Count the "notifications worth showing" — currently-OPEN nearby picks only.
@@ -1645,6 +1657,7 @@ const RTL_LANGS = ['ar', 'he', 'fa', 'ur'];
 const I18N = {
   en: { settings: 'Settings', appearance: 'Appearance', light: 'Light', dark: 'Dark', language: 'Language',
     signOut: 'Sign out', deleteAccount: 'Delete account', editProfile: 'Edit profile', changePhoto: 'Change photo',
+    contactSupport: 'Contact support', reportIssue: 'Report an issue',
     removePhoto: 'Remove photo (use default)', profile: 'Profile', reports: 'Reports', photos: 'Photos',
     contributions: 'contributions to the radar', yourPhotos: 'Your photos & videos', noPhotos: "You haven't added any photos yet.",
     yourReports: 'Your reports', noReports: "You haven't reported yet. Report the vibe at a venue to build your overview.",
@@ -1745,6 +1758,18 @@ function renderSettings() {
       </button>
     </div>
     <div class="setgrp">
+      <button class="setrow" id="setSupport">
+        <span class="sr-ic">${gear('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>')}</span>
+        <span class="sr-main"><span class="sr-label">${t('contactSupport')}</span></span>
+        <span class="sr-val">${chev}</span>
+      </button>
+      <button class="setrow" id="setReport">
+        <span class="sr-ic">${gear('<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>')}</span>
+        <span class="sr-main"><span class="sr-label">${t('reportIssue')}</span></span>
+        <span class="sr-val">${chev}</span>
+      </button>
+    </div>
+    <div class="setgrp">
       <button class="setrow" id="setSignOut">
         <span class="sr-ic">${gear('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>')}</span>
         <span class="sr-main"><span class="sr-label">${t('signOut')}</span></span>
@@ -1758,8 +1783,24 @@ function renderSettings() {
     applyTheme(b.dataset.themeSet); renderSettings();
   });
   $('#setLangRow').onclick = openLanguage;
+  $('#setSupport').onclick = () => openMail(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Clubbit — Support')}`);
+  $('#setReport').onclick = () => {
+    const diag = `\n\n———————\n(please keep the details below — they help us debug)\nApp: Clubbit\nPlatform: ${navigator.platform || ''}\n${navigator.userAgent || ''}`;
+    openMail(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Clubbit — Issue report')}&body=${encodeURIComponent('What went wrong?\n' + diag)}`);
+  };
   $('#setSignOut').onclick = doSignOut;
   $('#setDelete').onclick = doDeleteAccount;
+}
+// support inbox for the in-app "Contact support" / "Report an issue" links.
+// mailto opens the phone's default mail app (Gmail on most Androids) with the
+// address + subject prefilled. Change SUPPORT_EMAIL to reroute both links.
+const SUPPORT_EMAIL = 'clubbit@clubbit.app';
+function openMail(href) {
+  try {
+    const a = document.createElement('a');
+    a.href = href; a.target = '_blank'; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) { try { window.location.href = href; } catch (_) {} }
 }
 function openLanguage() {
   const body = $('#langBody'); if (!body) return;
@@ -2006,7 +2047,17 @@ function initUI() {
   $('#searchBtn').addEventListener('click', () => {
     openSheet('near'); $('#sheetSearch').hidden = false; $('#searchInput').focus();
   });
-  $('#searchInput').addEventListener('input', (e) => { S.query = e.target.value; renderSheet(); });
+  $('#searchInput').addEventListener('input', (e) => {
+    S.query = e.target.value; renderSheet();
+    // move the map to the matches so an area/country search actually shows pins
+    clearTimeout(_searchFlyT);
+    _searchFlyT = setTimeout(() => {
+      const q = (S.query || '').trim();
+      if (q.length < 2 || !S.data) return; // don't fly to the whole globe on one letter
+      const matches = S.data.venues.filter(venueMatches);
+      if (matches.length) map.fitToVenues(matches);
+    }, 420);
+  });
 
   // floating buttons
   $('#locateFab').addEventListener('click', recenterToMe);
