@@ -867,3 +867,15 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .vc-tznote{display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:12px;color:var(--muted);
   background:var(--surface-3);border:1px solid var(--line);border-radius:10px;padding:9px 12px;line-height:1.5}
 .vc-tznote svg{flex:none;color:var(--primary);margin-top:2px}
+
+/* tonight's real lineup (Ticketmaster) on the venue card */
+.vc-event{display:flex;align-items:center;gap:10px;margin-top:10px;padding:11px 13px;
+  border-radius:12px;text-decoration:none;color:inherit;
+  background:linear-gradient(100deg,color-mix(in srgb,var(--primary) 20%,var(--surface-2)),var(--surface-2));
+  border:1px solid color-mix(in srgb,var(--primary) 38%,var(--line))}
+.vc-event .ve-ic{font-size:18px;flex:none}
+.vc-event .ve-txt{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.vc-event .ve-txt b{font-size:12px;color:var(--primary);font-weight:700;letter-spacing:.2px}
+.vc-event .ve-name{font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vc-event .ve-more{font-size:11px;color:var(--muted)}
+.vc-event .ve-go{flex:none;font-size:12px;font-weight:700;color:var(--primary);white-space:nowrap}

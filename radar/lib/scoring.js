@@ -7,6 +7,7 @@ import { expectedRate, dayFactor } from './seed.js';
 import { computeReportConfidence, inflationPenalty, getUser } from './reputation.js';
 import { getBusyness } from './besttime.js';
 import { resolveOpen, cityTz } from './hours.js';
+import { upcomingFor } from './events.js';
 import { getPlace } from './places.js';
 import { currencyInfo, formatMoney } from './money.js';
 import {
@@ -328,6 +329,8 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     source,
     open: openState.open,
     hours: { open: openState.open, source: openState.source, opensLabel: openState.opensLabel, closesLabel: openState.closesLabel, nextCloseLabel: openState.nextCloseLabel || null },
+    // tonight's real event/lineup (Ticketmaster), when we have a confident match
+    tonight: upcomingFor(venue.id, venue.city, ref),
     // the venue's own timezone context so the app can label foreign hours as local
     tzOffset: cityTz(venue.city),
     localTime: (() => { const ln = new Date(ref + cityTz(venue.city) * 3600 * 1000); let h = ln.getUTCHours(); const m = ln.getUTCMinutes(); return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; })(),

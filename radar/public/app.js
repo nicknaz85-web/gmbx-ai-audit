@@ -708,6 +708,8 @@ const LEVELS = [
   { min: 30, name: 'Insider',  emoji: '🌟' },
   { min: 50, name: 'Legend',   emoji: '👑' },
 ];
+// 'YYYY-MM-DD' -> short weekday for a tonight/this-week event label
+function eventDay(d) { try { return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(d + 'T12:00:00').getDay()]; } catch (e) { return 'Soon'; } }
 function reportCount() { try { return +localStorage.getItem('clubbit_reports_count') || 0; } catch (e) { return 0; } }
 function setReportCount(n) { try { localStorage.setItem('clubbit_reports_count', String(n)); } catch (e) {} }
 function levelFor(n) {
@@ -853,6 +855,15 @@ function renderVenue(v) {
   const tzNote = (v.tzOffset != null && v.hours && Math.round(v.tzOffset) !== Math.round(userOff))
     ? `<div class="vc-tznote"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Hours shown in the venue's local time<br>It's ${esc(v.localTime || '')} there now</span></div>`
     : '';
+  const eventBlock = v.tonight ? (() => {
+    const ev = v.tonight;
+    const when = ev.isTonight ? 'Tonight' : eventDay(ev.date);
+    const who = ev.artists && ev.artists.length ? ev.artists.join(', ') : ev.name;
+    return `<a class="vc-event"${ev.url ? ` href="${esc(ev.url)}" target="_blank" rel="noopener"` : ''}>
+      <span class="ve-ic">🎤</span>
+      <span class="ve-txt"><b>${when}${ev.time ? ' · ' + esc(ev.time) : ''}</b><span class="ve-name">${esc(who)}</span>${ev.more ? `<span class="ve-more">+${ev.more} more this week</span>` : ''}</span>
+      ${ev.url ? '<span class="ve-go">Tickets ›</span>' : ''}</a>`;
+  })() : '';
 
   $('#venueCard').innerHTML = `
   <div class="vc-grip"><span></span></div>
@@ -871,6 +882,7 @@ function renderVenue(v) {
       </div>
     </div>
     ${tzNote}
+    ${eventBlock}
 
     <div class="pr-block">
       <div class="pr-num" style="color:${bc.core}">${v.radar.score}</div>

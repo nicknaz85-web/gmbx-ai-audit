@@ -15,6 +15,7 @@ import { startSimulation } from './lib/simulate.js';
 import { refreshVenue as btRefresh, enabled as btEnabled } from './lib/besttime.js';
 import { refreshVenue as gpRefresh, refreshStale as gpRefreshStale, warmAll as gpWarmAll, warmInstagram as gpWarmIG, ensureInstagram as gpEnsureIG, isDefunct as gpIsDefunct, enabled as gpEnabled } from './lib/places.js';
 import { venueSnapshot, areaSnapshot, clusters, radarFeed, detectTransitions } from './lib/scoring.js';
+import { scheduleEvents } from './lib/events.js';
 import {
   getUser, refreshBadges, badgeLabel, screenCheckin, computeReportConfidence,
 } from './lib/reputation.js';
@@ -50,6 +51,8 @@ seed();
 // baked-places.js), so we no longer sweep Google Places on boot — that sweep
 // burned the daily API quota (and then failed). Set PLACES_LIVE=1 to re-enable.
 if (gpEnabled() && process.env.PLACES_LIVE) gpWarmAll(db.venues).catch(() => {});
+// self-updating "what's on tonight" per venue (Ticketmaster). No key → no-op.
+scheduleEvents(db.venues);
 // background: pre-resolve every venue's Instagram profile (throttled; not Google quota)
 gpWarmIG(db.venues).catch(() => {});
 
