@@ -1,8 +1,8 @@
 // events.js — self-updating "what's on tonight" per venue, from the Ticketmaster
-// Discovery API. We query ONCE PER CITY (not per venue) for upcoming music events,
+// Discovery API. We query ONCE PER CITY (not per venue) for ALL upcoming events,
 // then match each event's Ticketmaster venue to one of ours by name + proximity.
-// Refreshed on boot and every few hours. No key set → the whole thing is a no-op
-// and venues simply show no events (never fabricated data).
+// Refreshed on boot and once a day. No key set → the whole thing is a no-op and
+// venues simply show no events (never fabricated data).
 import { cityTz } from './hours.js';
 
 const TM = 'https://app.ticketmaster.com/discovery/v2/events.json';
@@ -40,7 +40,10 @@ export function upcomingFor(venueId, city, ref = Date.now()) {
 }
 
 async function fetchCity(center, key, startISO, endISO) {
-  const url = `${TM}?apikey=${encodeURIComponent(key)}&latlong=${center.lat.toFixed(4)},${center.lng.toFixed(4)}&radius=25&unit=km&classificationName=music&startDateTime=${startISO}&endDateTime=${endISO}&size=120&sort=date,asc`;
+  // no classification filter — pull ALL event types near the city; matching to one
+  // of our nightlife venues (by name + proximity) is what keeps results relevant,
+  // so a club night Ticketmaster tags as "Undefined"/comedy/etc. still comes through.
+  const url = `${TM}?apikey=${encodeURIComponent(key)}&latlong=${center.lat.toFixed(4)},${center.lng.toFixed(4)}&radius=25&unit=km&startDateTime=${startISO}&endDateTime=${endISO}&size=200&sort=date,asc`;
   try {
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
     if (!res.ok) return [];
@@ -96,9 +99,9 @@ export async function refreshEvents(venues) {
   } finally { refreshing = false; }
 }
 
-// Kick off on boot and every 6h (only when a key is configured).
+// Kick off on boot, then refresh once a day on its own (only when a key is set).
 export function scheduleEvents(venues) {
   if (!process.env.TICKETMASTER_KEY) return;
   refreshEvents(venues).catch(() => {});
-  setInterval(() => refreshEvents(venues).catch(() => {}), 6 * 3600 * 1000);
+  setInterval(() => refreshEvents(venues).catch(() => {}), 24 * 3600 * 1000);
 }
