@@ -54,11 +54,12 @@ export function upcomingFor(venueId, city, ref = Date.now(), full = false) {
   return out;
 }
 
-async function fetchCity(center, key, startISO, endISO) {
-  // no classification filter — pull ALL event types near the city; matching to one
+async function fetchArea(center, key, startISO, endISO, radiusKm) {
+  // no classification filter — pull ALL event types near the area; matching to one
   // of our nightlife venues (by name + proximity) is what keeps results relevant,
   // so a club night Ticketmaster tags as "Undefined"/comedy/etc. still comes through.
-  const url = `${TM}?apikey=${encodeURIComponent(key)}&latlong=${center.lat.toFixed(4)},${center.lng.toFixed(4)}&radius=25&unit=km&startDateTime=${startISO}&endDateTime=${endISO}&size=200&sort=date,asc`;
+  const r = Math.max(2, Math.min(50, Math.round(radiusKm)));
+  const url = `${TM}?apikey=${encodeURIComponent(key)}&latlong=${center.lat.toFixed(4)},${center.lng.toFixed(4)}&radius=${r}&unit=km&startDateTime=${startISO}&endDateTime=${endISO}&size=199&sort=date,asc`;
   try {
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
     if (!res.ok) return [];
@@ -67,36 +68,40 @@ async function fetchCity(center, key, startISO, endISO) {
   } catch { return []; }
 }
 
-// Build/refresh the cache from Ticketmaster. Groups venues by city, one query each.
+// Build/refresh the cache from Ticketmaster. Groups our venues by NEIGHBOURHOOD
+// (small areas → each query isn't crowded out by a big city's flood of concerts)
+// and queries Ticketmaster once per group, deduping each event to its best venue.
 export async function refreshEvents(venues) {
   const key = process.env.TICKETMASTER_KEY;
   if (!key || refreshing) return;
   refreshing = true;
   try {
-    // group our venues by city, with a representative centre
-    const cities = {};
+    // group by neighbourhood id (fall back to city) so each query covers a tight area
+    const groups = {};
     for (const v of venues) {
       if (!v.coords) continue;
-      (cities[v.city] || (cities[v.city] = [])).push(v);
+      const gid = v.neighborhood || v.city;
+      (groups[gid] || (groups[gid] = [])).push(v);
     }
     const now = Date.now();
     const startISO = new Date(now).toISOString().slice(0, 19) + 'Z';
     const endISO = new Date(now + 8 * 864e5).toISOString().slice(0, 19) + 'Z';
-    const next = {};
-    for (const [city, vs] of Object.entries(cities)) {
+    const chosen = {}; // ticketmaster eventId -> best { venueId, nameHit, km, ev }
+    for (const gid of Object.keys(groups)) {
+      const vs = groups[gid];
       const center = { lat: vs.reduce((s, v) => s + v.coords.lat, 0) / vs.length, lng: vs.reduce((s, v) => s + v.coords.lng, 0) / vs.length };
-      const events = await fetchCity(center, key, startISO, endISO);
-      await sleep(220); // stay well under Ticketmaster's 5 req/sec
+      let spread = 0; for (const v of vs) spread = Math.max(spread, haversineKm(center, v.coords));
+      const events = await fetchArea(center, key, startISO, endISO, spread + 3); // cover the hood + ~3km buffer
+      await sleep(180); // stay well under Ticketmaster's 5 req/sec
       for (const ev of events) {
         const tmV = ev._embedded && ev._embedded.venues && ev._embedded.venues[0];
-        if (!tmV) continue;
+        if (!tmV || !ev.id) continue;
         const loc = tmV.location ? { lat: +tmV.location.latitude, lng: +tmV.location.longitude } : null;
         const tmName = norm(tmV.name);
         const isMusic = ((ev.classifications) || []).some((c) => c && c.segment && c.segment.name === 'Music');
-        // match to one of our venues: prefer a NAME match (that's genuinely an event
-        // AT this venue, so accept any type); otherwise a proximity match, but only
-        // for music/club events — so nearby tourist attractions (a zipline, an
-        // observation wheel across the street) never get attached to a nightclub.
+        // best venue in this group for the event: NAME match (any event type) wins;
+        // otherwise a music event essentially AT one of our venues (≤250m), so nearby
+        // tourist attractions never attach to a club.
         let named = null, near = null, nearKm = Infinity;
         for (const v of vs) {
           const vn = norm(v.name);
@@ -105,15 +110,23 @@ export async function refreshEvents(venues) {
           if (nameHit && km < 3) { named = v; break; }
           if (km < nearKm) { nearKm = km; near = v; }
         }
-        let best = null;
-        if (named) best = named;
-        else if (isMusic && near && nearKm <= 0.2) best = near; // ~200m and it's a music event
-        if (!best) continue;
-        const artists = ((ev._embedded && ev._embedded.attractions) || []).map((a) => a.name).filter(Boolean).slice(0, 4);
-        const rec = { date: ev.dates && ev.dates.start && ev.dates.start.localDate, time: fmtTime(ev.dates && ev.dates.start && ev.dates.start.localTime), name: ev.name, artists, url: ev.url || null, image: bestImage(ev.images) };
-        if (!rec.date) continue;
-        (next[best.id] || (next[best.id] = [])).push(rec);
+        let venue = null, nameHit = false, km = Infinity;
+        if (named) { venue = named; nameHit = true; km = 0; }
+        else if (isMusic && near && nearKm <= 0.25) { venue = near; km = nearKm; }
+        if (!venue) continue;
+        // dedupe across groups: keep the strongest claim on each event
+        const cur = chosen[ev.id];
+        const better = !cur || (nameHit && !cur.nameHit) || (nameHit === cur.nameHit && km < cur.km);
+        if (better) chosen[ev.id] = { venueId: venue.id, nameHit, km, ev };
       }
+    }
+    const next = {};
+    for (const eid of Object.keys(chosen)) {
+      const { venueId, ev } = chosen[eid];
+      const artists = ((ev._embedded && ev._embedded.attractions) || []).map((a) => a.name).filter(Boolean).slice(0, 4);
+      const rec = { date: ev.dates && ev.dates.start && ev.dates.start.localDate, time: fmtTime(ev.dates && ev.dates.start && ev.dates.start.localTime), name: ev.name, artists, url: ev.url || null, image: bestImage(ev.images) };
+      if (!rec.date) continue;
+      (next[venueId] || (next[venueId] = [])).push(rec);
     }
     CACHE = next;
     lastRefresh = Date.now();
