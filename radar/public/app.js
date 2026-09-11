@@ -136,11 +136,11 @@ class RadarMap {
     setTimeout(() => { const sk = document.getElementById('mapSkeleton'); if (sk && !sk.classList.contains('gone')) { sk.classList.add('gone'); setTimeout(() => { try { sk.remove(); } catch (e) {} }, 550); } }, 10000);
   }
   _initMap() {
-    // slick DARK vector basemap, keyless (OpenFreeMap "Dark"): same streets/labels,
-    // dark theme — MapLibre GL renders it.
+    // keyless OpenFreeMap vector basemap that follows the app theme: "dark" in dark
+    // mode, light "positron" in light mode — MapLibre GL renders it.
     this.map = new maplibregl.Map({
       container: 'map',
-      style: 'https://tiles.openfreemap.org/styles/dark',
+      style: mapStyleFor(currentTheme()),
       center: [23.727, 37.978], zoom: 13, minZoom: 1, maxZoom: 18,
       attributionControl: false, dragRotate: false, pitchWithRotate: false,
       renderWorldCopies: true,
@@ -173,7 +173,7 @@ class RadarMap {
       this._tap(e.clientX - r.left, e.clientY - r.top);
     });
     const m = document.getElementById('map');
-    if (m) m.style.background = '#14151c';
+    if (m) m.style.background = currentTheme() === 'dark' ? '#14151c' : '#e9edf2';
     this._fallback = true; this._maybeHideSkeleton();
   }
   _resize() {
@@ -440,6 +440,13 @@ class RadarMap {
     else this.map.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 56, duration: 700, maxZoom: 14 });
     this.zoomed = true; const zr = document.getElementById('zoomReset'); if (zr) zr.hidden = false;
   }
+  // swap the basemap to match light/dark. DOM markers survive setStyle; the
+  // persistent 'style.load' listener re-enables the globe projection afterwards.
+  setTheme(mode) {
+    if (this._fallback) { const m = document.getElementById('map'); if (m) m.style.background = mode === 'dark' ? '#14151c' : '#e9edf2'; return; }
+    if (!this.map) return;
+    try { this.map.setStyle(mapStyleFor(mode)); } catch (e) {}
+  }
   focusArea(area) {
     if (this.map && this._ready) this.map.flyTo({ center: [area.center.lng, area.center.lat], zoom: 15.5, duration: 800 });
     this.zoomed = true; const zr = document.getElementById('zoomReset'); if (zr) zr.hidden = false;
@@ -606,10 +613,12 @@ function renderSheet() {
   } else if (S.tab === 'feed') {
     const title = S.userLoc ? 'Near you tonight' : 'Tonight';
     const nearEv = eventsNearYou();
+    const isNear = S.userLoc && nearEv[0] && nearEv[0]._dist != null && nearEv[0]._dist <= 60;
+    const evLabel = isNear ? 'near you' : 'tonight';
     const evBtn = nearEv.length
       ? `<button class="events-cta" onclick="showEventsNearYou()">
           <span class="ec-ic">🎫</span>
-          <span class="ec-txt"><b>${nearEv.length} event${nearEv.length === 1 ? '' : 's'} ${S.userLoc ? 'near you' : 'tonight'}</b><span>Live lineups from Ticketmaster</span></span>
+          <span class="ec-txt"><b>${nearEv.length} event${nearEv.length === 1 ? '' : 's'} ${evLabel}</b><span>Live lineups · tap to browse</span></span>
           <span class="ec-go">›</span></button>`
       : '';
     body.innerHTML = `<div class="section-h"><h3>${title} <span class="live-dot"></span></h3>
@@ -1728,11 +1737,14 @@ function applyLang(code) {
   document.documentElement.dir = RTL_LANGS.includes(code) ? 'rtl' : 'ltr';
 }
 function currentTheme() { try { return localStorage.getItem('clubbit_theme') || 'light'; } catch { return 'light'; } }
+// keyless OpenFreeMap basemap style matching the app theme (positron = clean light)
+function mapStyleFor(mode) { return 'https://tiles.openfreemap.org/styles/' + (mode === 'dark' ? 'dark' : 'positron'); }
 function applyTheme(mode) {
   try { localStorage.setItem('clubbit_theme', mode); } catch {}
   document.documentElement.setAttribute('data-theme', mode);
   const logo = document.getElementById('brandHome');
   if (logo) logo.src = mode === 'dark' ? '/mascot-dark.png' : '/mascot.png';
+  if (typeof map !== 'undefined' && map && map.setTheme) map.setTheme(mode); // switch the basemap too
 }
 
 // ---- full-screen profile show/hide ----
@@ -2045,7 +2057,11 @@ function eventsNearYou() {
   let vs = d.venues.filter((v) => v.tonight);
   if (S.userLoc) {
     vs.forEach((v) => { v._dist = haversineKm(S.userLoc, v.coords); });
-    vs = vs.filter((v) => v._dist <= 60).sort((a, b) => a._dist - b._dist);
+    vs.sort((a, b) => a._dist - b._dist);
+    const near = vs.filter((v) => v._dist <= 60);
+    // prefer events within 60km; if there are none nearby, still surface the closest
+    // ones (rows show the distance) so the feature is never hidden.
+    vs = near.length ? near : vs.slice(0, 25);
   } else {
     vs.sort((a, b) => (a.tonight.isTonight === b.tonight.isTonight) ? 0 : (a.tonight.isTonight ? -1 : 1));
   }
@@ -2073,7 +2089,7 @@ function showEventsNearYou() {
   el.className = 'rdetail-ov'; el.id = 'eventsNearOv';
   el.innerHTML = `<div class="rdetail-scrim"></div>
     <div class="rdetail-card">
-      <div class="rdetail-head"><h3>Events ${S.userLoc ? 'near you' : 'tonight'} · ${vs.length}</h3><button class="msheet-x ev-x">✕</button></div>
+      <div class="rdetail-head"><h3>Events ${(S.userLoc && vs[0] && vs[0]._dist != null && vs[0]._dist <= 60) ? 'near you' : 'tonight'} · ${vs.length}</h3><button class="msheet-x ev-x">✕</button></div>
       <div class="evlist">${rows}</div>
     </div>`;
   document.body.appendChild(el);
