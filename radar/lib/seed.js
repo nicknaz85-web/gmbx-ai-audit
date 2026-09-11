@@ -191,6 +191,10 @@ const NEIGHBORHOODS = [
   { id: 'santiago-bel',name: 'Bellavista',     city: 'Santiago',     center: { lat: -33.4330, lng: -70.6350 }, radius: 500, bestFor: ['Techno', 'Dancing'] },
   // ASIA
   { id: 'bangkok-sukh',name: 'Sukhumvit',      city: 'Bangkok',      center: { lat: 13.7400, lng: 100.5600 }, radius: 520, bestFor: ['Dancing', 'Late Night'] },
+  { id: 'phuket-bangla',name: 'Bangla Road',   city: 'Phuket',       center: { lat: 7.8930,  lng: 98.2966 },  radius: 420, bestFor: ['Dancing', 'Late Night'] },
+  { id: 'samui-chaweng',name: 'Chaweng Beach', city: 'Koh Samui',    center: { lat: 9.5333,  lng: 100.0620 }, radius: 460, bestFor: ['Dancing', 'Beach'] },
+  { id: 'phangan-haadrin',name: 'Haad Rin',    city: 'Koh Phangan',  center: { lat: 9.6790,  lng: 100.0680 }, radius: 440, bestFor: ['Beach', 'Late Night'] },
+  { id: 'kohtao-sairee',name: 'Sairee Beach',  city: 'Koh Tao',      center: { lat: 10.0977, lng: 99.8339 },  radius: 420, bestFor: ['Beach', 'Bars'] },
   { id: 'tokyo-shibuya',name: 'Shibuya',       city: 'Tokyo',        center: { lat: 35.6580, lng: 139.6980 }, radius: 520, bestFor: ['Techno', 'House'] },
   { id: 'tokyo-roppongi',name: 'Roppongi',     city: 'Tokyo',        center: { lat: 35.6640, lng: 139.7310 }, radius: 500, bestFor: ['Dancing', 'Hip-Hop'] },
   { id: 'osaka-namba', name: 'Namba',          city: 'Osaka',        center: { lat: 34.6690, lng: 135.5010 }, radius: 500, bestFor: ['Dancing', 'Techno'] },
@@ -1409,6 +1413,27 @@ const VENUE_DEFS = [
   ['Wuzao', 'chengdu', 'Bars', 'Bar', 180, 0, 8, 0, { mult: 1, trend: 0.6 }, true],
   // --- named + top-up (Google Places) ---
   ['Shamrock Irish Bar and Restaurant', 'chengdu', 'Bars', 'Bar', 180, 0, 9, 0, { mult: 1, trend: 0.6 }, true],
+  // --- discovered from Google Places ---
+  ['Nowhere', 'phangan-haadrin', 'Dancing', 'Club', 400, 0, 8, 10, { mult: 1, trend: 0.6 }, true],
+  ['Unclave Phangan', 'phangan-haadrin', 'Dancing', 'Club', 400, 0, 9, 10, { mult: 1, trend: 0.6 }, true],
+  ['Retro Mountain Jungle Club Phangan', 'phangan-haadrin', 'Dancing', 'Club', 400, 0, 13, 10, { mult: 1, trend: 0.6 }, true],
+  ['OXA - Jungle Party', 'phangan-haadrin', 'Dancing', 'Club', 400, 0, 18, 10, { mult: 1, trend: 0.6 }, true],
+  ['Waterfall Festival', 'phangan-haadrin', 'Dancing', 'Club', 400, 0, 14, 10, { mult: 1, trend: 0.6 }, true],
+  ['Sound Club Samui', 'samui-chaweng', 'Dancing', 'Club', 400, 0, 15, 10, { mult: 1, trend: 0.6 }, true],
+  ['The Green Mango', 'samui-chaweng', 'Dancing', 'Club', 400, 0, 17, 10, { mult: 1, trend: 0.6 }, true],
+  ['Sin By Night', 'samui-chaweng', 'Dancing', 'Club', 400, 0, 10, 10, { mult: 1, trend: 0.6 }, true],
+  ['Hush Bar', 'samui-chaweng', 'Dancing', 'Club', 400, 0, 13, 10, { mult: 1, trend: 0.6 }, true],
+  ['Sandbox - Pink Sand Beach Club', 'samui-chaweng', 'Dancing', 'Club', 400, 0, 10, 10, { mult: 1, trend: 0.6 }, true],
+  ['Queen\'s Cabaret', 'kohtao-sairee', 'Dancing', 'Club', 400, 0, 14, 10, { mult: 1, trend: 0.6 }, true],
+  ['AC Bar Beach Club', 'kohtao-sairee', 'Dancing', 'Club', 400, 0, 13, 10, { mult: 1, trend: 0.6 }, true],
+  ['Fishbowl Beach Bar', 'kohtao-sairee', 'Dancing', 'Club', 400, 0, 16, 10, { mult: 1, trend: 0.6 }, true],
+  ['Maya Beach Club Koh Tao', 'kohtao-sairee', 'Dancing', 'Club', 400, 0, 13, 10, { mult: 1, trend: 0.6 }, true],
+  ['Escobar Koh Tao', 'kohtao-sairee', 'Dancing', 'Club', 400, 0, 13, 10, { mult: 1, trend: 0.6 }, true],
+  ['AfroRoom Nightclub Phuket', 'phuket-bangla', 'Dancing', 'Club', 400, 0, 10, 10, { mult: 1, trend: 0.6 }, true],
+  ['Illuzion Phuket', 'phuket-bangla', 'Dancing', 'Club', 400, 0, 20, 10, { mult: 1, trend: 0.6 }, true],
+  ['BOA Nightclub Phuket', 'phuket-bangla', 'Dancing', 'Club', 400, 0, 12, 10, { mult: 1, trend: 0.6 }, true],
+  ['Armania Phuket', 'phuket-bangla', 'Dancing', 'Club', 400, 0, 15, 10, { mult: 1, trend: 0.6 }, true],
+  ['Hollywood Phuket', 'phuket-bangla', 'Dancing', 'Club', 400, 0, 10, 10, { mult: 1, trend: 0.6 }, true],
 ];
 
 function jitter(center, seed, spreadM = 140) {
@@ -1571,8 +1596,9 @@ export function seed() {
     let id = slugify(name) + '_' + hood;
     while (seenIds.has(id)) id += '_2';
     seenIds.add(id);
-    // apply Google-verified kind/category corrections before anything derives from them
-    const ov = KIND_OVERRIDES[id];
+    // apply Google-verified kind/category corrections before anything derives from
+    // them (CLUBBIT_RAW_KINDS lets the audit script see the un-overridden base kind)
+    const ov = process.env.CLUBBIT_RAW_KINDS ? null : KIND_OVERRIDES[id];
     if (ov) { if (ov.kind) kind = ov.kind; if (ov.category) category = ov.category; }
     const peakHour = peakHourFor(kind, category, n.city, peakOffset); // culture + type aware
     return {

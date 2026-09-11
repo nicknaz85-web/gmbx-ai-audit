@@ -843,7 +843,8 @@ function renderVenue(v) {
     ? `<span class="g-rating">★ ${v.google.rating}${v.google.ratings ? ` (${v.google.ratings})` : ''} Google</span>` : '';
   const openChip = v.hours
     ? `<span class="open-chip ${closed ? 'shut' : 'now'}">${closed
-        ? (v.season && v.season.closed ? 'Closed for the season · reopens ' + (v.season.reopen || v.hours.opensLabel) : 'Closed · opens ' + v.hours.opensLabel)
+        ? (v.season && v.season.closed ? 'Closed for the season · reopens ' + (v.season.reopen || v.hours.opensLabel)
+           : 'Closed · opens ' + v.hours.opensLabel + (v.hours.nextCloseLabel ? ' · till ' + v.hours.nextCloseLabel : ''))
         : 'Open now · till ' + v.hours.closesLabel}</span>` : '';
   const seasonTag = v.season ? `<span class="season-tag">☀️ ${esc(v.season.label)}</span>` : '';
   // when the venue is in a different timezone than you, make clear its hours are
@@ -1295,7 +1296,7 @@ const CITY_COUNTRY = {
   Montreal:'Canada', Toronto:'Canada', Vancouver:'Canada',
   'Mexico City':'Mexico', 'Cancún':'Mexico', Tulum:'Mexico', 'Panama City':'Panama', 'San José':'Costa Rica', 'Guatemala City':'Guatemala', 'San Salvador':'El Salvador', Havana:'Cuba', 'San Juan':'Puerto Rico',
   'Bogotá':'Colombia', 'Medellín':'Colombia', Cartagena:'Colombia', Lima:'Peru', Santiago:'Chile', 'Buenos Aires':'Argentina', Montevideo:'Uruguay', 'São Paulo':'Brazil', 'Rio de Janeiro':'Brazil', 'Camboriú':'Brazil',
-  Bangkok:'Thailand', 'Ho Chi Minh City':'Vietnam', Hanoi:'Vietnam', Tokyo:'Japan', Osaka:'Japan', Seoul:'South Korea', Singapore:'Singapore', 'Kuala Lumpur':'Malaysia', Bali:'Indonesia', Jakarta:'Indonesia', Manila:'Philippines',
+  Bangkok:'Thailand', Phuket:'Thailand', 'Koh Samui':'Thailand Islands', 'Koh Phangan':'Thailand Islands Full Moon', 'Koh Tao':'Thailand Islands', 'Ho Chi Minh City':'Vietnam', Hanoi:'Vietnam', Tokyo:'Japan', Osaka:'Japan', Seoul:'South Korea', Singapore:'Singapore', 'Kuala Lumpur':'Malaysia', Bali:'Indonesia', Jakarta:'Indonesia', Manila:'Philippines',
   Shanghai:'China', Beijing:'China', Chengdu:'China', Shenzhen:'China', 'Hong Kong':'Hong Kong', Taipei:'Taiwan',
   Mumbai:'India', Delhi:'India', Bangalore:'India', Goa:'India', Tashkent:'Uzbekistan', Almaty:'Kazakhstan',
   'Cape Town':'South Africa', Johannesburg:'South Africa', Durban:'South Africa', Lagos:'Nigeria', Nairobi:'Kenya', Marrakech:'Morocco', Casablanca:'Morocco', Cairo:'Egypt', Dakar:'Senegal', Accra:'Ghana', 'Addis Ababa':'Ethiopia',
@@ -1853,10 +1854,13 @@ async function renderProfile() {
       <div class="sk" style="height:15px;margin:15px 0;border-radius:6px"></div>
     </div>`;
   // refresh in the background; repaint if the tab is still open
-  let me;
-  try { me = await API.me(); } catch { me = _meCache || { reportsMade: 0, photos: 0, badges: [], media: [], reports: [] }; }
+  let me, ok = false;
+  try { me = await API.me(); ok = true; } catch { me = _meCache || { reportsMade: 0, photos: 0, badges: [], media: [], reports: [] }; }
   if (S.tab !== 'profile') return;
   _meCache = me;
+  // keep the level counter in step with the server's authoritative total, which
+  // ignores reports deleted within 24h — so the level reflects the same rule.
+  if (ok && typeof me.reportsMade === 'number') setReportCount(me.reportsMade);
   paintProfile(me);
 }
 function paintProfile(me) {
@@ -1986,7 +1990,9 @@ async function deleteMyReport(id) {
   try {
     const r = await API.deleteReport(id);
     if (r && r.ok) {
-      try { setReportCount(Math.max(0, reportCount() - 1)); } catch (e) {}
+      // don't blindly decrement the level here — the server decides whether the
+      // point rolls back (only if the report was younger than 24h); renderProfile
+      // re-fetches and syncs the level counter to that authoritative total.
       toast('Report deleted');
       if (S.tab === 'profile') renderProfile();       // refresh the profile overview
       else if (S.activeVenue) openVenue(S.activeVenue); // or reload the venue card

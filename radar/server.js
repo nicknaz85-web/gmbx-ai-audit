@@ -505,9 +505,11 @@ async function api(req, res, url) {
     if (!m) return send(res, 404, { error: 'not found' });
     if (m.uHash !== id.uHash) return send(res, 403, { error: 'not your photo' });
     db.media = db.media.filter((x) => x.id !== m.id);
-    const hadReport = db.reports.some((r) => r.mediaId === m.id);
+    const linked = db.reports.find((r) => r.mediaId === m.id);
     db.reports = db.reports.filter((r) => r.mediaId !== m.id); // remove the linked report
-    if (hadReport) { const u = getUser(id.uHash); u.reports = Math.max(0, u.reports - 1); } // roll the contribution count back
+    // a report only "locks in" a level point after it has stood for 24h — deleting
+    // within 24h rolls the contribution back; deleting later keeps the point.
+    if (linked && now() - linked.ts < 24 * 3600 * 1000) { const u = getUser(id.uHash); u.reports = Math.max(0, u.reports - 1); }
     try { fs.unlinkSync(path.join(MEDIA_DIR, m.id + '.' + m.ext)); } catch (e) { /* file may already be gone */ }
     saveSnapshotSoon();
     return send(res, 200, { ok: true });
@@ -520,7 +522,8 @@ async function api(req, res, url) {
     if (!r) return send(res, 404, { error: 'not found' });
     if (r.uHash !== id.uHash) return send(res, 403, { error: 'not your report' });
     db.reports = db.reports.filter((x) => x.id !== r.id);
-    { const u = getUser(id.uHash); u.reports = Math.max(0, u.reports - 1); } // roll the contribution count back
+    // only roll the level point back if the report is younger than 24h (see media/delete)
+    if (now() - r.ts < 24 * 3600 * 1000) { const u = getUser(id.uHash); u.reports = Math.max(0, u.reports - 1); }
     if (r.mediaId) {
       const m = db.media.find((x) => x.id === r.mediaId);
       db.media = db.media.filter((x) => x.id !== r.mediaId);

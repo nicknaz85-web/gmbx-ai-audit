@@ -16,6 +16,7 @@ if (!KEY) { console.error('No GOOGLE_PLACES_KEY in .env'); process.exit(1); }
 const ALL = process.argv.includes('--all');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+process.env.CLUBBIT_RAW_KINDS = '1'; // see venues' base kind, not the overridden one
 const { db } = await import('../lib/store.js');
 const seedMod = await import('../lib/seed.js');
 seedMod.seed();
@@ -64,9 +65,10 @@ const candidates = db.venues.filter((v) => {
 });
 console.log(`Auditing ${candidates.length} venues${ALL ? ' (--all)' : ' (name/kind mismatches)'}…`);
 
-// keep any overrides that already exist so re-runs are additive
+// a full (--all) pass is authoritative and regenerates from scratch; a targeted
+// pass merges into the existing map so it stays additive.
 let existing = {};
-try { const src = readFileSync(path.join(LIB, 'baked-kinds.js'), 'utf8'); const m = src.match(/=\s*(\{[\s\S]*\});/); if (m) existing = JSON.parse(m[1]); } catch {}
+if (!ALL) { try { const src = readFileSync(path.join(LIB, 'baked-kinds.js'), 'utf8'); const m = src.match(/=\s*(\{[\s\S]*\});/); if (m) existing = JSON.parse(m[1]); } catch {} }
 
 const overrides = { ...existing };
 let changed = 0, checked = 0;

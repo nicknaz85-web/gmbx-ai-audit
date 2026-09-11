@@ -200,7 +200,10 @@ function scheduleOpen(venue, ref) {
     opensLabel = `${DAY_NAMES[nn.day]} ${fmtHour(openH)}`;
   }
 
-  return { open, source: 'schedule', opensLabel, closesLabel: fmtHour(closeH) };
+  const closeLbl = fmtHour(closeH);
+  // closesLabel only when open (that's the "till X" while open); nextCloseLabel is
+  // always the night's closing time so a closed venue can still show its hours.
+  return { open, source: 'schedule', opensLabel, closesLabel: open ? closeLbl : null, nextCloseLabel: closeLbl };
 }
 
 // A "nightlife" opening period: starts in the evening, or runs past midnight,
@@ -225,7 +228,7 @@ function openFromPeriods(periods, venue, ref) {
   const nowWM = dow * 1440 + d.getUTCHours() * 60 + d.getUTCMinutes();
   // callers guard against empty periods (see resolveOpen) — always non-empty here
   let open = false, curCloseWM = null;
-  let next = null; // soonest upcoming open: { delta, day, hour }
+  let next = null; // soonest upcoming open: { delta, day, hour, closeWM }
   for (const p of periods) {
     if (!p.open) continue;
     const oWM = p.open.day * 1440 + p.open.hour * 60 + (p.open.minute || 0);
@@ -237,17 +240,20 @@ function openFromPeriods(periods, venue, ref) {
       if (t >= oWM && t < cWM) { open = true; curCloseWM = cWM; }
     }
     const delta = ((oWM - nowWM) % WEEK_MIN + WEEK_MIN) % WEEK_MIN;
-    if (!next || delta < next.delta) next = { delta, day: p.open.day, hour: p.open.hour + (p.open.minute || 0) / 60 };
+    if (!next || delta < next.delta) next = { delta, day: p.open.day, hour: p.open.hour + (p.open.minute || 0) / 60, closeWM: cWM };
   }
 
   if (open) {
-    return { open: true, source: 'google', opensLabel: null, closesLabel: fmtHour((curCloseWM % 1440) / 60) };
+    const cl = fmtHour((curCloseWM % 1440) / 60);
+    return { open: true, source: 'google', opensLabel: null, closesLabel: cl, nextCloseLabel: cl };
   }
   // closed now → label the next opening (prefix the weekday when it's not today)
+  // and, so every venue can show a closing time, the close of that next opening.
   const opensLabel = next
     ? (next.day !== dow ? DAY_NAMES[next.day] + ' ' : '') + fmtHour(next.hour)
     : null;
-  return { open: false, source: 'google', opensLabel, closesLabel: null };
+  const nextCloseLabel = next ? fmtHour((next.closeWM % 1440) / 60) : null;
+  return { open: false, source: 'google', opensLabel, closesLabel: null, nextCloseLabel };
 }
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
