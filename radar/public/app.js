@@ -605,16 +605,26 @@ function renderSheet() {
       (vs.length ? vs.map(venueRow).join('') : '<div class="empty">No saved spots yet.<br>Open any venue and tap “☆ Save for later”.</div>');
   } else if (S.tab === 'feed') {
     const title = S.userLoc ? 'Near you tonight' : 'Tonight';
+    const nearEv = eventsNearYou();
+    const evBtn = nearEv.length
+      ? `<button class="events-cta" onclick="showEventsNearYou()">
+          <span class="ec-ic">🎫</span>
+          <span class="ec-txt"><b>${nearEv.length} event${nearEv.length === 1 ? '' : 's'} ${S.userLoc ? 'near you' : 'tonight'}</b><span>Live lineups from Ticketmaster</span></span>
+          <span class="ec-go">›</span></button>`
+      : '';
     body.innerHTML = `<div class="section-h"><h3>${title} <span class="live-dot"></span></h3>
-      <span class="count">${esc(S.locLabel || d.city || '')}</span></div>` + feedRows();
+      <span class="count">${esc(S.locLabel || d.city || '')}</span></div>` + evBtn + feedRows();
   }
 }
 
 // A "near you tonight" feed: nearby venues turned into actionable picks
 // (go now, opening soon, peaking), each with an Instagram link for tonight's
 // lineup/events. Built from the venues already loaded, ranked by proximity.
-function feedRows() {
-  const d = S.data; if (!d) return '';
+// The single source of truth for the "Near you tonight" feed. Returns an ordered
+// list of { v, emoji, text, sub } picks. Both the rendered feed AND the bell badge
+// count use this, so the number on the bell always equals the rows you see.
+function feedItems() {
+  const d = S.data; if (!d) return [];
   let vs = [...d.venues];
   if (S.userLoc) {
     vs.forEach((v) => { v._dist = haversineKm(S.userLoc, v.coords); });
@@ -622,21 +632,10 @@ function feedRows() {
     vs = near.length ? near : vs.sort((a, b) => a._dist - b._dist).slice(0, 20);
   }
   const seen = new Set();
-  const rows = [];
+  const items = [];
   const add = (v, emoji, text, sub) => {
-    if (seen.has(v.id) || rows.length >= 14) return; seen.add(v.id);
-    // show the club's photo when we have one; fall back to the coloured emoji tile
-    const ic = v.googlePhoto
-      ? `<div class="feed-ic photo"><img src="${esc(v.googlePhoto)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('photo');this.parentNode.style.background='${BAND_COLOR[bandKey(v.radar.score)].core}';this.replaceWith(document.createTextNode('${emoji}'))" /><span class="feed-ic-tag">${emoji}</span></div>`
-      : `<div class="feed-ic" style="background:${BAND_COLOR[bandKey(v.radar.score)].core}">${emoji}</div>`;
-    rows.push(`<div class="feed-item" onclick="rowClick('${v.id}')">
-      ${ic}
-      <div class="feed-txt"><b>${esc(text)}</b>
-        <div class="fsub">${esc(sub)}</div>
-        ${v.instagram ? `<button class="feed-ig" onclick="event.stopPropagation();openInsta('${v.id}')">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/></svg>
-          What's on tonight</button>` : ''}</div>
-    </div>`);
+    if (seen.has(v.id) || items.length >= 14) return; seen.add(v.id);
+    items.push({ v, emoji, text, sub });
   };
   const openV = vs.filter((v) => v.open).sort((a, b) => b.radar.score - a.radar.score);
   const dist = (v) => v._dist != null ? ' · ' + distLabel(v._dist) : '';
@@ -653,7 +652,24 @@ function feedRows() {
   vs.filter((v) => !v.open && v.hours && v.hours.opensLabel)
     .sort((a, b) => b.radar.score - a.radar.score).slice(0, 5)
     .forEach((v) => add(v, '🌙', `${v.name} opens ${v.hours.opensLabel}`, `${v.neighborhoodName}${v.dress ? ' · ' + v.dress.code : ''}${dist(v)}`));
-  return rows.length ? rows.join('') : '<div class="empty">No venues near you right now — try zooming the map or picking a city.</div>';
+  return items;
+}
+function feedRows() {
+  const items = feedItems();
+  if (!items.length) return '<div class="empty">No venues near you right now — try zooming the map or picking a city.</div>';
+  return items.map(({ v, emoji, text, sub }) => {
+    const ic = v.googlePhoto
+      ? `<div class="feed-ic photo"><img src="${esc(v.googlePhoto)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('photo');this.parentNode.style.background='${BAND_COLOR[bandKey(v.radar.score)].core}';this.replaceWith(document.createTextNode('${emoji}'))" /><span class="feed-ic-tag">${emoji}</span></div>`
+      : `<div class="feed-ic" style="background:${BAND_COLOR[bandKey(v.radar.score)].core}">${emoji}</div>`;
+    return `<div class="feed-item" onclick="rowClick('${v.id}')">
+      ${ic}
+      <div class="feed-txt"><b>${esc(text)}</b>
+        <div class="fsub">${esc(sub)}</div>
+        ${v.instagram ? `<button class="feed-ig" onclick="event.stopPropagation();openInsta('${v.id}')">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/></svg>
+          What's on tonight</button>` : ''}</div>
+    </div>`;
+  }).join('');
 }
 
 /* ============================================================
@@ -1318,6 +1334,9 @@ const CITY_COUNTRY = {
   Shanghai:'China', Beijing:'China', Chengdu:'China', Shenzhen:'China', 'Hong Kong':'Hong Kong', Taipei:'Taiwan',
   Mumbai:'India', Delhi:'India', Bangalore:'India', Goa:'India', Tashkent:'Uzbekistan', Almaty:'Kazakhstan',
   'Cape Town':'South Africa', Johannesburg:'South Africa', Durban:'South Africa', Lagos:'Nigeria', Nairobi:'Kenya', Marrakech:'Morocco', Casablanca:'Morocco', Cairo:'Egypt', Dakar:'Senegal', Accra:'Ghana', 'Addis Ababa':'Ethiopia',
+  Kampala:'Uganda', 'Dar es Salaam':'Tanzania', Kigali:'Rwanda', Abidjan:'Ivory Coast', Tunis:'Tunisia', Luanda:'Angola', Maputo:'Mozambique', Zanzibar:'Tanzania', Mombasa:'Kenya', Harare:'Zimbabwe',
+  Managua:'Nicaragua', 'San Pedro Sula':'Honduras', 'Belize City':'Belize', 'Roatán':'Honduras', 'Bocas del Toro':'Panama', 'Antigua Guatemala':'Guatemala', 'León':'Nicaragua', 'Playa del Carmen':'Mexico',
+  Quito:'Ecuador', Guayaquil:'Ecuador', Caracas:'Venezuela', 'La Paz':'Bolivia', 'Córdoba':'Argentina', 'Florianópolis':'Brazil', Salvador:'Brazil', Cusco:'Peru', 'Valparaíso':'Chile', Cali:'Colombia',
   Sydney:'Australia', Melbourne:'Australia', Brisbane:'Australia', Perth:'Australia', Auckland:'New Zealand',
 };
 // a venue is "in view" if it's within the current map bounds — used so the
@@ -1351,25 +1370,13 @@ async function refresh() {
 let _rt, _searchFlyT;
 function refreshSoon() { clearTimeout(_rt); _rt = setTimeout(refresh, 900); }
 
-// Count the "notifications worth showing" — currently-OPEN nearby picks only.
-// Nothing is shown while nearby clubs are closed; once they open, the badge
-// reflects tonight's open picks (top pick + popping + peaking).
+// The bell badge counts exactly the feed items you'll see on click — but stays
+// hidden until at least one nearby club is actually OPEN (no count for a night
+// when everything nearby is still closed).
 function feedOpenCount() {
-  const d = S.data; if (!d) return 0;
-  let vs = [...d.venues];
-  if (S.userLoc) {
-    vs.forEach((v) => { v._dist = haversineKm(S.userLoc, v.coords); });
-    const near = vs.filter((v) => v._dist <= 40);
-    vs = near.length ? near : vs.sort((a, b) => a._dist - b._dist).slice(0, 20);
-  }
-  const openV = vs.filter((v) => v.open);
-  if (!openV.length) return 0;
-  const ids = new Set();
-  const top = openV.slice().sort((a, b) => b.radar.score - a.radar.score)[0];
-  if (top) ids.add(top.id);
-  openV.forEach((v) => { if (v.momentum && ['surging', 'exploding', 'heating'].includes(v.momentum.state)) ids.add(v.id); });
-  openV.forEach((v) => { if (v.expectedPeak) ids.add(v.id); });
-  return ids.size;
+  const items = feedItems();
+  if (!items.some((it) => it.v.open)) return 0;
+  return items.length;
 }
 function updateChrome() {
   const d = S.data; if (!d) return;
@@ -2032,6 +2039,51 @@ function showVenueEvents() {
   el.querySelector('.ev-x').onclick = close;
 }
 window.showVenueEvents = showVenueEvents;
+// venues near the user that have a real Ticketmaster event, soonest/closest first
+function eventsNearYou() {
+  const d = S.data; if (!d) return [];
+  let vs = d.venues.filter((v) => v.tonight);
+  if (S.userLoc) {
+    vs.forEach((v) => { v._dist = haversineKm(S.userLoc, v.coords); });
+    vs = vs.filter((v) => v._dist <= 60).sort((a, b) => a._dist - b._dist);
+  } else {
+    vs.sort((a, b) => (a.tonight.isTonight === b.tonight.isTonight) ? 0 : (a.tonight.isTonight ? -1 : 1));
+  }
+  return vs;
+}
+// a scrollable list of tonight/this-week's events near the user (opens the venue)
+function showEventsNearYou() {
+  const vs = eventsNearYou(); if (!vs.length) return;
+  const rows = vs.map((v) => {
+    const ev = v.tonight;
+    const when = ev.isTonight ? 'Tonight' : eventDay(ev.date);
+    const who = ev.artists && ev.artists.length ? ev.artists.join(', ') : ev.name;
+    const cover = ev.image
+      ? `<span class="evr-cover"><img src="${esc(ev.image)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('noimg');this.remove()"/></span>`
+      : `<span class="evr-cover noimg">🎤</span>`;
+    const d = v._dist != null ? ' · ' + distLabel(v._dist) : '';
+    return `<div class="evrow" onclick="closeEventsNear();rowClick('${v.id}')">
+      ${cover}
+      <span class="evr-txt"><b>${when}${ev.time ? ' · ' + esc(ev.time) : ''}${ev.count > 1 ? ' · +' + (ev.count - 1) + ' more' : ''}</b>
+        <span class="evr-name">${esc(who)}</span>
+        <span class="evr-sub">${esc(v.name)} · ${esc(v.neighborhoodName)}${esc(d)}</span></span>
+      <span class="evr-go">View ›</span></div>`;
+  }).join('');
+  const el = document.createElement('div');
+  el.className = 'rdetail-ov'; el.id = 'eventsNearOv';
+  el.innerHTML = `<div class="rdetail-scrim"></div>
+    <div class="rdetail-card">
+      <div class="rdetail-head"><h3>Events ${S.userLoc ? 'near you' : 'tonight'} · ${vs.length}</h3><button class="msheet-x ev-x">✕</button></div>
+      <div class="evlist">${rows}</div>
+    </div>`;
+  document.body.appendChild(el);
+  const close = () => el.remove();
+  el.querySelector('.rdetail-scrim').onclick = close;
+  el.querySelector('.ev-x').onclick = close;
+}
+function closeEventsNear() { const el = document.getElementById('eventsNearOv'); if (el) el.remove(); }
+window.showEventsNearYou = showEventsNearYou;
+window.closeEventsNear = closeEventsNear;
 async function deleteMyReport(id) {
   if (!confirm('Delete your report? This removes your report and its photo from this venue.')) return;
   try {

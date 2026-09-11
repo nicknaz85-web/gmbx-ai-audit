@@ -893,3 +893,14 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .evr-name{font-size:14px;font-weight:650;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .evr-sub{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .evr-go{flex:none;font-size:12px;font-weight:700;color:var(--primary);white-space:nowrap}
+
+/* "Events near you" call-to-action in the Tonight feed */
+.events-cta{display:flex;align-items:center;gap:12px;width:100%;margin:4px 0 12px;padding:12px 14px;
+  border-radius:14px;text-align:left;font:inherit;cursor:pointer;color:var(--text);
+  background:linear-gradient(100deg,color-mix(in srgb,var(--primary) 26%,var(--surface-2)),var(--surface-2));
+  border:1px solid color-mix(in srgb,var(--primary) 42%,var(--line))}
+.events-cta .ec-ic{font-size:22px;flex:none}
+.events-cta .ec-txt{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0}
+.events-cta .ec-txt b{font-size:14px;font-weight:700}
+.events-cta .ec-txt span{font-size:12px;color:var(--muted)}
+.events-cta .ec-go{flex:none;font-size:20px;font-weight:700;color:var(--primary)}
