@@ -160,13 +160,23 @@ function handleMatchesVenue(name, city, handle) {
   const acro = toks.map((t) => t[0]).join('');
   return acro.length >= 2 && h.includes(acro);
 }
+// A bare, short single-word handle (no venue-specific suffix) probably belongs to
+// someone else, not this venue — e.g. "Pure" -> instagram.com/pure. Skip those so
+// the caller falls back to an Instagram search instead of a wrong profile.
+function handleTooGeneric(name, city, handle) {
+  const cityTok = new Set(normName(city).split(' ').filter(Boolean));
+  const toks = normName(name).split(' ').filter((w) => w.length > 1 && !IG_STOP.has(w) && !cityTok.has(w));
+  const h = handle.toLowerCase().replace(/[._]/g, '');
+  return toks.length <= 1 && h.length <= 6 && toks.includes(h);
+}
 // first non-junk instagram profile link that plausibly matches the venue name
 function pickIG(urls, name, city) {
   return urls.find((u) => {
     if (!/instagram\.com\/[A-Za-z0-9_.]+\/?$/.test(u)) return false;
     const h = igHandle(u);
     if (!h || IG_JUNK.has(h)) return false;
-    return !name || handleMatchesVenue(name, city || '', h);
+    if (!name) return true;
+    return handleMatchesVenue(name, city || '', h) && !handleTooGeneric(name, city || '', h);
   });
 }
 // Read a search-results page through the Jina reader proxy — it fetches from its

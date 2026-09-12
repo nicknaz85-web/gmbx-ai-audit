@@ -286,8 +286,10 @@ async function api(req, res, url) {
     let url = null;
     if (v) { try { url = await Promise.race([gpEnsureIG(v), new Promise((r) => setTimeout(() => r(null), 2500))]); } catch (e) {} }
     if (!url && v) {
-      const h = String(v.name).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '');
-      if (h) url = 'https://www.instagram.com/' + h + '/';
+      // no confidently-resolved handle → an Instagram search for the venue (with its
+      // city) so it lands on the RIGHT account instead of a wrong bare-name guess
+      const q = encodeURIComponent((v.name + ' ' + (v.city || '')).trim());
+      url = 'https://www.instagram.com/explore/search/keyword/?q=' + q;
     }
     if (!url) url = 'https://www.instagram.com/';
     res.writeHead(302, { Location: url });
