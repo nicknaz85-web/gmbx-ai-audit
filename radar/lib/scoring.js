@@ -158,7 +158,11 @@ function estimateQueue(venue, fullnessFrac) {
   if ((venue.price || 0) >= 25) door += 0.7;
   if (venue.peakRate >= 14) door += 0.5;   // popular room
   if (venue.peakRate >= 20) door += 0.5;   // marquee room
-  const mins = Math.round((f ** 1.6) * (10 + door * 12));
+  let mins = Math.round((f ** 1.45) * (10 + door * 12));
+  // selective / marquee doors (e.g. Berghain) hold a line whenever they're open —
+  // the wait is about the door, not just how full the room is — so floor them at a
+  // short queue once open. Closed venues are forced to "none" by the caller.
+  if (f > 0.02 && door >= 2) mins = Math.max(mins, door >= 3 ? 12 : 7);
   let bucket;
   if (mins < 4) bucket = 'none';
   else if (mins < 12) bucket = '<10';
@@ -258,8 +262,11 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
   // (like "usually busy at this time"), so fullness AND the door-queue estimate
   // actually reflect the time of night instead of reading near-empty.
   else fullnessFrac = clamp(0.25 * clamp(load) + 0.75 * expFrac);
-  // A closed venue is empty — don't claim a shut club is 63% full.
+  // A closed venue is empty — don't claim a shut club is 63% full. An OPEN one is
+  // never literally empty (someone's inside / at the door), which also lets a
+  // selective club show its standing line even at off-peak open hours.
   if (closed) fullnessFrac = 0;
+  else fullnessFrac = Math.max(fullnessFrac, 0.04);
   const fullnessEst = round(fullnessFrac * 100);
 
   // QUEUE — blend a reported queue (community/owner) with an estimate from how full
