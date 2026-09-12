@@ -52,14 +52,25 @@ function distLabel(km) {
   }
   return km < 1 ? Math.round(km * 1000) + ' m' : km < 10 ? km.toFixed(1) + ' km' : Math.round(km) + ' km';
 }
-// "Events near you" radius (km, or 'all' = no limit). Stepper values 10km → All.
-const EV_STEPS = [10, 20, 30, 50, 75, 100, 150, 250, 500, 'all'];
+// "Events near you" radius. Round step values PER UNIT (so miles are 5,10,20…,
+// not the direct 6,12,19… conversion). The radius is stored in km for filtering.
+const EV_STEPS_KM = [10, 20, 30, 50, 75, 100, 150, 250, 500, 'all'];
+const EV_STEPS_MI = [5, 10, 20, 30, 50, 75, 100, 150, 300, 'all'];
+function evSteps() { return currentUnits() === 'mi' ? EV_STEPS_MI : EV_STEPS_KM; }
+function stepToKm(step) { return step === 'all' ? 'all' : (currentUnits() === 'mi' ? Math.round(step * 1.60934) : step); }
+// closest round step (in the current unit) to a stored km value
+function kmToStep(km) {
+  if (km === 'all') return 'all';
+  const inUnit = currentUnits() === 'mi' ? km * 0.621371 : km;
+  const steps = evSteps().filter((s) => s !== 'all');
+  return steps.reduce((best, s) => Math.abs(s - inUnit) < Math.abs(best - inUnit) ? s : best, steps[0]);
+}
 function eventRadiusKm() { try { const v = localStorage.getItem('clubbit_ev_radius'); if (v === 'all') return 'all'; const n = +v; return Number.isFinite(n) && n > 0 ? n : 50; } catch { return 50; } }
 function setEventRadius(v) { try { localStorage.setItem('clubbit_ev_radius', v === 'all' ? 'all' : String(v)); } catch {} }
 function evRadiusLabel() {
-  const r = eventRadiusKm();
-  if (r === 'all') return 'All events';
-  return currentUnits() === 'mi' ? Math.round(r * 0.621371) + ' mi' : r + ' km';
+  const km = eventRadiusKm();
+  if (km === 'all') return 'All events';
+  return kmToStep(km) + (currentUnits() === 'mi' ? ' mi' : ' km');
 }
 function cityOf(v) { const a = (S.data.areas || []).find((x) => x.id === v.neighborhood); return (a && a.city) || v.neighborhoodName; }
 
@@ -1953,20 +1964,26 @@ function renderSettings() {
   $('#setLangRow').onclick = openLanguage;
   // events-near-you distance stepper (10km → All)
   const stepEv = (dir) => {
+    const steps = evSteps();
     const cur = eventRadiusKm();
-    let i = EV_STEPS.findIndex((s) => String(s) === String(cur));
-    if (i < 0) i = EV_STEPS.indexOf(50);
-    i = Math.max(0, Math.min(EV_STEPS.length - 1, i + dir));
-    setEventRadius(EV_STEPS[i]);
+    const curStep = cur === 'all' ? 'all' : kmToStep(cur);
+    let i = steps.findIndex((s) => String(s) === String(curStep));
+    if (i < 0) i = Math.max(0, steps.length - 4);
+    i = Math.max(0, Math.min(steps.length - 1, i + dir));
+    setEventRadius(stepToKm(steps[i]));
     const ev = $('#evVal'); if (ev) ev.textContent = evRadiusLabel();
-    if (S.tab === 'feed') renderSheet();
+    if (S.tab === 'feed' || S.tab === 'near') renderSheet();
   };
   { const m = $('#evMinus'), p = $('#evPlus'); if (m) m.onclick = () => stepEv(-1); if (p) p.onclick = () => stepEv(1); }
   // distance unit KM/MI — re-render everything that shows a distance
   $('#unitToggle') && $('#unitToggle').querySelectorAll('[data-unit]').forEach((b) => b.onclick = () => {
-    setUnits(b.dataset.unit); renderSettings();
+    setUnits(b.dataset.unit);
+    // snap the events radius to a round step in the NEW unit so it shows a clean
+    // number (e.g. 100 km → 50 mi), not the direct 62 mi conversion
+    const km = eventRadiusKm();
+    if (km !== 'all') setEventRadius(stepToKm(kmToStep(km)));
+    renderSettings();
     if (typeof renderSheet === 'function') renderSheet();
-    if (S.activeVenue && typeof openVenue === 'function') { /* refresh open card distance */ }
   });
   $('#setSupport').onclick = () => openMail(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Clubbit — Support')}`);
   $('#setReport').onclick = () => {
