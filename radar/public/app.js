@@ -329,13 +329,32 @@ class RadarMap {
     if (vis.length > CAP) vis = vis.slice().sort((a, b) => b.radar.score - a.radar.score).slice(0, CAP);
     return vis;
   }
-  // A count "cluster" bubble marker for a city — shows how many venues are there.
+  // Merge city clusters that sit within ~46px on screen into regional bubbles.
+  _mergeClusters(cities) {
+    const pts = [];
+    for (const c of cities) {
+      let x = -9999, y = -9999;
+      try { const p = this.map.project([c.center.lng, c.center.lat]); x = p.x; y = p.y; } catch (e) {}
+      pts.push({ c, x, y });
+    }
+    pts.sort((a, b) => b.c.n - a.c.n); // the biggest city leads (and names) its region
+    const PIX = 46, groups = [];
+    for (const p of pts) {
+      let g = null;
+      for (const gg of groups) { const dx = gg.x - p.x, dy = gg.y - p.y; if (dx * dx + dy * dy < PIX * PIX) { g = gg; break; } }
+      if (g) { g.n += p.c.n; g.members++; }
+      else groups.push({ id: 'reg_' + p.c.name, name: p.c.name, n: p.c.n, center: p.c.center, x: p.x, y: p.y, members: 1 });
+    }
+    return groups;
+  }
+  // A count "cluster" bubble marker — shows how many venues are in that city/region.
   _clusterFor(w) {
     const el = document.createElement('div');
     el.className = 'cluster';
     el.innerHTML = `<span class="cl-count">${w.n}</span>`;
-    el.title = `${w.name} · ${w.n} venue${w.n === 1 ? '' : 's'}`;
-    el.addEventListener('click', (ev) => { ev.stopPropagation(); if (this.map) this.map.flyTo({ center: [w.center.lng, w.center.lat], zoom: 11.8, duration: 900 }); });
+    el.title = `${w.name}${w.members > 1 ? ' + nearby' : ''} · ${w.n} venue${w.n === 1 ? '' : 's'}`;
+    // a merged region zooms out-to-in a step (fans into its cities); a single city dives in
+    el.addEventListener('click', (ev) => { ev.stopPropagation(); if (this.map) this.map.flyTo({ center: [w.center.lng, w.center.lat], zoom: (w.members > 1 ? Math.min(8.5, this.map.getZoom() + 3) : 11.8), duration: 900 }); });
     const m = new maplibregl.Marker({ element: el, anchor: 'center', opacityWhenCovered: '0' }).setLngLat([w.center.lng, w.center.lat]);
     m._el = el; return m;
   }
@@ -359,17 +378,22 @@ class RadarMap {
       else if (!this._clusterMode && z < 5.7) this._clusterMode = true;
       const clusterMode = this._clusterMode;
 
-      // ---- count bubbles (clusters) per city ----
+      // ---- count bubbles (clusters) ----
       const wantC = {};
       if (clusterMode) {
+        const inView = this._inViewFn();
         const g = {};
         for (const v of this.venues) {
           if (!venueMatches(v)) continue;
+          if (!inView(v.coords)) continue;                 // skip off-screen / far-side cities
           const c = v.city || '?';
           (g[c] || (g[c] = { lat: 0, lng: 0, n: 0, name: c }));
           g[c].lat += v.coords.lat; g[c].lng += v.coords.lng; g[c].n++;
         }
-        for (const c in g) wantC[c] = { name: c, n: g[c].n, center: { lat: g[c].lat / g[c].n, lng: g[c].lng / g[c].n } };
+        const cities = Object.keys(g).map((c) => ({ name: c, n: g[c].n, center: { lat: g[c].lat / g[c].n, lng: g[c].lng / g[c].n } }));
+        // merge cities within ~46px on screen into one regional bubble, so a world
+        // spin repositions a handful of markers instead of hundreds (smooth).
+        for (const m of this._mergeClusters(cities)) wantC[m.id] = m;
       }
       for (const id of Object.keys(this._clusterById)) {
         if (!wantC[id]) { this._clusterById[id].remove(); delete this._clusterById[id]; }
@@ -1429,6 +1453,9 @@ const CITY_COUNTRY = {
   Nassau:'Bahamas', Kingston:'Jamaica', 'Montego Bay':'Jamaica', Hamilton:'Bermuda', 'Santo Domingo':'Dominican Republic', 'Punta Cana':'Dominican Republic',
   'San Diego':'USA United States California', Honolulu:'USA United States Hawaii', Portland:'USA United States Oregon',
   'Phnom Penh':'Cambodia', Colombo:'Sri Lanka', Cebu:'Philippines', Hyderabad:'India', Pune:'India',
+  Seattle:'USA United States Washington', Boston:'USA United States Massachusetts', Philadelphia:'USA United States Pennsylvania', Charlotte:'USA United States', Tampa:'USA United States Florida', Orlando:'USA United States Florida', Pittsburgh:'USA United States', Cleveland:'USA United States Ohio', Sacramento:'USA United States California', 'San Jose':'USA United States California',
+  Naples:'Italy', Florence:'Italy', Malaga:'Spain', Bordeaux:'France', Stuttgart:'Germany', 'Gdańsk':'Poland', Split:'Croatia', Gothenburg:'Sweden',
+  Chennai:'India', 'Da Nang':'Vietnam', 'Chiang Mai':'Thailand', Busan:'South Korea', Fukuoka:'Japan', Kolkata:'India',
   Managua:'Nicaragua', 'San Pedro Sula':'Honduras', 'Belize City':'Belize', 'Roatán':'Honduras', 'Bocas del Toro':'Panama', 'Antigua Guatemala':'Guatemala', 'León':'Nicaragua', 'Playa del Carmen':'Mexico',
   Quito:'Ecuador', Guayaquil:'Ecuador', Caracas:'Venezuela', 'La Paz':'Bolivia', 'Córdoba':'Argentina', 'Florianópolis':'Brazil', Salvador:'Brazil', Cusco:'Peru', 'Valparaíso':'Chile', Cali:'Colombia',
   Sydney:'Australia', Melbourne:'Australia', Brisbane:'Australia', Perth:'Australia', Auckland:'New Zealand',
