@@ -230,7 +230,15 @@ class RadarMap {
       el.className = 'pin' + (v.lgbtq ? ' lgbtq' : '');
       el.innerHTML = `<div class="pin-body" style="--pc:${col}"><span class="pin-ic">${venueIcon(v)}</span></div>`;
     }
-    el.addEventListener('click', (ev) => { ev.stopPropagation(); openVenue(v.id); });
+    el.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      // a stacked pin (multiple venues within a few px) zooms in to fan them out;
+      // once they've separated it opens the single venue.
+      if (el._stackCount > 1 && this.map) {
+        const nz = Math.min(18, this.map.getZoom() + 2.4);
+        this.map.flyTo({ center: [v.coords.lng, v.coords.lat], zoom: nz, duration: 600 });
+      } else openVenue(v.id);
+    });
     const wrap = document.createElement('div'); wrap.className = 'pin-wrap'; wrap.appendChild(el);
     wrap.style.zIndex = '4'; // venue pins sit ABOVE neighbourhood labels
     const marker = new maplibregl.Marker({ element: wrap, anchor: 'bottom', opacityWhenCovered: '0' }).setLngLat([v.coords.lng, v.coords.lat]);
@@ -244,6 +252,34 @@ class RadarMap {
     if (!(v.photo && !v.lgbtq)) el.classList.toggle('amber', band === 'busy');
     el.classList.toggle('sel', this.selected === v.id);
     const body = el.querySelector('.pin-body'); if (body) body.style.setProperty('--pc', BAND_COLOR[band].core);
+  }
+  // group venues that overlap on screen (within ~30px) into stacks so pins stop
+  // hiding behind each other; the strongest-radar venue represents the stack.
+  _stackGroups(vs) {
+    const pts = [];
+    for (const v of vs) {
+      let x = -9999, y = -9999;
+      try { const p = this.map.project([v.coords.lng, v.coords.lat]); x = p.x; y = p.y; } catch (e) {}
+      pts.push({ v, x, y });
+    }
+    pts.sort((a, b) => b.v.radar.score - a.v.radar.score); // strongest venue leads its stack
+    const PIX = 30, groups = [];
+    for (const p of pts) {
+      let g = null;
+      for (const gg of groups) { const dx = gg.x - p.x, dy = gg.y - p.y; if (dx * dx + dy * dy < PIX * PIX) { g = gg; break; } }
+      if (g) { g.count++; g.members.push(p.v); }
+      else groups.push({ v: p.v, x: p.x, y: p.y, count: 1, members: [p.v] });
+    }
+    return groups;
+  }
+  // show/update the "+N venues here" badge on a stacked pin
+  _applyPinCount(el, count) {
+    el._stackCount = count;
+    let b = el.querySelector('.pin-count');
+    if (count > 1) {
+      if (!b) { b = document.createElement('span'); b.className = 'pin-count'; el.appendChild(b); }
+      b.textContent = count > 99 ? '99+' : count; b.hidden = false;
+    } else if (b) { b.hidden = true; }
   }
   _labelFor(a) {
     const band = bandKey(a.nightScore);
@@ -330,15 +366,19 @@ class RadarMap {
       }
 
       // ---- individual venue pins (only when zoomed in) ----
+      // merge overlapping pins into stacks (one pin + a count badge) so close-together
+      // venues don't hide behind each other; zooming in fans the stack out.
       const wanted = {};
-      if (!clusterMode) for (const v of this._wantedVenues()) wanted[v.id] = v;
+      if (!clusterMode) for (const g of this._stackGroups(this._wantedVenues())) wanted[g.v.id] = g;
       for (const id of Object.keys(this._markerById)) {
         if (!wanted[id]) { this._markerById[id].remove(); delete this._markerById[id]; }
       }
       for (const id in wanted) {
+        const g = wanted[id];
         let m = this._markerById[id];
-        if (!m) { m = this._markerFor(wanted[id]); m.addTo(this.map); this._markerById[id] = m; }
-        this._applyPinState(m._el, wanted[id]);
+        if (!m) { m = this._markerFor(g.v); m.addTo(this.map); this._markerById[id] = m; }
+        this._applyPinState(m._el, g.v);
+        this._applyPinCount(m._el, g.count);
       }
       this._markers = Object.values(this._markerById);
 
@@ -630,7 +670,8 @@ function renderSheet() {
     const banner = S.reportPick ? `<div class="pick-banner">Choose a place to report the vibe</div>` : '';
     const head = `<div class="section-h"><h3>${esc(title)} <span class="live-dot"></span></h3>
       <span class="count">${vs.length} place${vs.length === 1 ? '' : 's'}</span></div>`;
-    body.innerHTML = banner + head + (vs.length ? vs.map(venueRow).join('') : '<div class="empty">No places match that filter.</div>');
+    const evCta = searching ? '' : eventsCtaHtml(); // surface events in the main list too
+    body.innerHTML = banner + head + evCta + (vs.length ? vs.map(venueRow).join('') : '<div class="empty">No places match that filter.</div>');
   } else if (S.tab === 'areas') {
     const as = [...d.areas].sort((a, b) => b.nightScore - a.nightScore);
     body.innerHTML = `<div class="section-h"><h3>Neighbourhoods</h3>
@@ -642,16 +683,8 @@ function renderSheet() {
       (vs.length ? vs.map(venueRow).join('') : '<div class="empty">No saved spots yet.<br>Open any venue and tap “☆ Save for later”.</div>');
   } else if (S.tab === 'feed') {
     const title = S.userLoc ? 'Near you tonight' : 'Tonight';
-    const nearEv = eventsNearYou();
-    const evLabel = (S.userLoc && eventRadiusKm() !== 'all') ? 'near you' : 'tonight';
-    const evBtn = nearEv.length
-      ? `<button class="events-cta" onclick="showEventsNearYou()">
-          <span class="ec-ic">🎫</span>
-          <span class="ec-txt"><b>${nearEv.length} event${nearEv.length === 1 ? '' : 's'} ${evLabel}</b><span>Live lineups${S.userLoc && eventRadiusKm() !== 'all' ? ' · within ' + evRadiusLabel() : ''}</span></span>
-          <span class="ec-go">›</span></button>`
-      : '';
     body.innerHTML = `<div class="section-h"><h3>${title} <span class="live-dot"></span></h3>
-      <span class="count">${esc(S.locLabel || d.city || '')}</span></div>` + evBtn + feedRows();
+      <span class="count">${esc(S.locLabel || d.city || '')}</span></div>` + eventsCtaHtml() + feedRows();
   }
 }
 
@@ -2156,7 +2189,12 @@ function eventsNearYou() {
   if (S.userLoc) {
     vs.forEach((v) => { v._dist = haversineKm(S.userLoc, v.coords); });
     vs.sort((a, b) => a._dist - b._dist);
-    if (R !== 'all') vs = vs.filter((v) => v._dist <= R);
+    if (R !== 'all') {
+      const near = vs.filter((v) => v._dist <= R);
+      // keep the button reachable: if nothing's within the radius, still show the
+      // closest lineups (rows carry the distance, so it stays honest)
+      vs = near.length ? near : vs.slice(0, 15);
+    }
   } else {
     vs.sort((a, b) => (a.tonight.isTonight === b.tonight.isTonight) ? 0 : (a.tonight.isTonight ? -1 : 1));
   }
@@ -2195,6 +2233,16 @@ function showEventsNearYou() {
 function closeEventsNear() { const el = document.getElementById('eventsNearOv'); if (el) el.remove(); }
 window.showEventsNearYou = showEventsNearYou;
 window.closeEventsNear = closeEventsNear;
+// the "Events near you" call-to-action, shown in the Tonight feed AND the main list
+function eventsCtaHtml() {
+  const nearEv = eventsNearYou();
+  if (!nearEv.length) return '';
+  const evLabel = (S.userLoc && eventRadiusKm() !== 'all') ? 'near you' : 'tonight';
+  return `<button class="events-cta" onclick="showEventsNearYou()">
+      <span class="ec-ic">🎫</span>
+      <span class="ec-txt"><b>${nearEv.length} event${nearEv.length === 1 ? '' : 's'} ${evLabel}</b><span>Live lineups · tap to browse</span></span>
+      <span class="ec-go">›</span></button>`;
+}
 async function deleteMyReport(id) {
   if (!confirm('Delete your report? This removes your report and its photo from this venue.')) return;
   try {

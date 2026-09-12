@@ -142,7 +142,10 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .map-overlay{position:absolute;inset:0;pointer-events:none;z-index:10}
 
 /* pin markers (MapLibre sets position:absolute via .maplibregl-marker — don't override it) */
-.pin{cursor:pointer}
+.pin{cursor:pointer;position:relative}
+.pin-count{position:absolute;top:-4px;right:-8px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;
+  background:var(--primary);color:#fff;font-size:11px;font-weight:800;line-height:17px;text-align:center;
+  box-shadow:0 1px 4px rgba(0,0,0,.5);border:1.5px solid var(--card);z-index:7;pointer-events:none}
 /* zoomed-out count bubble (how many venues in a city) */
 .cluster{cursor:pointer;display:flex;align-items:center;justify-content:center;
   min-width:34px;height:34px;padding:0 9px;border-radius:999px;
