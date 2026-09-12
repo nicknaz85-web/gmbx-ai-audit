@@ -919,3 +919,34 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .segtoggle.segsm{width:auto;flex:0 0 auto;gap:2px}
 .segtoggle.segsm button{flex:0 0 auto;padding:7px 16px;font-size:13px;font-weight:700;min-width:46px}
 .segtoggle.segsm button.on{background:var(--primary);color:#fff;box-shadow:none}
+
+/* Clubbit AI chat screen */
+.chatscreen{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:var(--bg)}
+.chat-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--card)}
+.chat-title{font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px;color:var(--text)}
+.chat-ai-ic{font-size:18px}
+.chat-close{width:34px;height:34px;border-radius:50%;border:none;background:var(--surface-3);color:var(--text);font-size:16px;cursor:pointer}
+.chat-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;display:flex;flex-direction:column;gap:10px}
+.chat-msg{display:flex}
+.chat-msg.user{justify-content:flex-end}
+.chat-msg.assistant{justify-content:flex-start}
+.chat-bubble{max-width:82%;padding:11px 14px;border-radius:16px;font-size:14.5px;line-height:1.5;word-wrap:break-word;overflow-wrap:anywhere}
+.chat-msg.user .chat-bubble{background:var(--primary);color:#fff;border-bottom-right-radius:5px}
+.chat-msg.assistant .chat-bubble{background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-bottom-left-radius:5px}
+.chat-bubble b{font-weight:700}
+.chat-bubble.typing{display:flex;gap:5px;padding:14px}
+.chat-bubble.typing span{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:chatdot 1s infinite}
+.chat-bubble.typing span:nth-child(2){animation-delay:.15s}
+.chat-bubble.typing span:nth-child(3){animation-delay:.3s}
+@keyframes chatdot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+.chat-welcome{text-align:center;margin:auto;max-width:340px;padding:20px 10px}
+.chat-welcome-ic{font-size:40px}
+.chat-welcome h3{margin:12px 0 6px;font-size:20px;color:var(--text)}
+.chat-welcome p{margin:0 0 18px;font-size:14px;color:var(--muted);line-height:1.5}
+.chat-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.chat-chip{padding:9px 13px;border-radius:20px;border:1px solid color-mix(in srgb,var(--primary) 40%,var(--line));background:color-mix(in srgb,var(--primary) 12%,var(--surface-2));color:var(--text);font-size:13px;font-weight:600;cursor:pointer;text-align:left}
+.chat-inputbar{display:flex;gap:9px;padding:12px 14px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--card)}
+.chat-inputbar input{flex:1;height:46px;border-radius:23px;border:1.5px solid var(--line);background:var(--surface-2);color:var(--text);padding:0 16px;font-size:15px;font-family:inherit;outline:none}
+.chat-inputbar input:focus{border-color:var(--primary)}
+.chat-send{width:46px;height:46px;flex:none;border-radius:50%;border:none;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.chat-send svg{width:20px;height:20px}

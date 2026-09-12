@@ -14,6 +14,7 @@ const API = {
   deleteMedia: (id) => post('/api/media/delete', { id }),
   deleteReport: (id) => post('/api/report/delete', { id }),
   deleteAccount: (token) => post('/api/auth/delete', { token }),
+  chat: (messages, userLoc) => post('/api/chat', { messages, userLoc }),
 };
 function post(url, body) {
   return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
@@ -2328,6 +2329,67 @@ function showPinStack(members) {
 function closePinStack() { const el = document.getElementById('pinStackOv'); if (el) el.remove(); }
 window.showPinStack = showPinStack;
 window.closePinStack = closePinStack;
+
+// ---- Clubbit AI chat (bottom-right nav) ----
+function openChat() {
+  closeSheet(); hideProfile();
+  S.tab = 'chat'; setBn('chat');
+  let ov = document.getElementById('chatScreen');
+  if (!ov) {
+    ov = document.createElement('div'); ov.id = 'chatScreen'; ov.className = 'chatscreen';
+    ov.innerHTML = `
+      <div class="chat-head">
+        <span class="chat-title"><span class="chat-ai-ic">✨</span> Clubbit AI</span>
+        <button class="chat-close" id="chatClose" aria-label="Close">✕</button>
+      </div>
+      <div class="chat-body" id="chatBody"></div>
+      <form class="chat-inputbar" id="chatForm" autocomplete="off">
+        <input id="chatInput" type="text" placeholder="Ask about any venue or where to party…" />
+        <button class="chat-send" type="submit" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+      </form>`;
+    document.body.appendChild(ov);
+    ov.querySelector('#chatClose').onclick = closeChat;
+    ov.querySelector('#chatForm').onsubmit = (e) => { e.preventDefault(); const i = document.getElementById('chatInput'); const t = (i.value || '').trim(); if (!t || S._chatPending) return; i.value = ''; sendChat(t); };
+  }
+  ov.hidden = false;
+  if (S.chatMessages && S.chatMessages.length) renderChatMessages(); else renderChatWelcome();
+  setTimeout(() => { const i = document.getElementById('chatInput'); if (i) i.focus(); }, 120);
+}
+function closeChat() { const ov = document.getElementById('chatScreen'); if (ov) ov.hidden = true; setBn('map'); S.tab = 'near'; }
+window.openChat = openChat;
+function renderChatWelcome() {
+  const body = document.getElementById('chatBody'); if (!body) return;
+  const n = (S.data && S.data.venues) ? S.data.venues.length : 'thousands of';
+  const chips = ['Best clubs in Berlin?', 'Where should I party in Miami tonight?', 'Best area for techno in London', 'Cheap bars near me'];
+  body.innerHTML = `<div class="chat-welcome">
+      <div class="chat-welcome-ic">✨</div>
+      <h3>Ask me anything about nightlife</h3>
+      <p>Venues, vibes, the best areas to party — I've got live data on ${esc(String(n))} spots worldwide.</p>
+      <div class="chat-chips">${chips.map((c) => `<button class="chat-chip" onclick="sendChat(this.textContent)">${esc(c)}</button>`).join('')}</div>
+    </div>`;
+}
+function chatMd(t) { return esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|\n)\s*[-•]\s+/g, '$1• ').replace(/\n/g, '<br>'); }
+function renderChatMessages() {
+  const body = document.getElementById('chatBody'); if (!body) return;
+  const rows = (S.chatMessages || []).map((m) => `<div class="chat-msg ${m.role}"><div class="chat-bubble">${m.role === 'assistant' ? chatMd(m.content) : esc(m.content)}</div></div>`).join('');
+  const typing = S._chatPending ? '<div class="chat-msg assistant"><div class="chat-bubble typing"><span></span><span></span><span></span></div></div>' : '';
+  body.innerHTML = rows + typing;
+  body.scrollTop = body.scrollHeight;
+}
+async function sendChat(text) {
+  text = String(text || '').trim(); if (!text || S._chatPending) return;
+  if (!S.chatMessages) S.chatMessages = [];
+  S.chatMessages.push({ role: 'user', content: text });
+  S._chatPending = true; renderChatMessages();
+  try {
+    const r = await API.chat(S.chatMessages.slice(-12), S.userLoc || null);
+    S.chatMessages.push({ role: 'assistant', content: (r && r.reply) || "Sorry, I couldn't answer that one." });
+  } catch (e) {
+    S.chatMessages.push({ role: 'assistant', content: "Sorry, I'm having trouble connecting right now — try again in a moment." });
+  }
+  S._chatPending = false; renderChatMessages();
+}
+window.sendChat = sendChat;
 // the "Events near you" call-to-action, shown in the Tonight feed AND the main list
 function eventsCtaHtml() {
   const nearEv = eventsNearYou();
@@ -2426,6 +2488,7 @@ function initUI() {
   $('#listBtn').addEventListener('click', () => openSheet('feed'));
   document.querySelectorAll('.bn').forEach((b) => b.addEventListener('click', () => {
     const nav = b.dataset.nav;
+    if (nav === 'chat') { openChat(); return; }
     if (nav === 'map') { closeSheet(); }
     else openSheet(nav);
   }));

@@ -229,6 +229,48 @@ function readBody(req) {
   });
 }
 
+// ---- Clubbit AI (nightlife concierge) ----
+const CHAT_SYSTEM = `You are the Clubbit AI — a fun, sharp nightlife concierge living inside the Clubbit app (a live world map of clubs & bars). Help people find great venues, plan a night out, choose the best neighbourhoods to party for a given vibe, and answer any nightlife/party question.
+
+Use the LIVE venue data provided below. "Party Radar" is a 0–100 score of how alive a place is right now. When recommending, name specific venues from the data and say why (vibe, score, whether it's open now, price, tonight's event). Suggest good neighbourhoods/areas for the vibe they want. Be concise, upbeat and practical — a few sentences or a short bulleted list, never an essay.
+
+Rules:
+- Only recommend venues that appear in the data. Never invent venue names or make up details.
+- If they ask about a city/area not in the data, say you don't have live venue data there yet, then give general nightlife advice.
+- If the question isn't about nightlife, gently steer back to helping them party.
+- You can talk about dress codes, timing, getting in, bar vs club vibes, safety basics, and what's on tonight.
+Keep it friendly and party-appropriate.`;
+
+function _hav(a, b) { const R = 6371, tr = (d) => d * Math.PI / 180; const dLat = tr(b.lat - a.lat), dLng = tr(b.lng - a.lng); const x = Math.sin(dLat / 2) ** 2 + Math.cos(tr(a.lat)) * Math.cos(tr(b.lat)) * Math.sin(dLng / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); }
+function buildChatContext(query, userLoc) {
+  const ref = now();
+  const toks = String(query || '').toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length >= 3);
+  const cityCounts = {};
+  for (const v of db.venues) cityCounts[v.city] = (cityCounts[v.city] || 0) + 1;
+  const cities = Object.keys(cityCounts).sort();
+  // relevance: token match on name/neighbourhood/city/category/kind (city match weighs more)
+  const scored = [];
+  for (const v of db.venues) {
+    const hay = (v.name + ' ' + v.neighborhoodName + ' ' + v.city + ' ' + v.category + ' ' + v.kind).toLowerCase();
+    let sc = 0;
+    for (const t of toks) if (hay.includes(t)) sc += v.city.toLowerCase().includes(t) ? 2 : 1;
+    if (sc > 0) scored.push({ v, sc });
+  }
+  scored.sort((a, b) => b.sc - a.sc);
+  let picks = scored.slice(0, 26).map((x) => x.v);
+  if (!picks.length && userLoc) picks = db.venues.map((v) => ({ v, d: _hav(userLoc, v.coords) })).sort((a, b) => a.d - b.d).slice(0, 20).map((x) => x.v);
+  const lines = picks.map((v) => {
+    const s = venueSnapshot(v, ref);
+    const bits = [v.kind, `Party Radar ${s.radar.score}/100 (${s.radar.label})`, s.open ? 'open now' : (s.hours && s.hours.opensLabel ? 'opens ' + s.hours.opensLabel : 'closed')];
+    if (s.entryLabel) bits.push('entry ' + s.entryLabel);
+    if (s.google && s.google.rating) bits.push('★' + s.google.rating + ' Google');
+    if (s.tonight) bits.push('tonight: ' + (s.tonight.artists && s.tonight.artists[0] ? s.tonight.artists[0] : s.tonight.name));
+    return `- ${v.name} — ${v.city} / ${v.neighborhoodName}: ${bits.join(', ')}`;
+  });
+  const cityLine = `The app has ${db.venues.length} venues across ${cities.length} cities: ${cities.slice(0, 130).join(', ')}${cities.length > 130 ? ', …' : ''}.`;
+  return cityLine + '\n\nRelevant venues right now (live data):\n' + (lines.join('\n') || "(no venue matched — if they named a city/area not in the list above, tell them there's no live data there yet, then give general advice.)");
+}
+
 // map bounds across all venues (for the stylized projection on the client)
 function mapBounds() {
   const lats = db.venues.map((v) => v.coords.lat);
@@ -276,6 +318,39 @@ async function api(req, res, url) {
       clusters: clusters(ref),
       feed: radarFeed(24, ref),
     });
+  }
+
+  // POST /api/chat — the Clubbit AI nightlife concierge. Answers venue/neighbourhood/
+  // party questions grounded in the app's live venue data. Uses Google's Gemini
+  // FREE tier (no per-request cost) — set GEMINI_API_KEY (free at aistudio.google.com).
+  if (method === 'POST' && route === 'chat') {
+    const body = await readBody(req);
+    const key = process.env.GEMINI_API_KEY;
+    if (!key) return send(res, 200, { reply: "The Clubbit AI isn't switched on yet — the app owner needs to add a (free) Gemini API key. In the meantime, browse the map or search a city to find spots!" });
+    const msgs = (Array.isArray(body.messages) ? body.messages : [])
+      .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      .slice(-12)
+      .map((m) => ({ role: m.role, content: m.content.slice(0, 1500) }));
+    while (msgs.length && msgs[0].role === 'assistant') msgs.shift(); // Gemini: start on a user turn
+    if (!msgs.length || msgs[msgs.length - 1].role !== 'user') return send(res, 400, { error: 'no message' });
+    const lastUser = [...msgs].reverse().find((m) => m.role === 'user');
+    const context = buildChatContext(lastUser ? lastUser.content : '', validCoords(body.userLoc));
+    const model = process.env.CLUBBIT_CHAT_MODEL || 'gemini-2.0-flash';
+    try {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: CHAT_SYSTEM + '\n\n' + context }] },
+          contents: msgs.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+          generationConfig: { maxOutputTokens: 800, temperature: 0.7 },
+        }),
+      });
+      if (!r.ok) { console.warn('chat', r.status, (await r.text()).slice(0, 200)); return send(res, 200, { reply: "Sorry, I couldn't reach the AI just now — give it another try in a sec." }); }
+      const j = await r.json();
+      const reply = (((j.candidates || [])[0] || {}).content || {}).parts ? j.candidates[0].content.parts.map((p) => p.text || '').join('').trim() : '';
+      return send(res, 200, { reply: reply || "Hmm, I didn't catch that — try rephrasing?" });
+    } catch (e) { return send(res, 200, { reply: "Sorry, the AI is unavailable right now. Try again shortly." }); }
   }
 
   // GET /api/ig/:id — 302-redirect to the venue's Instagram profile. Baked/pinned
