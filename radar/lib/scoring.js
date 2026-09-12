@@ -254,7 +254,10 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
   if (consensus) fullnessFrac = clamp(0.5 * clamp(load) + 0.5 * (consensus.vibeNum / 100));
   else if (owner) fullnessFrac = clamp(0.55 * ((OWNER_NUM[owner.status] ?? 55) / 100) + 0.45 * clamp(load));
   else if (bt) fullnessFrac = clamp(0.65 * (bt.busyness / 100) + 0.35 * clamp(load));
-  else fullnessFrac = clamp(0.7 * clamp(load) + 0.3 * expFrac);
+  // no live data → lean on the venue's typical busyness curve for this hour/night
+  // (like "usually busy at this time"), so fullness AND the door-queue estimate
+  // actually reflect the time of night instead of reading near-empty.
+  else fullnessFrac = clamp(0.25 * clamp(load) + 0.75 * expFrac);
   // A closed venue is empty — don't claim a shut club is 63% full.
   if (closed) fullnessFrac = 0;
   const fullnessEst = round(fullnessFrac * 100);

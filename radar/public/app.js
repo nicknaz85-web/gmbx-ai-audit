@@ -42,7 +42,25 @@ function haversineKm(a, b) {
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
 }
-function distLabel(km) { return km < 1 ? Math.round(km * 1000) + ' m' : km < 10 ? km.toFixed(1) + ' km' : Math.round(km) + ' km'; }
+// distance units (km/mi) — user-selectable in Settings, applied everywhere
+function currentUnits() { try { return localStorage.getItem('clubbit_units') === 'mi' ? 'mi' : 'km'; } catch { return 'km'; } }
+function setUnits(u) { try { localStorage.setItem('clubbit_units', u === 'mi' ? 'mi' : 'km'); } catch {} }
+function distLabel(km) {
+  if (currentUnits() === 'mi') {
+    const mi = km * 0.621371;
+    return mi < 0.1 ? Math.round(mi * 5280) + ' ft' : mi < 10 ? mi.toFixed(1) + ' mi' : Math.round(mi) + ' mi';
+  }
+  return km < 1 ? Math.round(km * 1000) + ' m' : km < 10 ? km.toFixed(1) + ' km' : Math.round(km) + ' km';
+}
+// "Events near you" radius (km, or 'all' = no limit). Stepper values 10km → All.
+const EV_STEPS = [10, 20, 30, 50, 75, 100, 150, 250, 500, 'all'];
+function eventRadiusKm() { try { const v = localStorage.getItem('clubbit_ev_radius'); if (v === 'all') return 'all'; const n = +v; return Number.isFinite(n) && n > 0 ? n : 50; } catch { return 50; } }
+function setEventRadius(v) { try { localStorage.setItem('clubbit_ev_radius', v === 'all' ? 'all' : String(v)); } catch {} }
+function evRadiusLabel() {
+  const r = eventRadiusKm();
+  if (r === 'all') return 'All events';
+  return currentUnits() === 'mi' ? Math.round(r * 0.621371) + ' mi' : r + ' km';
+}
 function cityOf(v) { const a = (S.data.areas || []).find((x) => x.id === v.neighborhood); return (a && a.city) || v.neighborhoodName; }
 
 // ---------- band / label helpers ----------
@@ -157,10 +175,13 @@ class RadarMap {
     this.map.on('click', (e) => this._tap(e.point.x, e.point.y));
     this.map.on('zoom', () => this._syncSoon());
     this.map.on('moveend', () => { this._syncSoon(); if (typeof renderFilters === 'function') renderFilters(); });
-    // safety net: if the GL map never renders (WebGL/style trouble), drop to the simple map
+    // safety net: only drop to the simple map when WebGL genuinely isn't available.
+    // A slow tile/style load must NOT blank the map (that caused light mode to show
+    // an empty canvas) — if WebGL works we keep waiting for GL to render.
     setTimeout(() => {
       if (this._ready) return;
-      console.warn('map not ready in time — using fallback');
+      if (webglAvailable()) return; // give MapLibre more time; it will render
+      console.warn('WebGL unavailable — using fallback map');
       try { this.map.remove(); } catch (e) {}
       this.map = null; this._initFallback(); this._resize();
     }, 9000);
@@ -445,7 +466,11 @@ class RadarMap {
   setTheme(mode) {
     if (this._fallback) { const m = document.getElementById('map'); if (m) m.style.background = mode === 'dark' ? '#14151c' : '#e9edf2'; return; }
     if (!this.map) return;
-    try { this.map.setStyle(mapStyleFor(mode)); } catch (e) {}
+    try {
+      this.map.setStyle(mapStyleFor(mode));
+      // re-draw pins once the new style has loaded (markers are DOM, but re-sync to be safe)
+      this.map.once('style.load', () => { try { this._syncMarkers && this._syncMarkers(); } catch (e) {} });
+    } catch (e) {}
   }
   focusArea(area) {
     if (this.map && this._ready) this.map.flyTo({ center: [area.center.lng, area.center.lat], zoom: 15.5, duration: 800 });
@@ -613,12 +638,11 @@ function renderSheet() {
   } else if (S.tab === 'feed') {
     const title = S.userLoc ? 'Near you tonight' : 'Tonight';
     const nearEv = eventsNearYou();
-    const isNear = S.userLoc && nearEv[0] && nearEv[0]._dist != null && nearEv[0]._dist <= 60;
-    const evLabel = isNear ? 'near you' : 'tonight';
+    const evLabel = (S.userLoc && eventRadiusKm() !== 'all') ? 'near you' : 'tonight';
     const evBtn = nearEv.length
       ? `<button class="events-cta" onclick="showEventsNearYou()">
           <span class="ec-ic">🎫</span>
-          <span class="ec-txt"><b>${nearEv.length} event${nearEv.length === 1 ? '' : 's'} ${evLabel}</b><span>Live lineups · tap to browse</span></span>
+          <span class="ec-txt"><b>${nearEv.length} event${nearEv.length === 1 ? '' : 's'} ${evLabel}</b><span>Live lineups${S.userLoc && eventRadiusKm() !== 'all' ? ' · within ' + evRadiusLabel() : ''}</span></span>
           <span class="ec-go">›</span></button>`
       : '';
     body.innerHTML = `<div class="section-h"><h3>${title} <span class="live-dot"></span></h3>
@@ -1693,6 +1717,7 @@ const I18N = {
   en: { settings: 'Settings', appearance: 'Appearance', light: 'Light', dark: 'Dark', language: 'Language',
     signOut: 'Sign out', deleteAccount: 'Delete account', editProfile: 'Edit profile', changePhoto: 'Change photo',
     contactSupport: 'Contact support', reportIssue: 'Report an issue',
+    eventsNearby: 'Events near you', distanceUnit: 'Distance unit',
     removePhoto: 'Remove photo (use default)', profile: 'Profile', reports: 'Reports', photos: 'Photos',
     contributions: 'contributions to the radar', yourPhotos: 'Your photos & videos', noPhotos: "You haven't added any photos yet.",
     yourReports: 'Your reports', noReports: "You haven't reported yet. Report the vibe at a venue to build your overview.",
@@ -1739,6 +1764,9 @@ function applyLang(code) {
 function currentTheme() { try { return localStorage.getItem('clubbit_theme') || 'light'; } catch { return 'light'; } }
 // keyless OpenFreeMap basemap style matching the app theme (positron = clean light)
 function mapStyleFor(mode) { return 'https://tiles.openfreemap.org/styles/' + (mode === 'dark' ? 'dark' : 'positron'); }
+function webglAvailable() {
+  try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'))); } catch (e) { return false; }
+}
 function applyTheme(mode) {
   try { localStorage.setItem('clubbit_theme', mode); } catch {}
   document.documentElement.setAttribute('data-theme', mode);
@@ -1796,6 +1824,25 @@ function renderSettings() {
       </button>
     </div>
     <div class="setgrp">
+      <div class="setrow">
+        <span class="sr-ic">${gear('<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 1v2M12 21v2M1 12h2M21 12h2"/>')}</span>
+        <span class="sr-main"><span class="sr-label">${t('eventsNearby')}</span></span>
+        <div class="stepper">
+          <button class="step-btn" id="evMinus" aria-label="less">−</button>
+          <span class="step-val" id="evVal">${esc(evRadiusLabel())}</span>
+          <button class="step-btn" id="evPlus" aria-label="more">+</button>
+        </div>
+      </div>
+      <div class="setrow">
+        <span class="sr-ic">${gear('<path d="M3 8h18v8H3z"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/>')}</span>
+        <span class="sr-main"><span class="sr-label">${t('distanceUnit')}</span></span>
+        <div class="segtoggle segsm" id="unitToggle">
+          <button data-unit="km" class="${currentUnits() === 'km' ? 'on' : ''}">KM</button>
+          <button data-unit="mi" class="${currentUnits() === 'mi' ? 'on' : ''}">MI</button>
+        </div>
+      </div>
+    </div>
+    <div class="setgrp">
       <button class="setrow" id="setSupport">
         <span class="sr-ic">${gear('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>')}</span>
         <span class="sr-main"><span class="sr-label">${t('contactSupport')}</span></span>
@@ -1821,6 +1868,23 @@ function renderSettings() {
     applyTheme(b.dataset.themeSet); renderSettings();
   });
   $('#setLangRow').onclick = openLanguage;
+  // events-near-you distance stepper (10km → All)
+  const stepEv = (dir) => {
+    const cur = eventRadiusKm();
+    let i = EV_STEPS.findIndex((s) => String(s) === String(cur));
+    if (i < 0) i = EV_STEPS.indexOf(50);
+    i = Math.max(0, Math.min(EV_STEPS.length - 1, i + dir));
+    setEventRadius(EV_STEPS[i]);
+    const ev = $('#evVal'); if (ev) ev.textContent = evRadiusLabel();
+    if (S.tab === 'feed') renderSheet();
+  };
+  { const m = $('#evMinus'), p = $('#evPlus'); if (m) m.onclick = () => stepEv(-1); if (p) p.onclick = () => stepEv(1); }
+  // distance unit KM/MI — re-render everything that shows a distance
+  $('#unitToggle') && $('#unitToggle').querySelectorAll('[data-unit]').forEach((b) => b.onclick = () => {
+    setUnits(b.dataset.unit); renderSettings();
+    if (typeof renderSheet === 'function') renderSheet();
+    if (S.activeVenue && typeof openVenue === 'function') { /* refresh open card distance */ }
+  });
   $('#setSupport').onclick = () => openMail(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Clubbit — Support')}`);
   $('#setReport').onclick = () => {
     const diag = `\n\n———————\n(please keep the details below — they help us debug)\nApp: Clubbit\nPlatform: ${navigator.platform || ''}\n${navigator.userAgent || ''}`;
@@ -2055,13 +2119,11 @@ window.showVenueEvents = showVenueEvents;
 function eventsNearYou() {
   const d = S.data; if (!d) return [];
   let vs = d.venues.filter((v) => v.tonight);
+  const R = eventRadiusKm(); // user-set radius (km) or 'all'
   if (S.userLoc) {
     vs.forEach((v) => { v._dist = haversineKm(S.userLoc, v.coords); });
     vs.sort((a, b) => a._dist - b._dist);
-    const near = vs.filter((v) => v._dist <= 60);
-    // prefer events within 60km; if there are none nearby, still surface the closest
-    // ones (rows show the distance) so the feature is never hidden.
-    vs = near.length ? near : vs.slice(0, 25);
+    if (R !== 'all') vs = vs.filter((v) => v._dist <= R);
   } else {
     vs.sort((a, b) => (a.tonight.isTonight === b.tonight.isTonight) ? 0 : (a.tonight.isTonight ? -1 : 1));
   }
@@ -2089,7 +2151,7 @@ function showEventsNearYou() {
   el.className = 'rdetail-ov'; el.id = 'eventsNearOv';
   el.innerHTML = `<div class="rdetail-scrim"></div>
     <div class="rdetail-card">
-      <div class="rdetail-head"><h3>Events ${(S.userLoc && vs[0] && vs[0]._dist != null && vs[0]._dist <= 60) ? 'near you' : 'tonight'} · ${vs.length}</h3><button class="msheet-x ev-x">✕</button></div>
+      <div class="rdetail-head"><h3>Events ${(S.userLoc && eventRadiusKm() !== 'all') ? 'near you' : 'tonight'} · ${vs.length}</h3><button class="msheet-x ev-x">✕</button></div>
       <div class="evlist">${rows}</div>
     </div>`;
   document.body.appendChild(el);

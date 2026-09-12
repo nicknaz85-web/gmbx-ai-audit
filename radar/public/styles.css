@@ -409,7 +409,8 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .ed-field{display:block;margin-bottom:14px}
 .ed-field span{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px}
 .ed-field input,.ed-field select{width:100%;height:48px;border-radius:12px;border:1.5px solid var(--line);
-  background:#fbfbfc;padding:0 14px;font-size:15px;color:var(--ink);font-family:inherit}
+  background:var(--surface-2);padding:0 14px;font-size:15px;color:var(--ink);font-family:inherit}
+:root[data-theme="dark"] .ed-field input[type="date"]{color-scheme:dark}
 .ed-field input:focus,.ed-field select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(124,58,237,.15)}
 .ed-err{color:#c0392b;font-size:13px;min-height:16px;margin-bottom:8px}
 .edit-actions{display:flex;gap:10px}
@@ -904,3 +905,14 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .events-cta .ec-txt b{font-size:14px;font-weight:700}
 .events-cta .ec-txt span{font-size:12px;color:var(--muted)}
 .events-cta .ec-go{flex:none;font-size:20px;font-weight:700;color:var(--primary)}
+
+/* Settings: distance stepper + compact KM/MI toggle */
+.stepper{display:flex;align-items:center;gap:10px;flex:none}
+.step-btn{width:34px;height:34px;border-radius:50%;border:none;cursor:pointer;flex:none;
+  background:color-mix(in srgb,var(--primary) 15%,transparent);color:var(--primary);
+  font-size:21px;font-weight:600;line-height:1;display:flex;align-items:center;justify-content:center}
+.step-btn:active{transform:scale(.9)}
+.step-val{min-width:74px;text-align:center;font-size:15px;font-weight:700;color:var(--text)}
+.segtoggle.segsm{width:auto;flex:0 0 auto;gap:2px}
+.segtoggle.segsm button{flex:0 0 auto;padding:7px 16px;font-size:13px;font-weight:700;min-width:46px}
+.segtoggle.segsm button.on{background:var(--primary);color:#fff;box-shadow:none}
