@@ -612,8 +612,13 @@ function renderSheet() {
     if (searching) {
       // a search spans the whole map — never restrict to what's near you
       if (S.userLoc) vs.forEach((v) => { v._dist = haversineKm(S.userLoc, v.coords); });
-      vs.sort((a, b) => b.radar.score - a.radar.score);
-      title = `Results for “${S.query.trim()}”`;
+      const qc = (S.query || '').trim().toLowerCase();
+      if ((qc === 'event' || qc === 'events') && S.userLoc) {
+        vs.sort((a, b) => a._dist - b._dist); title = 'Venues with events · nearest first';
+      } else {
+        vs.sort((a, b) => b.radar.score - a.radar.score);
+        title = `Results for “${S.query.trim()}”`;
+      }
     } else if (S.userLoc) {
       vs.forEach((v) => { v._dist = haversineKm(S.userLoc, v.coords); });
       const near = vs.filter((v) => v._dist <= 60);
@@ -1379,12 +1384,40 @@ function inScope(v) {
   if (!map || !map.map || !map._ready) return true;
   try { return map.map.getBounds().contains([v.coords.lng, v.coords.lat]); } catch (e) { return true; }
 }
+// bounded edit distance (early-exit) so a small typo still finds small areas
+function editDist(a, b, max) {
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) > max) return max + 1;
+  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i]; let best = i;
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+      if (cur[j] < best) best = cur[j];
+    }
+    if (best > max) return max + 1;
+    prev = cur;
+  }
+  return prev[n];
+}
+// substring match, then a typo-tolerant word match (so "albuferia" still finds Albufeira)
+function fuzzyHit(q, hay) {
+  if (hay.includes(q)) return true;
+  if (q.length < 4 || q.includes(' ')) return false;
+  const tol = q.length >= 7 ? 2 : 1;
+  for (const w of hay.split(/[^a-z0-9]+/)) {
+    if (w.length >= 4 && Math.abs(w.length - q.length) <= tol && editDist(w, q, tol) <= tol) return true;
+  }
+  return false;
+}
 function venueMatches(v) {
   if (!matchFilter(v)) return false;
   const q = (S.query || '').trim().toLowerCase();
   if (!q) return true;
+  if (q === 'event' || q === 'events') return !!v.tonight; // search "events" → venues with a live lineup
   const hay = `${v.name} ${v.neighborhoodName} ${v.city} ${v.category} ${CITY_COUNTRY[v.city] || ''}`.toLowerCase();
-  return hay.includes(q);
+  return fuzzyHit(q, hay);
 }
 
 async function refresh() {

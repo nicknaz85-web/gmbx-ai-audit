@@ -257,7 +257,7 @@ async function api(req, res, url) {
         entryLabel: s.entryLabel, currency: s.currency,
         source: s.source, special: s.special,
         open: s.open, hours: s.hours, season: s.season, google: s.google, googlePhoto: s.googlePhoto,
-        expectedPeak: s.expectedPeak, dress: s.dress, instagram: s.instagram,
+        expectedPeak: s.expectedPeak, dress: s.dress, instagram: s.instagram, tonight: s.tonight || null,
         photo: ((s.media || []).find((m) => m.type === 'image') || {}).url || null,
       };
     });
