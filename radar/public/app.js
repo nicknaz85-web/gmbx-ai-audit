@@ -2270,8 +2270,12 @@ function showPinStack(members) {
     const band = bandKey(v.radar.score);
     const d = S.userLoc ? ' · ' + distLabel(haversineKm(S.userLoc, v.coords)) : '';
     const ev = v.tonight ? ' · 🎫 event' : '';
+    const pic = v.googlePhoto || v.photo;
+    const cover = pic
+      ? `<span class="evr-cover"><img src="${esc(pic)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('noimg');this.parentNode.style.background='${BAND_COLOR[band].core}';this.parentNode.style.color='#fff';this.replaceWith(document.createTextNode('${v.radar.score}'))"/></span>`
+      : `<span class="evr-cover" style="background:${BAND_COLOR[band].core};color:#fff;font-weight:800;font-size:15px">${v.radar.score}</span>`;
     return `<div class="evrow" onclick="closePinStack();rowClick('${v.id}')">
-      <span class="evr-cover" style="background:${BAND_COLOR[band].core};color:#fff;font-weight:800;font-size:15px">${v.radar.score}</span>
+      ${cover}
       <span class="evr-txt"><b>${esc(v.kind)}${esc(ev)}</b><span class="evr-name">${esc(v.name)}</span><span class="evr-sub">${esc(v.neighborhoodName)}${esc(d)}</span></span>
       <span class="evr-go">View ›</span></div>`;
   }).join('');
