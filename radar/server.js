@@ -335,7 +335,7 @@ async function api(req, res, url) {
     if (!msgs.length || msgs[msgs.length - 1].role !== 'user') return send(res, 400, { error: 'no message' });
     const lastUser = [...msgs].reverse().find((m) => m.role === 'user');
     const context = buildChatContext(lastUser ? lastUser.content : '', validCoords(body.userLoc));
-    const model = process.env.CLUBBIT_CHAT_MODEL || 'gemini-2.0-flash';
+    const model = process.env.CLUBBIT_CHAT_MODEL || 'gemini-3.6-flash';
     try {
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, {
         method: 'POST',
@@ -343,7 +343,7 @@ async function api(req, res, url) {
         body: JSON.stringify({
           system_instruction: { parts: [{ text: CHAT_SYSTEM + '\n\n' + context }] },
           contents: msgs.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
-          generationConfig: { maxOutputTokens: 800, temperature: 0.7 },
+          generationConfig: { maxOutputTokens: 1400, temperature: 0.7 },
         }),
       });
       if (!r.ok) { console.warn('chat', r.status, (await r.text()).slice(0, 200)); return send(res, 200, { reply: "Sorry, I couldn't reach the AI just now — give it another try in a sec." }); }
