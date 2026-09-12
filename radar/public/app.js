@@ -173,8 +173,11 @@ class RadarMap {
     this.map.on('idle', ready); // fires after first real render (self-heals a 0-size start)
     this.map.on('error', (e) => console.warn('map error', e && e.error && e.error.message));
     this.map.on('click', (e) => this._tap(e.point.x, e.point.y));
-    this.map.on('zoom', () => this._syncSoon());
+    // Smoothness: don't rebuild markers on every zoom frame — MapLibre repositions
+    // the existing pins on the GPU during a gesture (smooth). Only recompute the
+    // marker set (cull / cluster-switch / de-overlap) once the gesture settles.
     this.map.on('moveend', () => { this._syncSoon(); if (typeof renderFilters === 'function') renderFilters(); });
+    this.map.on('zoomend', () => this._syncSoon());
     // safety net: only drop to the simple map when WebGL genuinely isn't available.
     // A slow tile/style load must NOT blank the map (that caused light mode to show
     // an empty canvas) — if WebGL works we keep waiting for GL to render.
@@ -232,12 +235,10 @@ class RadarMap {
     }
     el.addEventListener('click', (ev) => {
       ev.stopPropagation();
-      // a stacked pin (multiple venues within a few px) zooms in to fan them out;
-      // once they've separated it opens the single venue.
-      if (el._stackCount > 1 && this.map) {
-        const nz = Math.min(18, this.map.getZoom() + 2.4);
-        this.map.flyTo({ center: [v.coords.lng, v.coords.lat], zoom: nz, duration: 600 });
-      } else openVenue(v.id);
+      // a stacked pin (multiple venues within a few px) opens a list of them so you
+      // can pick either — co-located venues never separate no matter how far you zoom.
+      if (el._stackCount > 1 && el._stackMembers && el._stackMembers.length > 1) showPinStack(el._stackMembers);
+      else openVenue(v.id);
     });
     const wrap = document.createElement('div'); wrap.className = 'pin-wrap'; wrap.appendChild(el);
     wrap.style.zIndex = '4'; // venue pins sit ABOVE neighbourhood labels
@@ -273,8 +274,9 @@ class RadarMap {
     return groups;
   }
   // show/update the "+N venues here" badge on a stacked pin
-  _applyPinCount(el, count) {
+  _applyPinCount(el, count, members) {
     el._stackCount = count;
+    el._stackMembers = members || null;
     let b = el.querySelector('.pin-count');
     if (count > 1) {
       if (!b) { b = document.createElement('span'); b.className = 'pin-count'; el.appendChild(b); }
@@ -378,7 +380,7 @@ class RadarMap {
         let m = this._markerById[id];
         if (!m) { m = this._markerFor(g.v); m.addTo(this.map); this._markerById[id] = m; }
         this._applyPinState(m._el, g.v);
-        this._applyPinCount(m._el, g.count);
+        this._applyPinCount(m._el, g.count, g.members);
       }
       this._markers = Object.values(this._markerById);
 
@@ -1543,32 +1545,45 @@ function setGateStatus(msg, isErr) {
   if (!msg) { el.hidden = true; return; }
   el.hidden = false; el.textContent = msg; el.classList.toggle('err', !!isErr);
 }
+// GPS via the Capacitor Geolocation plugin in the packaged app (the WebView's own
+// navigator.geolocation is unreliable), falling back to the browser on the web.
+function hasNativeGeo() { return !!(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.Geolocation && Capacitor.Plugins.Geolocation.getCurrentPosition); }
+function getPosition(opts) {
+  if (hasNativeGeo()) {
+    const G = Capacitor.Plugins.Geolocation;
+    return Promise.resolve(G.requestPermissions ? G.requestPermissions().catch(() => {}) : null).then(() => G.getCurrentPosition(opts));
+  }
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject(new Error('no-geo'));
+    navigator.geolocation.getCurrentPosition(resolve, reject, opts);
+  });
+}
 // crosshair button: recenter to the user's location (no popup if we already have it)
 function recenterToMe() {
   if (S.userLoc) {
     // fly to the known spot IMMEDIATELY (no waiting on GPS)…
     map.flyToLatLng(S.userLoc.lat, S.userLoc.lng, 14);
     // …then quietly refresh the fix in the background and nudge if it moved
-    if (S._userIsGps && navigator.geolocation && window.isSecureContext) {
-      navigator.geolocation.getCurrentPosition((p) => {
+    if (S._userIsGps) {
+      getPosition({ enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 }).then((p) => {
         const loc = { lat: p.coords.latitude, lng: p.coords.longitude };
         S.userLoc = loc; map.setUserLocation(loc); map.flyToLatLng(loc.lat, loc.lng, 14);
-      }, () => {}, { enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 });
+      }).catch(() => {});
     }
   } else {
     showGate(); // no location yet — let them set it
   }
 }
 function requestLocation() {
-  // GPS only works on a secure origin (https) or localhost — not over a plain LAN IP
-  if (!window.isSecureContext) {
+  // native app uses the Capacitor plugin; on the web GPS needs a secure origin
+  if (!hasNativeGeo() && !window.isSecureContext) {
     setGateStatus('Live location needs a secure (https) connection on this device. Pick your city below instead.', true);
     return;
   }
-  if (!navigator.geolocation) { setGateStatus("This browser can't share location — pick a city below.", true); return; }
+  if (!hasNativeGeo() && !navigator.geolocation) { setGateStatus("This browser can't share location — pick a city below.", true); return; }
   const allow = $('#gateAllow');
   allow.disabled = true; setGateStatus('Locating…');
-  navigator.geolocation.getCurrentPosition((p) => {
+  getPosition({ enableHighAccuracy: true, timeout: 9000, maximumAge: 60000 }).then((p) => {
     allow.disabled = false; setGateStatus('');
     const loc = { lat: p.coords.latitude, lng: p.coords.longitude };
     S.userLoc = loc; S._userIsGps = true;
@@ -1582,10 +1597,10 @@ function requestLocation() {
     map.flyToLatLng(t.lat, t.lng, z);
     openSheet('near');
     toast('Showing the best spots near you');
-  }, (err) => {
+  }).catch((err) => {
     allow.disabled = false;
     setGateStatus(err && err.code === 1 ? 'Location permission was blocked — pick a city below.' : "Couldn't get your location — pick a city below.", true);
-  }, { enableHighAccuracy: true, timeout: 9000, maximumAge: 60000 });
+  });
 }
 function renderFilters() {
   const d = S.data; if (!d) return;
@@ -2189,12 +2204,7 @@ function eventsNearYou() {
   if (S.userLoc) {
     vs.forEach((v) => { v._dist = haversineKm(S.userLoc, v.coords); });
     vs.sort((a, b) => a._dist - b._dist);
-    if (R !== 'all') {
-      const near = vs.filter((v) => v._dist <= R);
-      // keep the button reachable: if nothing's within the radius, still show the
-      // closest lineups (rows carry the distance, so it stays honest)
-      vs = near.length ? near : vs.slice(0, 15);
-    }
+    if (R !== 'all') vs = vs.filter((v) => v._dist <= R); // strictly within the chosen radius
   } else {
     vs.sort((a, b) => (a.tonight.isTonight === b.tonight.isTonight) ? 0 : (a.tonight.isTonight ? -1 : 1));
   }
@@ -2233,6 +2243,33 @@ function showEventsNearYou() {
 function closeEventsNear() { const el = document.getElementById('eventsNearOv'); if (el) el.remove(); }
 window.showEventsNearYou = showEventsNearYou;
 window.closeEventsNear = closeEventsNear;
+// tap a stacked map pin → list the venues sharing that spot so you can pick one
+function showPinStack(members) {
+  if (!members || members.length < 2) return;
+  const list = members.slice().sort((a, b) => b.radar.score - a.radar.score);
+  const rows = list.map((v) => {
+    const band = bandKey(v.radar.score);
+    const d = S.userLoc ? ' · ' + distLabel(haversineKm(S.userLoc, v.coords)) : '';
+    const ev = v.tonight ? ' · 🎫 event' : '';
+    return `<div class="evrow" onclick="closePinStack();rowClick('${v.id}')">
+      <span class="evr-cover" style="background:${BAND_COLOR[band].core};color:#fff;font-weight:800;font-size:15px">${v.radar.score}</span>
+      <span class="evr-txt"><b>${esc(v.kind)}${esc(ev)}</b><span class="evr-name">${esc(v.name)}</span><span class="evr-sub">${esc(v.neighborhoodName)}${esc(d)}</span></span>
+      <span class="evr-go">View ›</span></div>`;
+  }).join('');
+  const el = document.createElement('div'); el.className = 'rdetail-ov'; el.id = 'pinStackOv';
+  el.innerHTML = `<div class="rdetail-scrim"></div>
+    <div class="rdetail-card">
+      <div class="rdetail-head"><h3>${list.length} venues here</h3><button class="msheet-x ev-x">✕</button></div>
+      <div class="evlist">${rows}</div>
+    </div>`;
+  document.body.appendChild(el);
+  const close = () => el.remove();
+  el.querySelector('.rdetail-scrim').onclick = close;
+  el.querySelector('.ev-x').onclick = close;
+}
+function closePinStack() { const el = document.getElementById('pinStackOv'); if (el) el.remove(); }
+window.showPinStack = showPinStack;
+window.closePinStack = closePinStack;
 // the "Events near you" call-to-action, shown in the Tonight feed AND the main list
 function eventsCtaHtml() {
   const nearEv = eventsNearYou();
