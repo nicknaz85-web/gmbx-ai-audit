@@ -264,7 +264,9 @@ class RadarMap {
       pts.push({ v, x, y });
     }
     pts.sort((a, b) => b.v.radar.score - a.v.radar.score); // strongest venue leads its stack
-    const PIX = 30, groups = [];
+    // only merge pins that genuinely sit ON TOP of each other (roughly one pin
+    // radius apart). Once zooming separates them they show individually — no badge.
+    const PIX = 17, groups = [];
     for (const p of pts) {
       let g = null;
       for (const gg of groups) { const dx = gg.x - p.x, dy = gg.y - p.y; if (dx * dx + dy * dy < PIX * PIX) { g = gg; break; } }
