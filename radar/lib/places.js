@@ -308,6 +308,27 @@ export function getInstagram(venueId) {
   return (p && p.instagram) || null;
 }
 
+// True if an Instagram URL plausibly belongs to THIS venue (real profile, not a
+// search page, name-matched, not a too-generic bare handle). Used by the bake
+// script to keep good handles, drop wrong ones (e.g. a bare "flash"), and accept
+// freshly-resolved ones. Exposes the internal matching logic for offline baking.
+export function igUrlValidForVenue(name, city, url) {
+  const u = String(url || '');
+  if (!/^https?:\/\/(www\.)?instagram\.com\/[A-Za-z0-9_.]+\/?$/.test(u)) return false;
+  const h = igHandle(u);
+  if (!h || IG_JUNK.has(h)) return false;
+  return handleMatchesVenue(name, city || '', h) && !handleTooGeneric(name, city || '', h);
+}
+// Resolve a venue's real Instagram via a name-matched web search. A pinned handle
+// (IG_HANDLES/venue.ig) always wins. Real profile URL or null — never a search page.
+export async function resolveInstagramFor(venue) {
+  if (!venue) return null;
+  const forced = IG_HANDLES[venue.name] || venue.ig;
+  if (forced) return 'https://www.instagram.com/' + forced + '/';
+  const ig = await resolveInstagram(venue.name, venue.city);
+  return (ig && igUrlValidForVenue(venue.name, venue.city, ig)) ? ig : null;
+}
+
 // Background: pre-resolve every venue's Instagram once (throttled), so buttons
 // are instant. Skips venues already resolved. Runs after a fresh boot, then the
 // results persist in the snapshot.

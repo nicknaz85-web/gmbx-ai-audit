@@ -203,6 +203,8 @@ class RadarMap {
     // marker set (cull / cluster-switch / de-overlap) once the gesture settles.
     this.map.on('moveend', () => { this._syncSoon(); if (typeof renderFilters === 'function') renderFilters(); });
     this.map.on('zoomend', () => this._syncSoon());
+    // hide far-side markers live while spinning the globe (no back-through flashing)
+    this.map.on('move', () => this._cullBackface());
     // safety net: only drop to the simple map when WebGL genuinely isn't available.
     // A slow tile/style load must NOT blank the map (that caused light mode to show
     // an empty canvas) — if WebGL works we keep waiting for GL to render.
@@ -397,7 +399,7 @@ class RadarMap {
     // a merged region zooms out-to-in a step (fans into its cities); a single city dives in
     el.addEventListener('click', (ev) => { ev.stopPropagation(); if (this.map) this.map.flyTo({ center: [w.center.lng, w.center.lat], zoom: (w.members > 1 ? Math.min(8.5, this.map.getZoom() + 3) : 11.8), duration: 900 }); });
     const m = new maplibregl.Marker({ element: el, anchor: 'center', opacityWhenCovered: '0' }).setLngLat([w.center.lng, w.center.lat]);
-    m._el = el; return m;
+    m._el = el; m._lat = w.center.lat; m._lng = w.center.lng; return m;
   }
   // Sync markers to the current view. Two modes:
   //   • zoomed OUT (z<6): one COUNT bubble per city ("how many venues are there"),
@@ -427,7 +429,8 @@ class RadarMap {
         const g = {};
         for (const v of this.venues) {
           if (!venueMatches(v)) continue;
-          if (!inView(v.coords)) continue;                 // skip off-screen / far-side cities
+          if (!inView(v.coords)) continue;                 // skip off-screen cities
+          if (!this._onFrontHemisphere(v.coords)) continue; // skip the far side of the globe
           const c = v.city || '?';
           (g[c] || (g[c] = { n: 0, name: c }));
           g[c].n++;                                        // count in-view; anchor stays fixed
@@ -479,6 +482,30 @@ class RadarMap {
   // --- Snapchat-style smooth appear/disappear: markers fade in when added and
   // fade out before removal (on an inner element so MapLibre's occlusion opacity
   // on the marker root never fights the transition). ---
+  // On the 3D globe (zoomed out), a lat/lng on the FAR side should not paint — DOM
+  // markers there otherwise flash through as you spin. True if the point is on the
+  // hemisphere facing the camera (only checked at globe zoom; always true when flat).
+  _onFrontHemisphere(coords) {
+    if (!this.map || !coords) return true;
+    try {
+      if (this.map.getZoom() >= 5.5) return true; // mercator / zoomed in — no globe back-face
+      const c = this.map.getCenter(); const toR = (d) => d * Math.PI / 180;
+      const cosd = Math.sin(toR(c.lat)) * Math.sin(toR(coords.lat))
+        + Math.cos(toR(c.lat)) * Math.cos(toR(coords.lat)) * Math.cos(toR(coords.lng - c.lng));
+      return cosd > 0.12; // angle < ~83° from the centre → on the visible face
+    } catch (e) { return true; }
+  }
+  // Cheap per-frame hide of markers on the globe's far side while spinning/panning,
+  // so they never flash through. Runs on 'move'; only does work at globe zoom.
+  _cullBackface() {
+    if (!this.map) return;
+    const globe = this.map.getZoom() < 5.5;
+    const all = Object.values(this._clusterById || {}).concat(Object.values(this._markerById || {}));
+    for (const m of all) {
+      const el = m.getElement(); if (!el) continue;
+      el.style.visibility = (globe && !this._onFrontHemisphere({ lat: m._lat, lng: m._lng })) ? 'hidden' : '';
+    }
+  }
   _mkInner(root) { return root && root.querySelector('.pin, .cl-in'); }
   _fadeIn(root) {
     const c = this._mkInner(root); if (!c) return;
@@ -486,7 +513,9 @@ class RadarMap {
     requestAnimationFrame(() => requestAnimationFrame(() => { c.classList.remove('mk-enter'); }));
   }
   _fadeRemove(marker) {
-    if (!marker || marker._removing) { try { marker.remove(); } catch (e) {} return; }
+    // on the globe (zoomed out) remove instantly — a fading marker would otherwise
+    // linger and flash on the far side as you spin
+    if (!marker || marker._removing || (this.map && this.map.getZoom() < 5.5)) { try { marker.remove(); } catch (e) {} return; }
     marker._removing = true;
     const c = this._mkInner(marker.getElement());
     if (c) c.classList.add('mk-enter');
@@ -951,12 +980,28 @@ async function isInappropriate(dataUrl) {
   } catch (e) { return false; }
 }
 
+// close hour (0–29, where 24–29 = 0–5 AM after midnight) parsed from the hours
+// label, so wording can say "late-night" only when the venue really is late.
+function closeHour24(v) {
+  const lbl = v.hours && (v.hours.closesLabel || v.hours.nextCloseLabel);
+  if (!lbl) return null;
+  const m = String(lbl).match(/(\d{1,2})(?::(\d\d))?\s*(am|pm)?/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10); const ap = (m[3] || '').toLowerCase();
+  if (ap === 'pm' && h < 12) h += 12; else if (ap === 'am' && h === 12) h = 0;
+  if (h >= 0 && h <= 6) h += 24; // after-midnight closings sort after evening ones
+  return h;
+}
 function venueBlurb(v) {
   const kindWord = { Club: 'nightclub', Bar: 'bar', Rooftop: 'rooftop bar', 'Wine Bar': 'wine bar', Venue: 'live-music venue' }[v.kind] || 'nightlife spot';
   const music = (v.music && typeof v.music === 'string') ? v.music : null;
   const g = v.lgbtq ? 'LGBTQ+ ' : '';
   let s = `A ${g}${kindWord} in ${v.neighborhoodName}, ${v.city}`;
-  s += music ? ` — expect ${music}.` : (v.category === 'Dancing' ? ' for late-night dancing.' : '.');
+  // "late-night" only when it actually stays open into the early hours (≥1 AM);
+  // a club that shuts at midnight just gets "for dancing".
+  const ch = closeHour24(v);
+  const lateNight = ch != null && ch >= 25; // closes 1 AM or later
+  s += music ? ` — expect ${music}.` : (v.category === 'Dancing' ? (lateNight ? ' for late-night dancing.' : ' for dancing.') : '.');
   return s;
 }
 // Description ("what it is") + "what people say" pros/cons distilled from Google reviews.
