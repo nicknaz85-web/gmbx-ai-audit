@@ -85,6 +85,14 @@ function bandKey(score) {
   if (score >= 84) return 'red'; if (score >= 70) return 'pop'; if (score >= 56) return 'busy';
   if (score >= 42) return 'heat'; if (score >= 26) return 'chill'; return 'quiet';
 }
+// Map pins are coloured by how FULL the venue is right now (live crowd), not the
+// blended radar score — closed venues read grey. Falls back to the score if a
+// snapshot somehow lacks a fullness figure.
+function fullnessBand(v) {
+  if (v.open === false) return 'quiet';
+  const f = (v.fullness && typeof v.fullness.est === 'number') ? v.fullness.est : v.radar.score;
+  return bandKey(f);
+}
 // clean, Google-Maps-style semantic palette (quiet→heating→busy→popping→red hot)
 const BAND_COLOR = {
   red: { core: '#ea4335', glow: '234,67,53' }, pop: { core: '#fb8c00', glow: '251,140,0' },
@@ -242,7 +250,7 @@ class RadarMap {
   }
   // Create the DOM marker for one venue (structure only; live state via _applyPinState)
   _markerFor(v) {
-    const col = BAND_COLOR[bandKey(v.radar.score)].core;
+    const col = BAND_COLOR[fullnessBand(v)].core;
     const el = document.createElement('div');
     if (v.photo && !v.lgbtq) {
       el.className = 'pin photo';
@@ -266,7 +274,7 @@ class RadarMap {
   }
   // Update a venue pin's live state (colour / open / selected) in place — no DOM churn
   _applyPinState(el, v) {
-    const band = bandKey(v.radar.score);
+    const band = fullnessBand(v);
     el.classList.toggle('closed', v.open === false);
     if (!(v.photo && !v.lgbtq)) el.classList.toggle('amber', band === 'busy');
     el.classList.toggle('sel', this.selected === v.id);
@@ -330,10 +338,16 @@ class RadarMap {
     const inView = this._inViewFn();
     let vis = matching.filter((v) => inView(v.coords));
     if (!vis.length) vis = matching; // fallback if getBounds glitches
-    // cap the number of DOM pins so a dense city stays smooth to zoom/pan —
-    // keep the highest Party-Radar-score venues in view
-    const CAP = 70;
-    if (vis.length > CAP) vis = vis.slice().sort((a, b) => b.radar.score - a.radar.score).slice(0, CAP);
+    // cap the number of DOM pins so a dense city stays smooth to zoom/pan. Keep the
+    // highest Party-Radar-score venues, but STICKILY prefer pins that are already on
+    // screen so zooming/panning doesn't swap the visible set (pins popping in/out).
+    const CAP = 90;
+    if (vis.length > CAP) {
+      const shown = this._markerById || {};
+      vis = vis.slice().sort((a, b) =>
+        ((shown[b.id] ? 1e6 : 0) + b.radar.score) - ((shown[a.id] ? 1e6 : 0) + a.radar.score)
+      ).slice(0, CAP);
+    }
     return vis;
   }
   // A STABLE geographic centre per city, computed once from ALL its venues (not
@@ -378,7 +392,7 @@ class RadarMap {
   _clusterFor(w) {
     const el = document.createElement('div');
     el.className = 'cluster';
-    el.innerHTML = `<span class="cl-count">${w.n}</span>`;
+    el.innerHTML = `<div class="cl-in"><span class="cl-count">${w.n}</span></div>`;
     el.title = `${w.name}${w.members > 1 ? ' + nearby' : ''} · ${w.n} venue${w.n === 1 ? '' : 's'}`;
     // a merged region zooms out-to-in a step (fans into its cities); a single city dives in
     el.addEventListener('click', (ev) => { ev.stopPropagation(); if (this.map) this.map.flyTo({ center: [w.center.lng, w.center.lat], zoom: (w.members > 1 ? Math.min(8.5, this.map.getZoom() + 3) : 11.8), duration: 900 }); });
@@ -424,11 +438,11 @@ class RadarMap {
         for (const m of this._mergeClusters(cities)) wantC[m.id] = m;
       }
       for (const id of Object.keys(this._clusterById)) {
-        if (!wantC[id]) { this._clusterById[id].remove(); delete this._clusterById[id]; }
+        if (!wantC[id]) { this._fadeRemove(this._clusterById[id]); delete this._clusterById[id]; }
       }
       for (const id in wantC) {
         const w = wantC[id]; let m = this._clusterById[id];
-        if (!m) { m = this._clusterFor(w); m.addTo(this.map); this._clusterById[id] = m; }
+        if (!m) { m = this._clusterFor(w); m.addTo(this.map); this._clusterById[id] = m; this._fadeIn(m.getElement()); }
         else { const b = m._el.querySelector('.cl-count'); if (b) b.textContent = w.n; m.setLngLat([w.center.lng, w.center.lat]); }
       }
 
@@ -438,12 +452,12 @@ class RadarMap {
       const wanted = {};
       if (!clusterMode) for (const g of this._stackGroups(this._wantedVenues())) wanted[g.v.id] = g;
       for (const id of Object.keys(this._markerById)) {
-        if (!wanted[id]) { this._markerById[id].remove(); delete this._markerById[id]; }
+        if (!wanted[id]) { this._fadeRemove(this._markerById[id]); delete this._markerById[id]; }
       }
       for (const id in wanted) {
         const g = wanted[id];
         let m = this._markerById[id];
-        if (!m) { m = this._markerFor(g.v); m.addTo(this.map); this._markerById[id] = m; }
+        if (!m) { m = this._markerFor(g.v); m.addTo(this.map); this._markerById[id] = m; this._fadeIn(m.getElement()); }
         this._applyPinState(m._el, g.v);
         this._applyPinCount(m._el, g.count, g.members);
       }
@@ -461,6 +475,22 @@ class RadarMap {
       }
       this._labelMarkers = Object.values(this._labelById);
     } catch (e) { console.warn('marker sync failed', e); }
+  }
+  // --- Snapchat-style smooth appear/disappear: markers fade in when added and
+  // fade out before removal (on an inner element so MapLibre's occlusion opacity
+  // on the marker root never fights the transition). ---
+  _mkInner(root) { return root && root.querySelector('.pin, .cl-in'); }
+  _fadeIn(root) {
+    const c = this._mkInner(root); if (!c) return;
+    c.classList.add('mk-enter');
+    requestAnimationFrame(() => requestAnimationFrame(() => { c.classList.remove('mk-enter'); }));
+  }
+  _fadeRemove(marker) {
+    if (!marker || marker._removing) { try { marker.remove(); } catch (e) {} return; }
+    marker._removing = true;
+    const c = this._mkInner(marker.getElement());
+    if (c) c.classList.add('mk-enter');
+    setTimeout(() => { try { marker.remove(); } catch (e) {} }, 300);
   }
   _buildMarkers() { this._syncMarkers(); }             // alias (filter/first build re-eval all)
   // Throttle (not debounce): update markers WHILE zooming/panning so pins appear as
@@ -746,10 +776,13 @@ function feedItems() {
   // 3) peaks later tonight
   openV.filter((v) => v.expectedPeak).slice(0, 3)
     .forEach((v) => add(v, '⏰', `${v.name} peaks around ${v.expectedPeak}`, `${v.neighborhoodName}${dist(v)}`));
-  // 4) opening later tonight (closed clubs nearby)
-  vs.filter((v) => !v.open && v.hours && v.hours.opensLabel)
-    .sort((a, b) => b.radar.score - a.radar.score).slice(0, 5)
-    .forEach((v) => add(v, '🌙', `${v.name} opens ${v.hours.opensLabel}`, `${v.neighborhoodName}${v.dress ? ' · ' + v.dress.code : ''}${dist(v)}`));
+  // 4) opening later tonight (closed venues) — ONLY to fill the feed when little is
+  //    open right now, so open bars/clubs always come ahead of closed ones
+  if (items.length < 6) {
+    vs.filter((v) => !v.open && v.hours && v.hours.opensLabel)
+      .sort((a, b) => b.radar.score - a.radar.score).slice(0, 6 - items.length)
+      .forEach((v) => add(v, '🌙', `${v.name} opens ${v.hours.opensLabel}`, `${v.neighborhoodName}${v.dress ? ' · ' + v.dress.code : ''}${dist(v)}`));
+  }
   return items;
 }
 function feedRows() {
@@ -1252,11 +1285,39 @@ function mediaStepHtml() {
     ${m ? `<button class="media-retake" id="mediaRetake">Choose a different one</button>` : ''}
   </div>`;
 }
+const REPORT_GEO_RADIUS_M = 300; // must be within ~300m of the venue to attach media
+// Confirm the reporter is physically at the venue before letting them take or upload
+// a photo/video — a vibe report has to come from the actual spot, not staged elsewhere.
+async function ensureAtVenue() {
+  const venue = S.data && S.data.venues.find((v) => v.id === R.venueId);
+  if (!venue || !venue.coords) return { ok: true };
+  // if the device genuinely can't read location, don't lock people out of reporting
+  const canGeo = hasNativeGeo() || (navigator.geolocation && window.isSecureContext);
+  if (!canGeo) return { ok: true };
+  let loc;
+  try {
+    const p = await getPosition({ enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
+    loc = { lat: p.coords.latitude, lng: p.coords.longitude };
+    S.userLoc = loc; S._userIsGps = true;
+  } catch (e) { return { ok: false, noGps: true, venue }; }
+  const dist = haversineKm(loc, venue.coords) * 1000; // metres
+  return { ok: dist <= REPORT_GEO_RADIUS_M, dist, venue };
+}
 function wireMediaStep() {
   const inp = $('#mediaInput'); if (!inp) return;
   inp.onchange = onMediaPick;
-  const drop = $('#mediaDrop'); if (drop) drop.onclick = () => inp.click();
-  const rt = $('#mediaRetake'); if (rt) rt.onclick = () => inp.click();
+  const openPicker = async () => {
+    toast('Checking you’re at the venue…', 1000);
+    const chk = await ensureAtVenue();
+    if (!chk.ok) {
+      if (chk.noGps) { toast('Turn on location so we can confirm you’re at the venue — report photos have to be taken there', 4000); }
+      else { const away = chk.dist >= 1000 ? (chk.dist / 1000).toFixed(1) + ' km' : Math.round(chk.dist) + ' m'; toast(`You need to be at ${chk.venue.name} to add a photo — you’re about ${away} away`, 4000); }
+      return;
+    }
+    inp.click();
+  };
+  const drop = $('#mediaDrop'); if (drop) drop.onclick = openPicker;
+  const rt = $('#mediaRetake'); if (rt) rt.onclick = openPicker;
 }
 async function onMediaPick(e) {
   const f = e.target.files && e.target.files[0]; if (!f) return;

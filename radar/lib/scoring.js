@@ -158,11 +158,17 @@ function estimateQueue(venue, fullnessFrac) {
   if ((venue.price || 0) >= 25) door += 0.7;
   if (venue.peakRate >= 14) door += 0.5;   // popular room
   if (venue.peakRate >= 20) door += 0.5;   // marquee room
-  let mins = Math.round((f ** 1.45) * (10 + door * 12));
-  // selective / marquee doors (e.g. Berghain) hold a line whenever they're open —
-  // the wait is about the door, not just how full the room is — so floor them at a
-  // short queue once open. Closed venues are forced to "none" by the caller.
-  if (f > 0.02 && door >= 2) mins = Math.max(mins, door >= 3 ? 12 : 7);
+  let mins = Math.round((f ** 1.3) * (12 + door * 15));
+  // Door pressure holds a line whenever the venue is open — the wait is about the
+  // door, not just how full the room is — so floor an OPEN venue by how selective
+  // its door is: any club a short line, popular/pricey rooms longer, marquee doors
+  // (e.g. Berghain) longest. Bars (door 0) stay queue-free unless genuinely packed.
+  // Closed venues are forced to "none" by the caller.
+  if (f > 0.02) {
+    if (door >= 3) mins = Math.max(mins, 20);
+    else if (door >= 2) mins = Math.max(mins, 10);
+    else if (door >= 1) mins = Math.max(mins, 5);
+  }
   let bucket;
   if (mins < 4) bucket = 'none';
   else if (mins < 12) bucket = '<10';

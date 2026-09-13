@@ -142,18 +142,24 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .map-overlay{position:absolute;inset:0;pointer-events:none;z-index:10}
 
 /* pin markers (MapLibre sets position:absolute via .maplibregl-marker — don't override it) */
-.pin{cursor:pointer;position:relative}
+/* fade opacity on the INNER .pin, never the marker root — MapLibre owns the root's
+   opacity for globe occlusion, so animating it there would fight and flicker. */
+.pin{cursor:pointer;position:relative;opacity:1;transition:opacity .3s ease}
+.pin.mk-enter{opacity:0}
 .pin-count{position:absolute;top:-4px;right:-8px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;
   background:var(--primary);color:#fff;font-size:11px;font-weight:800;line-height:17px;text-align:center;
   box-shadow:0 1px 4px rgba(0,0,0,.5);border:1.5px solid var(--card);z-index:7;pointer-events:none}
-/* zoomed-out count bubble (how many venues in a city) */
-.cluster{cursor:pointer;display:flex;align-items:center;justify-content:center;
+/* zoomed-out count bubble (how many venues in a city) — the visible circle is the
+   inner .cl-in so it can fade in/out independently of the marker root's occlusion. */
+.cluster{cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cl-in{display:flex;align-items:center;justify-content:center;
   min-width:34px;height:34px;padding:0 9px;border-radius:999px;
   background:radial-gradient(circle at 35% 30%, #a78bfa, #7c3aed 70%);
   border:2px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.45);
   color:#fff;font:800 14px/1 'DM Sans',sans-serif;letter-spacing:.3px;
-  transition:transform .12s}
-.cluster:active{transform:scale(.9)}
+  opacity:1;transition:opacity .3s ease, transform .12s}
+.cl-in.mk-enter{opacity:0}
+.cluster:active .cl-in{transform:scale(.9)}
 .cl-count{pointer-events:none}
 .pin-body{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
   background:var(--pc,#1a73e8);border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.35);
