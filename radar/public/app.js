@@ -228,6 +228,7 @@ class RadarMap {
   setData(d) {
     const first = !this.bounds;
     this.bounds = d.bounds; this.venues = d.venues; this.areas = d.areas;
+    this._cityCenterCache = null; // venues changed → recompute stable cluster anchors
     if (!this.map || this._ready) this._buildMarkers();
     if (first) this._initialCamera();
     this._maybeHideSkeleton();
@@ -335,6 +336,24 @@ class RadarMap {
     if (vis.length > CAP) vis = vis.slice().sort((a, b) => b.radar.score - a.radar.score).slice(0, CAP);
     return vis;
   }
+  // A STABLE geographic centre per city, computed once from ALL its venues (not
+  // just the ones currently on screen). Cluster bubbles anchor here so they stay
+  // put while you zoom/pan — otherwise a viewport-dependent centroid makes every
+  // bubble drift around as the set of in-view venues changes.
+  _cityCenters() {
+    if (this._cityCenterCache) return this._cityCenterCache;
+    const g = {};
+    for (const v of this.venues) {
+      if (!v.coords) continue;
+      const c = v.city || '?';
+      (g[c] || (g[c] = { lat: 0, lng: 0, n: 0 }));
+      g[c].lat += v.coords.lat; g[c].lng += v.coords.lng; g[c].n++;
+    }
+    const out = {};
+    for (const c in g) out[c] = { lat: g[c].lat / g[c].n, lng: g[c].lng / g[c].n, total: g[c].n };
+    this._cityCenterCache = out;
+    return out;
+  }
   // Merge city clusters that sit within ~46px on screen into regional bubbles.
   _mergeClusters(cities) {
     const pts = [];
@@ -343,7 +362,9 @@ class RadarMap {
       try { const p = this.map.project([c.center.lng, c.center.lat]); x = p.x; y = p.y; } catch (e) {}
       pts.push({ c, x, y });
     }
-    pts.sort((a, b) => b.c.n - a.c.n); // the biggest city leads (and names) its region
+    // biggest city (by TOTAL size, a stable key) leads and names its region, so the
+    // regional bubble doesn't hop to a different city centre as you pan/zoom
+    pts.sort((a, b) => (b.c.total || b.c.n) - (a.c.total || a.c.n));
     const PIX = 46, groups = [];
     for (const p of pts) {
       let g = null;
@@ -388,15 +409,16 @@ class RadarMap {
       const wantC = {};
       if (clusterMode) {
         const inView = this._inViewFn();
+        const centers = this._cityCenters();               // fixed per-city anchors
         const g = {};
         for (const v of this.venues) {
           if (!venueMatches(v)) continue;
           if (!inView(v.coords)) continue;                 // skip off-screen / far-side cities
           const c = v.city || '?';
-          (g[c] || (g[c] = { lat: 0, lng: 0, n: 0, name: c }));
-          g[c].lat += v.coords.lat; g[c].lng += v.coords.lng; g[c].n++;
+          (g[c] || (g[c] = { n: 0, name: c }));
+          g[c].n++;                                        // count in-view; anchor stays fixed
         }
-        const cities = Object.keys(g).map((c) => ({ name: c, n: g[c].n, center: { lat: g[c].lat / g[c].n, lng: g[c].lng / g[c].n } }));
+        const cities = Object.keys(g).map((c) => ({ name: c, n: g[c].n, total: (centers[c] && centers[c].total) || g[c].n, center: centers[c] || { lat: 0, lng: 0 } }));
         // merge cities within ~46px on screen into one regional bubble, so a world
         // spin repositions a handful of markers instead of hundreds (smooth).
         for (const m of this._mergeClusters(cities)) wantC[m.id] = m;
@@ -454,46 +476,6 @@ class RadarMap {
     this._syncMarkers();
   }
   _updateLabelVis() { this._syncSoon(); }
-  // When zoomed out, venue pins pile on top of each other. Fan any overlapping
-  // cluster into a lollipop bouquet: every stem stays pinned to the SAME point
-  // and the heads spread out in an arc (like pins in a cushion).
-  _spreadOverlaps() {
-    if (!this.map || !this._ready || !this._markers || !this._markers.length) return;
-    const reset = (m) => { m.setLngLat([m._lng, m._lat]); m._el.style.transform = ''; m._el.style.transformOrigin = ''; m.getElement().style.zIndex = ''; m.getElement().style.display = ''; };
-    // only fan out when zoomed OUT — at city zoom keep normal pins in place
-    if (this.map.getZoom() >= 12) { this._markers.forEach(reset); return; }
-    const pts = this._markers.map((m) => { const p = this.map.project([m._lng, m._lat]); return { m, x: p.x, y: p.y }; });
-    const used = new Array(pts.length).fill(false);
-    const R = 26; // px: pins closer than this are treated as overlapping
-    for (let i = 0; i < pts.length; i++) {
-      if (used[i]) continue;
-      const group = [i]; used[i] = true;
-      for (let j = i + 1; j < pts.length; j++) {
-        if (used[j]) continue;
-        const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
-        if (dx * dx + dy * dy < R * R) { group.push(j); used[j] = true; }
-      }
-      if (group.length === 1) { reset(pts[i].m); continue; }
-      // pin all tips to the shared city point, then fan the bodies out at the top
-      // by rotating each pin around its tip (bottom) — connected at the base.
-      // Cap the fan at 3 pins so the row stays small; hide the rest until zoom-in.
-      let clat = 0, clng = 0;
-      group.forEach((gi) => { clat += pts[gi].m._lat; clng += pts[gi].m._lng; });
-      clat /= group.length; clng /= group.length;
-      const shown = group.slice(0, 3);
-      group.slice(3).forEach((gi) => { const m = pts[gi].m; reset(m); m.getElement().style.display = 'none'; });
-      const k = shown.length;
-      const total = k === 3 ? 52 : 30; // total fan angle in degrees
-      shown.forEach((gi, idx) => {
-        const m = pts[gi].m;
-        const ang = k === 1 ? 0 : (idx / (k - 1) - 0.5) * total;
-        m.setLngLat([clng, clat]);
-        m._el.style.transformOrigin = 'bottom center';
-        m._el.style.transform = `rotate(${ang.toFixed(1)}deg)`;
-        m.getElement().style.zIndex = '4';
-      });
-    }
-  }
   refreshSelection() { this._syncMarkers(); }
   setUserLocation(loc) {
     this.userLoc = loc;
@@ -2369,7 +2351,8 @@ function openChat() {
       .then((p) => { S.userLoc = { lat: p.coords.latitude, lng: p.coords.longitude }; S._userIsGps = true; if (chatIsOpen() && (!S.chatMessages || !S.chatMessages.length)) renderChatWelcome(); })
       .catch(() => {});
   }
-  setTimeout(() => { const i = document.getElementById('chatInput'); if (i) i.focus(); }, 160);
+  // don't auto-focus the input on open — that pops the keyboard and hides the
+  // recommended questions. The keyboard appears only when you tap the text box.
 }
 function closeChat() { const ov = document.getElementById('chatScreen'); if (ov) { ov.classList.remove('open'); ov.hidden = true; } setBn('map'); S.tab = 'near'; }
 function chatIsOpen() { const c = document.getElementById('chatScreen'); return !!(c && !c.hidden); }
