@@ -258,19 +258,33 @@ function buildChatContext(query, userLoc) {
   }
   scored.sort((a, b) => b.sc - a.sc);
   const q = String(query || '').toLowerCase();
-  const nearMe = /\bnear me\b|\bnear by\b|\bnearby\b|\baround me\b|\bnear here\b|\bmy area\b|\bclose to me\b/.test(q);
+  // did the user name a specific city? (whole-word match against our known cities)
+  const mentionsCity = cities.some((c) => new RegExp('\\b' + c.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b').test(q));
   let picks = scored.slice(0, 26).map((x) => x.v);
-  // location grounding — nearest city + nearby venues for "near me" questions
-  let locLine = '\nThe user has not shared their location. If they ask what\'s "near me", ask which city they\'re in.';
+  let locLine = '\nThe user has not shared their location. If they ask what\'s "near me" or don\'t name a city, ask which city they\'re in.';
   if (userLoc) {
     const near = db.venues.map((v) => ({ v, d: _hav(userLoc, v.coords) })).sort((a, b) => a.d - b.d);
     const nearest = near[0];
     if (nearest) {
       const far = nearest.d > 150;
-      locLine = `\nThe user is currently near ${nearest.v.city} (${nearest.v.neighborhoodName}), ~${Math.round(nearest.d)}km from the nearest venue.${far ? ' There is no live venue data close to them — say so, then give general advice.' : ` For "near me" questions, recommend venues in/around ${nearest.v.city}.`}`;
-      // "near me" (or no keyword match) → ground on the user's LOCAL venues, not
-      // global keyword hits (fixes "cheap bars near me" pulling bars worldwide).
-      if (nearMe || !picks.length) picks = near.slice(0, 20).map((x) => x.v);
+      // Unless the user explicitly named another city, answer for where THEY are.
+      // Rank the user's LOCAL venues by how well they match the query, so keywords
+      // like "club"/"girls"/"open" still filter — but within their own city, not the
+      // whole world (fixes "what club is open" returning venues in another country).
+      if (!mentionsCity && !far) {
+        const localPool = near.filter((x) => x.d <= Math.max(60, nearest.d + 45));
+        const pool = localPool.length >= 8 ? localPool : near.slice(0, 26);
+        const ls = pool.map(({ v }) => {
+          const hay = (v.name + ' ' + v.neighborhoodName + ' ' + v.category + ' ' + v.kind).toLowerCase();
+          let sc = 0; for (const t of toks) if (hay.includes(t)) sc += 1;
+          return { v, sc };
+        });
+        ls.sort((a, b) => b.sc - a.sc); // keyword match first; pool is already distance-ordered for ties
+        picks = ls.slice(0, 22).map((x) => x.v);
+        locLine = `\nThe user is in ${nearest.v.city} (${nearest.v.neighborhoodName}). Unless they name another city, answer using the venues listed below — they are all in/around ${nearest.v.city}. Do NOT recommend venues in other countries or claim you lack local data when ${nearest.v.city} venues are listed.`;
+      } else {
+        locLine = `\nThe user is currently near ${nearest.v.city} (${nearest.v.neighborhoodName}), ~${Math.round(nearest.d)}km from the nearest venue.${far ? ' There is no live venue data close to them — say so, then give general advice.' : ` For "near me" questions, recommend venues in/around ${nearest.v.city}.`}`;
+      }
     }
   }
   const lines = picks.map((v) => {

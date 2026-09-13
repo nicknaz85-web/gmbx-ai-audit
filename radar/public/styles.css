@@ -943,6 +943,13 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .chat-msg.user{justify-content:flex-end}
 .chat-msg.assistant{justify-content:flex-start}
 .chat-av{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none;align-self:flex-start;margin-top:2px}
+/* spinning ring around the mascot while the AI is composing a reply */
+.chat-av-load{position:relative;flex:none;align-self:flex-start;margin-top:2px;display:inline-flex}
+.chat-av-load .chat-av{margin-top:0}
+.chat-av-load::before{content:"";position:absolute;inset:-4px;border-radius:50%;
+  border:2.5px solid rgba(124,58,237,.2);border-top-color:var(--primary);
+  animation:chatAvSpin .8s linear infinite}
+@keyframes chatAvSpin{to{transform:rotate(360deg)}}
 .chat-col{display:flex;flex-direction:column;gap:6px;min-width:0;max-width:82%}
 .chat-bubble{padding:11px 14px;border-radius:16px;font-size:14.5px;line-height:1.5;word-wrap:break-word;overflow-wrap:anywhere}
 .chat-msg.user .chat-bubble{max-width:82%}

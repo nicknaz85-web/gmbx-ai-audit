@@ -2415,7 +2415,14 @@ function openChat() {
   // don't auto-focus the input on open — that pops the keyboard and hides the
   // recommended questions. The keyboard appears only when you tap the text box.
 }
-function closeChat() { const ov = document.getElementById('chatScreen'); if (ov) { ov.classList.remove('open'); ov.hidden = true; } setBn('map'); S.tab = 'near'; }
+function closeChat() {
+  const ov = document.getElementById('chatScreen');
+  if (ov) {
+    ov.classList.remove('open');   // slide back down (transform transition), then hide
+    setTimeout(() => { if (ov && !ov.classList.contains('open')) ov.hidden = true; }, 320);
+  }
+  setBn('map'); S.tab = 'near';
+}
 function chatIsOpen() { const c = document.getElementById('chatScreen'); return !!(c && !c.hidden); }
 function closeChatAndOpen(id) { closeChat(); if (typeof rowClick === 'function') rowClick(id); }
 window.openChat = openChat; window.closeChat = closeChat; window.closeChatAndOpen = closeChatAndOpen;
@@ -2480,7 +2487,7 @@ function renderChatMessages() {
     const chips = (m.venues && m.venues.length) ? `<div class="chat-venues">${m.venues.map((v) => `<button class="chat-venue-chip" onclick="closeChatAndOpen('${v.id}')">${v.photo ? `<img src="${esc(v.photo)}" alt="" loading="lazy" onerror="this.remove()"/>` : '<span class="cvc-ic">📍</span>'}<span class="cvc-name">${esc(v.name)}</span><span class="cvc-go">›</span></button>`).join('')}</div>` : '';
     return `<div class="chat-msg assistant"><img class="chat-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/><div class="chat-col"><div class="chat-bubble">${chatMd(m.content)}</div>${chips}</div></div>`;
   }).join('');
-  const typing = S._chatPending ? `<div class="chat-msg assistant"><img class="chat-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/><div class="chat-col"><div class="chat-bubble typing"><span></span><span></span><span></span></div></div></div>` : '';
+  const typing = S._chatPending ? `<div class="chat-msg assistant"><span class="chat-av-load"><img class="chat-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/></span><div class="chat-col"><div class="chat-bubble typing"><span></span><span></span><span></span></div></div></div>` : '';
   body.innerHTML = rows + typing;
   body.scrollTop = body.scrollHeight;
 }
