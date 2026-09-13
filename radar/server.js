@@ -257,6 +257,8 @@ function buildChatContext(query, userLoc) {
     if (sc > 0) scored.push({ v, sc });
   }
   scored.sort((a, b) => b.sc - a.sc);
+  const q = String(query || '').toLowerCase();
+  const nearMe = /\bnear me\b|\bnear by\b|\bnearby\b|\baround me\b|\bnear here\b|\bmy area\b|\bclose to me\b/.test(q);
   let picks = scored.slice(0, 26).map((x) => x.v);
   // location grounding — nearest city + nearby venues for "near me" questions
   let locLine = '\nThe user has not shared their location. If they ask what\'s "near me", ask which city they\'re in.';
@@ -264,8 +266,11 @@ function buildChatContext(query, userLoc) {
     const near = db.venues.map((v) => ({ v, d: _hav(userLoc, v.coords) })).sort((a, b) => a.d - b.d);
     const nearest = near[0];
     if (nearest) {
-      locLine = `\nThe user is currently near ${nearest.v.city} (${nearest.v.neighborhoodName}). For "near me" questions, use venues in/around ${nearest.v.city}. If the nearest venue is very far (>150km), tell them there's no live data near them yet.`;
-      if (!picks.length) picks = near.slice(0, 20).map((x) => x.v); // no keyword match → use nearby
+      const far = nearest.d > 150;
+      locLine = `\nThe user is currently near ${nearest.v.city} (${nearest.v.neighborhoodName}), ~${Math.round(nearest.d)}km from the nearest venue.${far ? ' There is no live venue data close to them — say so, then give general advice.' : ` For "near me" questions, recommend venues in/around ${nearest.v.city}.`}`;
+      // "near me" (or no keyword match) → ground on the user's LOCAL venues, not
+      // global keyword hits (fixes "cheap bars near me" pulling bars worldwide).
+      if (nearMe || !picks.length) picks = near.slice(0, 20).map((x) => x.v);
     }
   }
   const lines = picks.map((v) => {
