@@ -281,7 +281,15 @@ function buildChatContext(query, userLoc) {
         });
         ls.sort((a, b) => b.sc - a.sc); // keyword match first; pool is already distance-ordered for ties
         picks = ls.slice(0, 22).map((x) => x.v);
-        locLine = `\nThe user is in ${nearest.v.city} (${nearest.v.neighborhoodName}). Unless they name another city, answer using the venues listed below — they are all in/around ${nearest.v.city}. Do NOT recommend venues in other countries or claim you lack local data when ${nearest.v.city} venues are listed.`;
+        const dNear = Math.round(nearest.d);
+        // Only claim the user is IN a neighbourhood when they're actually there.
+        // Someone in a suburb (e.g. Borča, ~10km out) is near the CITY, not "in
+        // Savamala" just because that's the closest venue — say so honestly.
+        if (nearest.d <= 2.5) {
+          locLine = `\nThe user is in ${nearest.v.city} (${nearest.v.neighborhoodName}). Unless they name another city, answer using the venues listed below — they are all in/around ${nearest.v.city}. Do NOT recommend venues in other countries or claim you lack local data when ${nearest.v.city} venues are listed.`;
+        } else {
+          locLine = `\nThe user is in the ${nearest.v.city} area, about ${dNear}km from the nearest nightlife (${nearest.v.neighborhoodName}). Do NOT say they are IN ${nearest.v.neighborhoodName} — they're outside the main scene. Unless they name another city, answer using the venues listed below (in/around ${nearest.v.city}); it's fine to note the closest spots are ~${dNear}km away, a short trip into town. Never claim you lack local data when ${nearest.v.city} venues are listed.`;
+        }
       } else {
         locLine = `\nThe user is currently near ${nearest.v.city} (${nearest.v.neighborhoodName}), ~${Math.round(nearest.d)}km from the nearest venue.${far ? ' There is no live venue data close to them — say so, then give general advice.' : ` For "near me" questions, recommend venues in/around ${nearest.v.city}.`}`;
       }
