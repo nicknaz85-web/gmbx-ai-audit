@@ -921,16 +921,24 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .segtoggle.segsm button.on{background:var(--primary);color:#fff;box-shadow:none}
 
 /* Clubbit AI chat screen */
-.chatscreen{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:var(--bg)}
-.chat-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--card)}
-.chat-title{font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px;color:var(--text)}
-.chat-ai-ic{font-size:18px}
-.chat-close{width:34px;height:34px;border-radius:50%;border:none;background:var(--surface-3);color:var(--text);font-size:16px;cursor:pointer}
-.chat-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;display:flex;flex-direction:column;gap:10px}
-.chat-msg{display:flex}
+.chatscreen{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:var(--bg);
+  transform:translateY(14px);opacity:0;transition:transform .22s ease,opacity .22s ease}
+.chatscreen.open{transform:translateY(0);opacity:1}
+.chat-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--card)}
+.chat-title{font-size:16px;font-weight:800;display:flex;align-items:center;gap:10px;color:var(--text)}
+.chat-title>span{display:flex;flex-direction:column;line-height:1.15}
+.chat-title small{font-size:11px;font-weight:600;color:var(--muted)}
+.chat-ai-av{width:36px;height:36px;border-radius:50%;object-fit:cover;flex:none;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.chat-close{width:36px;height:36px;border-radius:50%;border:none;background:var(--surface-3);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.chat-close svg{width:18px;height:18px}
+.chat-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;display:flex;flex-direction:column;gap:12px}
+.chat-msg{display:flex;align-items:flex-end;gap:8px}
 .chat-msg.user{justify-content:flex-end}
 .chat-msg.assistant{justify-content:flex-start}
-.chat-bubble{max-width:82%;padding:11px 14px;border-radius:16px;font-size:14.5px;line-height:1.5;word-wrap:break-word;overflow-wrap:anywhere}
+.chat-av{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:none;align-self:flex-start;margin-top:2px}
+.chat-col{display:flex;flex-direction:column;gap:6px;min-width:0;max-width:82%}
+.chat-bubble{padding:11px 14px;border-radius:16px;font-size:14.5px;line-height:1.5;word-wrap:break-word;overflow-wrap:anywhere}
+.chat-msg.user .chat-bubble{max-width:82%}
 .chat-msg.user .chat-bubble{background:var(--primary);color:#fff;border-bottom-right-radius:5px}
 .chat-msg.assistant .chat-bubble{background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-bottom-left-radius:5px}
 .chat-bubble b{font-weight:700}
@@ -940,7 +948,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .chat-bubble.typing span:nth-child(3){animation-delay:.3s}
 @keyframes chatdot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
 .chat-welcome{text-align:center;margin:auto;max-width:340px;padding:20px 10px}
-.chat-welcome-ic{font-size:40px}
+.chat-welcome-av{width:72px;height:72px;border-radius:50%;object-fit:cover;box-shadow:0 4px 16px rgba(0,0,0,.3)}
 .chat-welcome h3{margin:12px 0 6px;font-size:20px;color:var(--text)}
 .chat-welcome p{margin:0 0 18px;font-size:14px;color:var(--muted);line-height:1.5}
 .chat-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
@@ -950,3 +958,15 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .chat-inputbar input:focus{border-color:var(--primary)}
 .chat-send{width:46px;height:46px;flex:none;border-radius:50%;border:none;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .chat-send svg{width:20px;height:20px}
+
+/* clickable venue chips under an AI reply + AI nav mascot */
+.chat-venues{display:flex;flex-wrap:wrap;gap:7px;margin-top:1px}
+.chat-venue-chip{display:flex;align-items:center;gap:8px;padding:5px 11px 5px 5px;border-radius:22px;cursor:pointer;
+  background:var(--card);border:1px solid color-mix(in srgb,var(--primary) 35%,var(--line));color:var(--text);font-family:inherit}
+.chat-venue-chip img{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:none}
+.chat-venue-chip .cvc-ic{width:28px;height:28px;border-radius:50%;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:14px;flex:none}
+.chat-venue-chip .cvc-name{font-size:13px;font-weight:700;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+.chat-venue-chip .cvc-go{color:var(--primary);font-weight:800;font-size:15px}
+.chat-venue-chip:active{transform:scale(.97)}
+.bn-mascot{width:32px;height:32px;border-radius:50%;object-fit:cover}
+.bn-ai.active .bn-mascot{outline:2px solid var(--primary);outline-offset:1px}

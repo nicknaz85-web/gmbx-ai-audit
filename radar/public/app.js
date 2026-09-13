@@ -14,7 +14,12 @@ const API = {
   deleteMedia: (id) => post('/api/media/delete', { id }),
   deleteReport: (id) => post('/api/report/delete', { id }),
   deleteAccount: (token) => post('/api/auth/delete', { token }),
-  chat: (messages, userLoc) => post('/api/chat', { messages, userLoc }),
+  chat: (messages, userLoc) => {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), 24000);
+    return fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages, userLoc }), signal: ac.signal })
+      .then((r) => r.json()).finally(() => clearTimeout(t));
+  },
 };
 function post(url, body) {
   return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
@@ -2331,6 +2336,7 @@ window.showPinStack = showPinStack;
 window.closePinStack = closePinStack;
 
 // ---- Clubbit AI chat (bottom-right nav) ----
+const MASCOT = '/clubbit-mascot.png';
 function openChat() {
   closeSheet(); hideProfile();
   S.tab = 'chat'; setBn('chat');
@@ -2339,8 +2345,8 @@ function openChat() {
     ov = document.createElement('div'); ov.id = 'chatScreen'; ov.className = 'chatscreen';
     ov.innerHTML = `
       <div class="chat-head">
-        <span class="chat-title"><span class="chat-ai-ic">✨</span> Clubbit AI</span>
-        <button class="chat-close" id="chatClose" aria-label="Close">✕</button>
+        <span class="chat-title"><img class="chat-ai-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/><span>Clubbit AI<small>Nightlife concierge</small></span></span>
+        <button class="chat-close" id="chatClose" aria-label="Close chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="chat-body" id="chatBody"></div>
       <form class="chat-inputbar" id="chatForm" autocomplete="off">
@@ -2351,28 +2357,68 @@ function openChat() {
     ov.querySelector('#chatClose').onclick = closeChat;
     ov.querySelector('#chatForm').onsubmit = (e) => { e.preventDefault(); const i = document.getElementById('chatInput'); const t = (i.value || '').trim(); if (!t || S._chatPending) return; i.value = ''; sendChat(t); };
   }
+  // stop the panel above the bottom nav so the nav stays visible & tappable (always an exit)
+  try { const nav = document.querySelector('.bottomnav'); ov.style.bottom = (nav ? nav.offsetHeight : 64) + 'px'; } catch (e) {}
   ov.hidden = false;
+  requestAnimationFrame(() => ov.classList.add('open'));
   if (S.chatMessages && S.chatMessages.length) renderChatMessages(); else renderChatWelcome();
-  setTimeout(() => { const i = document.getElementById('chatInput'); if (i) i.focus(); }, 120);
+  setTimeout(() => { const i = document.getElementById('chatInput'); if (i) i.focus(); }, 160);
 }
-function closeChat() { const ov = document.getElementById('chatScreen'); if (ov) ov.hidden = true; setBn('map'); S.tab = 'near'; }
-window.openChat = openChat;
+function closeChat() { const ov = document.getElementById('chatScreen'); if (ov) { ov.classList.remove('open'); ov.hidden = true; } setBn('map'); S.tab = 'near'; }
+function chatIsOpen() { const c = document.getElementById('chatScreen'); return !!(c && !c.hidden); }
+function closeChatAndOpen(id) { closeChat(); if (typeof rowClick === 'function') rowClick(id); }
+window.openChat = openChat; window.closeChat = closeChat; window.closeChatAndOpen = closeChatAndOpen;
 function renderChatWelcome() {
   const body = document.getElementById('chatBody'); if (!body) return;
   const n = (S.data && S.data.venues) ? S.data.venues.length : 'thousands of';
-  const chips = ['Best clubs in Berlin?', 'Where should I party in Miami tonight?', 'Best area for techno in London', 'Cheap bars near me'];
+  const chips = ['Best clubs in Berlin?', 'Where should I party tonight?', 'Best area for techno in London', 'Cheap bars near me'];
   body.innerHTML = `<div class="chat-welcome">
-      <div class="chat-welcome-ic">✨</div>
+      <img class="chat-welcome-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/>
       <h3>Ask me anything about nightlife</h3>
       <p>Venues, vibes, the best areas to party — I've got live data on ${esc(String(n))} spots worldwide.</p>
       <div class="chat-chips">${chips.map((c) => `<button class="chat-chip" onclick="sendChat(this.textContent)">${esc(c)}</button>`).join('')}</div>
     </div>`;
 }
-function chatMd(t) { return esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|\n)\s*[-•]\s+/g, '$1• ').replace(/\n/g, '<br>'); }
+function chatMd(t) {
+  let h = esc(t);
+  h = h.replace(/(^|\n)\s*[*\-•]\s+/g, '$1• ');            // bullets (*, -, •)
+  h = h.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');            // bold
+  h = h.replace(/\*(?!\s)([^*\n]+?)\*/g, '<i>$1</i>');     // italic
+  return h.replace(/\n/g, '<br>');
+}
+// venues the assistant named → clickable chips. The AI bolds the venues it
+// recommends, so match those first (precise); fall back to a strict word scan.
+function findMentionedVenues(text) {
+  const d = S.data; if (!d || !text) return [];
+  const bolds = (text.match(/\*\*([^*]+)\*\*/g) || []).map((s) => s.replace(/\*\*/g, '').trim().toLowerCase());
+  const out = [], seen = new Set();
+  const add = (v) => { if (!seen.has(v.id)) { seen.add(v.id); out.push({ id: v.id, name: v.name, photo: v.googlePhoto || v.photo || null }); } };
+  if (bolds.length) {
+    for (const v of d.venues) {
+      if (out.length >= 6) break;
+      const nm = v.name.toLowerCase();
+      if (bolds.some((bd) => bd === nm || (nm.length >= 5 && (bd.includes(nm) || nm.includes(bd))))) add(v);
+    }
+    if (out.length) return out;
+  }
+  const low = ' ' + text.toLowerCase() + ' ';
+  for (const v of d.venues) {
+    if (out.length >= 6) break;
+    const nm = v.name.toLowerCase(); if (nm.length < 5) continue;
+    const i = low.indexOf(nm); if (i < 0) continue;
+    if (/[a-z0-9]/.test(low[i - 1] || '') || /[a-z0-9]/.test(low[i + nm.length] || '')) continue;
+    add(v);
+  }
+  return out;
+}
 function renderChatMessages() {
   const body = document.getElementById('chatBody'); if (!body) return;
-  const rows = (S.chatMessages || []).map((m) => `<div class="chat-msg ${m.role}"><div class="chat-bubble">${m.role === 'assistant' ? chatMd(m.content) : esc(m.content)}</div></div>`).join('');
-  const typing = S._chatPending ? '<div class="chat-msg assistant"><div class="chat-bubble typing"><span></span><span></span><span></span></div></div>' : '';
+  const rows = (S.chatMessages || []).map((m) => {
+    if (m.role !== 'assistant') return `<div class="chat-msg user"><div class="chat-bubble">${esc(m.content)}</div></div>`;
+    const chips = (m.venues && m.venues.length) ? `<div class="chat-venues">${m.venues.map((v) => `<button class="chat-venue-chip" onclick="closeChatAndOpen('${v.id}')">${v.photo ? `<img src="${esc(v.photo)}" alt="" loading="lazy" onerror="this.remove()"/>` : '<span class="cvc-ic">📍</span>'}<span class="cvc-name">${esc(v.name)}</span><span class="cvc-go">›</span></button>`).join('')}</div>` : '';
+    return `<div class="chat-msg assistant"><img class="chat-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/><div class="chat-col"><div class="chat-bubble">${chatMd(m.content)}</div>${chips}</div></div>`;
+  }).join('');
+  const typing = S._chatPending ? `<div class="chat-msg assistant"><img class="chat-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/><div class="chat-col"><div class="chat-bubble typing"><span></span><span></span><span></span></div></div></div>` : '';
   body.innerHTML = rows + typing;
   body.scrollTop = body.scrollHeight;
 }
@@ -2381,9 +2427,16 @@ async function sendChat(text) {
   if (!S.chatMessages) S.chatMessages = [];
   S.chatMessages.push({ role: 'user', content: text });
   S._chatPending = true; renderChatMessages();
+  // "near me" answers need the freshest REAL location — grab a fresh GPS fix
+  let loc = S.userLoc || null;
+  if (/\bnear me\b|\bnearby\b|\baround me\b|\bmy area\b|\bnear here\b/i.test(text)) {
+    try { const p = await getPosition({ enableHighAccuracy: true, timeout: 6000, maximumAge: 300000 }); loc = { lat: p.coords.latitude, lng: p.coords.longitude }; S.userLoc = loc; S._userIsGps = true; } catch (e) {}
+  }
   try {
-    const r = await API.chat(S.chatMessages.slice(-12), S.userLoc || null);
-    S.chatMessages.push({ role: 'assistant', content: (r && r.reply) || "Sorry, I couldn't answer that one." });
+    const hist = S.chatMessages.filter((m) => m.role === 'user' || m.role === 'assistant').map((m) => ({ role: m.role, content: m.content })).slice(-12);
+    const r = await API.chat(hist, loc);
+    const reply = (r && r.reply) || "Sorry, I couldn't answer that one.";
+    S.chatMessages.push({ role: 'assistant', content: reply, venues: findMentionedVenues(reply) });
   } catch (e) {
     S.chatMessages.push({ role: 'assistant', content: "Sorry, I'm having trouble connecting right now — try again in a moment." });
   }
@@ -2488,7 +2541,8 @@ function initUI() {
   $('#listBtn').addEventListener('click', () => openSheet('feed'));
   document.querySelectorAll('.bn').forEach((b) => b.addEventListener('click', () => {
     const nav = b.dataset.nav;
-    if (nav === 'chat') { openChat(); return; }
+    if (nav === 'chat') { if (chatIsOpen()) closeChat(); else openChat(); return; }
+    if (chatIsOpen()) closeChat(); // any other tab exits the AI
     if (nav === 'map') { closeSheet(); }
     else openSheet(nav);
   }));

@@ -258,7 +258,16 @@ function buildChatContext(query, userLoc) {
   }
   scored.sort((a, b) => b.sc - a.sc);
   let picks = scored.slice(0, 26).map((x) => x.v);
-  if (!picks.length && userLoc) picks = db.venues.map((v) => ({ v, d: _hav(userLoc, v.coords) })).sort((a, b) => a.d - b.d).slice(0, 20).map((x) => x.v);
+  // location grounding — nearest city + nearby venues for "near me" questions
+  let locLine = '\nThe user has not shared their location. If they ask what\'s "near me", ask which city they\'re in.';
+  if (userLoc) {
+    const near = db.venues.map((v) => ({ v, d: _hav(userLoc, v.coords) })).sort((a, b) => a.d - b.d);
+    const nearest = near[0];
+    if (nearest) {
+      locLine = `\nThe user is currently near ${nearest.v.city} (${nearest.v.neighborhoodName}). For "near me" questions, use venues in/around ${nearest.v.city}. If the nearest venue is very far (>150km), tell them there's no live data near them yet.`;
+      if (!picks.length) picks = near.slice(0, 20).map((x) => x.v); // no keyword match → use nearby
+    }
+  }
   const lines = picks.map((v) => {
     const s = venueSnapshot(v, ref);
     const bits = [v.kind, `Party Radar ${s.radar.score}/100 (${s.radar.label})`, s.open ? 'open now' : (s.hours && s.hours.opensLabel ? 'opens ' + s.hours.opensLabel : 'closed')];
@@ -268,7 +277,19 @@ function buildChatContext(query, userLoc) {
     return `- ${v.name} — ${v.city} / ${v.neighborhoodName}: ${bits.join(', ')}`;
   });
   const cityLine = `The app has ${db.venues.length} venues across ${cities.length} cities: ${cities.slice(0, 130).join(', ')}${cities.length > 130 ? ', …' : ''}.`;
-  return cityLine + '\n\nRelevant venues right now (live data):\n' + (lines.join('\n') || "(no venue matched — if they named a city/area not in the list above, tell them there's no live data there yet, then give general advice.)");
+  return cityLine + locLine + '\n\nRelevant venues right now (live data):\n' + (lines.join('\n') || "(no venue matched — if they named a city/area not in the list above, tell them there's no live data there yet, then give general advice.)");
+}
+
+// per-user rate limit for the AI chat — protects the shared free Gemini quota so a
+// few heavy users can't run up the daily cap (and there's never a surprise bill).
+const _chatHits = new Map();
+function chatRateLimited(uHash) {
+  const t = Date.now(), WIN = 60 * 60 * 1000, MAX = 25;
+  const arr = (_chatHits.get(uHash) || []).filter((x) => t - x < WIN);
+  if (arr.length >= MAX) { _chatHits.set(uHash, arr); return true; }
+  arr.push(t); _chatHits.set(uHash, arr);
+  if (_chatHits.size > 5000) { for (const k of _chatHits.keys()) { if ((_chatHits.get(k) || []).every((x) => t - x >= WIN)) _chatHits.delete(k); } }
+  return false;
 }
 
 // map bounds across all venues (for the stylized projection on the client)
@@ -333,24 +354,29 @@ async function api(req, res, url) {
       .map((m) => ({ role: m.role, content: m.content.slice(0, 1500) }));
     while (msgs.length && msgs[0].role === 'assistant') msgs.shift(); // Gemini: start on a user turn
     if (!msgs.length || msgs[msgs.length - 1].role !== 'user') return send(res, 400, { error: 'no message' });
+    if (chatRateLimited(id.uHash)) return send(res, 200, { reply: "Whoa, you've asked a lot in the last hour 😄 Take a quick breather and I'll be right here — try again shortly!" });
     const lastUser = [...msgs].reverse().find((m) => m.role === 'user');
     const context = buildChatContext(lastUser ? lastUser.content : '', validCoords(body.userLoc));
     const model = process.env.CLUBBIT_CHAT_MODEL || 'gemini-3.6-flash';
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 18000); // never hang the request on a slow Gemini
     try {
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
+        signal: ac.signal,
         body: JSON.stringify({
           system_instruction: { parts: [{ text: CHAT_SYSTEM + '\n\n' + context }] },
           contents: msgs.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
-          generationConfig: { maxOutputTokens: 1400, temperature: 0.7 },
+          generationConfig: { maxOutputTokens: 1400, temperature: 0.7, thinkingConfig: { thinkingLevel: 'low' } },
         }),
       });
+      clearTimeout(timer);
       if (!r.ok) { console.warn('chat', r.status, (await r.text()).slice(0, 200)); return send(res, 200, { reply: "Sorry, I couldn't reach the AI just now — give it another try in a sec." }); }
       const j = await r.json();
       const reply = (((j.candidates || [])[0] || {}).content || {}).parts ? j.candidates[0].content.parts.map((p) => p.text || '').join('').trim() : '';
       return send(res, 200, { reply: reply || "Hmm, I didn't catch that — try rephrasing?" });
-    } catch (e) { return send(res, 200, { reply: "Sorry, the AI is unavailable right now. Try again shortly." }); }
+    } catch (e) { clearTimeout(timer); return send(res, 200, { reply: e && e.name === 'AbortError' ? "That took too long — the AI's a bit busy. Try again in a sec!" : "Sorry, the AI is unavailable right now. Try again shortly." }); }
   }
 
   // GET /api/ig/:id — 302-redirect to the venue's Instagram profile. Baked/pinned
