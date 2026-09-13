@@ -13,6 +13,7 @@ import { BAKED_INSTAGRAM } from './baked-instagram.js'; // resolved Instagram pr
 import { BAKED_HOURS } from './baked-hours.js'; // real weekly opening-hours schedules
 import { BAKED_PHOTOS } from './baked-photos.js'; // first Google photo per venue (keyless URL)
 import { KIND_OVERRIDES } from './baked-kinds.js'; // kind/category corrections verified vs Google primaryType
+import { BAKED_ENTRY } from './baked-entry.js'; // entry/cover price derived from real Google reviews
 import { cityTz } from './hours.js'; // per-city UTC offset so night curves read local time
 
 // Athens nightlife districts. `center` drives the stylized map projection and
@@ -3351,6 +3352,10 @@ export function seed() {
     // them (CLUBBIT_RAW_KINDS lets the audit script see the un-overridden base kind)
     const ov = process.env.CLUBBIT_RAW_KINDS ? null : KIND_OVERRIDES[id];
     if (ov) { if (ov.kind) kind = ov.kind; if (ov.category) category = ov.category; }
+    // Entry price: prefer a value derived from real Google reviews (BAKED_ENTRY,
+    // built by scripts/bake-reviews.js — it reads what visitors actually say about
+    // cover/entry). Most bars come back free; ones that do charge keep a cover.
+    if (Object.prototype.hasOwnProperty.call(BAKED_ENTRY, id)) price = BAKED_ENTRY[id];
     const peakHour = peakHourFor(kind, category, n.city, peakOffset); // culture + type aware
     return {
       id,

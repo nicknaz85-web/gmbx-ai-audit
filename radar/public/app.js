@@ -2363,16 +2363,33 @@ function openChat() {
   ov.hidden = false;
   requestAnimationFrame(() => ov.classList.add('open'));
   if (S.chatMessages && S.chatMessages.length) renderChatMessages(); else renderChatWelcome();
+  // refresh location so the starter suggestions match where you are right now
+  if (!S.chatMessages || !S.chatMessages.length) {
+    getPosition({ enableHighAccuracy: true, timeout: 6000, maximumAge: 300000 })
+      .then((p) => { S.userLoc = { lat: p.coords.latitude, lng: p.coords.longitude }; S._userIsGps = true; if (chatIsOpen() && (!S.chatMessages || !S.chatMessages.length)) renderChatWelcome(); })
+      .catch(() => {});
+  }
   setTimeout(() => { const i = document.getElementById('chatInput'); if (i) i.focus(); }, 160);
 }
 function closeChat() { const ov = document.getElementById('chatScreen'); if (ov) { ov.classList.remove('open'); ov.hidden = true; } setBn('map'); S.tab = 'near'; }
 function chatIsOpen() { const c = document.getElementById('chatScreen'); return !!(c && !c.hidden); }
 function closeChatAndOpen(id) { closeChat(); if (typeof rowClick === 'function') rowClick(id); }
 window.openChat = openChat; window.closeChat = closeChat; window.closeChatAndOpen = closeChatAndOpen;
+// nearest city to a coordinate, from the venues we already have loaded — used to
+// tailor the AI's starter suggestions to wherever you are when you open it
+function nearestCity(loc) {
+  if (!loc || !S.data || !S.data.venues) return null;
+  let best = null, bestD = Infinity;
+  for (const v of S.data.venues) { if (!v.coords) continue; const d = haversineKm(loc, v.coords); if (d < bestD) { bestD = d; best = v.city; } }
+  return (best && bestD <= 150) ? best : null; // only if you're plausibly in/near it
+}
 function renderChatWelcome() {
   const body = document.getElementById('chatBody'); if (!body) return;
   const n = (S.data && S.data.venues) ? S.data.venues.length : 'thousands of';
-  const chips = ['Best clubs in Berlin?', 'Where should I party tonight?', 'Best area for techno in London', 'Cheap bars near me'];
+  const city = nearestCity(S.userLoc);
+  const chips = city
+    ? [`Best clubs in ${city}?`, `Where should I party tonight in ${city}?`, `Best area for a night out in ${city}`, 'Cheap bars near me']
+    : ['Best clubs near me?', 'Where should I party tonight?', 'Best area for a night out near me', 'Cheap bars near me'];
   body.innerHTML = `<div class="chat-welcome">
       <img class="chat-welcome-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/>
       <h3>Ask me anything about nightlife</h3>
