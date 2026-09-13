@@ -1465,6 +1465,7 @@ const CITY_COUNTRY = {
   Managua:'Nicaragua', 'San Pedro Sula':'Honduras', 'Belize City':'Belize', 'Roatán':'Honduras', 'Bocas del Toro':'Panama', 'Antigua Guatemala':'Guatemala', 'León':'Nicaragua', 'Playa del Carmen':'Mexico',
   Quito:'Ecuador', Guayaquil:'Ecuador', Caracas:'Venezuela', 'La Paz':'Bolivia', 'Córdoba':'Argentina', 'Florianópolis':'Brazil', Salvador:'Brazil', Cusco:'Peru', 'Valparaíso':'Chile', Cali:'Colombia',
   Sydney:'Australia', Melbourne:'Australia', Brisbane:'Australia', Perth:'Australia', Auckland:'New Zealand',
+  'Novi Sad':'Serbia', Rijeka:'Croatia', Dubrovnik:'Croatia', Dortmund:'Germany', Nuremberg:'Germany', Hannover:'Germany', Toulouse:'France', Nantes:'France', Lille:'France', Bilbao:'Spain', Granada:'Spain', Turin:'Italy', Bologna:'Italy', Palermo:'Italy Sicily', Nottingham:'UK England', Brighton:'UK England', 'Wrocław':'Poland', 'Łódź':'Poland', Utrecht:'Netherlands', Eindhoven:'Netherlands', Guadalajara:'Mexico', Monterrey:'Mexico', Adelaide:'Australia', 'Gold Coast':'Australia', Ahmedabad:'India', Jaipur:'India',
 };
 // a venue is "in view" if it's within the current map bounds — used so the
 // filter counts reflect what's near you, growing only as you zoom out

@@ -1,0 +1,269 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===========================================================================
+   Parallax design tokens
+   A restrained, graphite terminal palette. Green/red are reserved strictly for
+   directional financial movement. Hierarchy comes from weight, spacing and
+   hairline borders — not from cards, shadows or gradients.
+
+   These CSS variables mirror the Tailwind palette (tailwind.config.ts) so they
+   can be referenced from component classes below and from inline SVG.
+   =========================================================================== */
+:root {
+  --color-bg: #0a0b0d;
+  --color-bg-2: #0d0f12;
+  --color-surface: #101317;
+  --color-surface-2: #15181d;
+  --color-surface-3: #1b1f26;
+  --color-line: #20252d;
+  --color-line-2: #2a313b;
+
+  --color-text: #e8eaed;
+  --color-muted: #888f9b;
+  --color-faint: #565c67;
+
+  --color-pos: #2eb37c;
+  --color-pos-soft: #163a2c;
+  --color-neg: #e05561;
+  --color-neg-soft: #3a1c22;
+  --color-accent: #6c8cff;
+  --color-warn: #d9a441;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --radius: 7px;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* Financial figures: consistent width so columns align and values don't jitter. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--color-accent) 32%, transparent);
+  }
+  /* Terminal-grade scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line-2);
+    border-radius: 6px;
+    border: 2px solid var(--color-bg);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #333b46;
+  }
+}
+
+@layer components {
+  /* Hairline-bordered panel. Deliberately low radius, no shadow. */
+  .panel {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius);
+  }
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .panel-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  /* Compact primary button ~36px */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    height: 34px;
+    padding: 0 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border-radius: 6px;
+    border: 1px solid var(--color-line-2);
+    color: var(--color-text);
+    background: var(--color-surface-2);
+    transition: background-color 160ms ease, border-color 160ms ease,
+      color 160ms ease;
+    white-space: nowrap;
+  }
+  .btn:hover {
+    background: var(--color-surface-3);
+    border-color: #333b46;
+  }
+  .btn-primary {
+    background: var(--color-text);
+    color: #0a0b0d;
+    border-color: var(--color-text);
+    font-weight: 600;
+  }
+  .btn-primary:hover {
+    background: #ffffff;
+    border-color: #ffffff;
+  }
+  .btn-ghost {
+    background: transparent;
+    border-color: transparent;
+  }
+  .btn-ghost:hover {
+    background: var(--color-surface-2);
+    border-color: var(--color-line);
+  }
+
+  /* Segmented control (chart intervals, period toggles) */
+  .seg {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px;
+    gap: 2px;
+    border: 1px solid var(--color-line);
+    border-radius: 7px;
+    background: var(--color-bg-2);
+  }
+  .seg > button {
+    height: 26px;
+    padding: 0 0.55rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-muted);
+    border-radius: 5px;
+    transition: color 140ms ease, background-color 140ms ease;
+  }
+  .seg > button:hover {
+    color: var(--color-text);
+  }
+  .seg > button[data-active="true"] {
+    color: var(--color-text);
+    background: var(--color-surface-3);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    height: 22px;
+    padding: 0 0.45rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    border-radius: 5px;
+    border: 1px solid var(--color-line);
+    color: var(--color-muted);
+    background: var(--color-surface-2);
+  }
+
+  .link-ticker {
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: color 140ms ease;
+  }
+  .link-ticker:hover {
+    color: var(--color-accent);
+  }
+
+  /* Dense financial table */
+  .ftable {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+  .ftable th {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+    text-align: right;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--color-line);
+    white-space: nowrap;
+  }
+  .ftable th:first-child {
+    text-align: left;
+  }
+  .ftable td {
+    font-size: 0.8125rem;
+    padding: 0.5rem 0.75rem;
+    text-align: right;
+    border-bottom: 1px solid var(--color-line);
+    white-space: nowrap;
+  }
+  .ftable td:first-child {
+    text-align: left;
+    color: var(--color-text);
+  }
+  .ftable tbody tr {
+    transition: background-color 120ms ease;
+  }
+  .ftable tbody tr:hover {
+    background: var(--color-surface-2);
+  }
+  .ftable tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .skel {
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-2) 25%,
+      var(--color-surface-3) 37%,
+      var(--color-surface-2) 63%
+    );
+    background-size: 400% 100%;
+    animation: skel 1.4s ease infinite;
+    border-radius: 4px;
+  }
+}
+
+@keyframes skel {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.fadein {
+  animation: fadein 220ms ease both;
+}

@@ -3,9 +3,21 @@
   "configurations": [
     {
       "name": "gmbx-static",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["--yes", "serve", "-l", "8742", "."],
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": [".devserver.js"],
       "port": 8742
+    },
+    {
+      "name": "parallax",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "parallax", "run", "dev"],
+      "port": 3007
+    },
+    {
+      "name": "party-radar",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["radar/server.js"],
+      "port": 3010
     }
   ]
 }

@@ -118,6 +118,9 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
 .bprice{width:100%;background:var(--wh);border:2px solid var(--dark);border-radius:8px;padding:9px;font-size:12px;font-weight:800;cursor:pointer;color:var(--dark);margin-top:14px;flex-shrink:0}
 .bprice:hover{background:#f0f0f0}
 
+.kr-spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(120,120,140,.3);border-top-color:#7C3AED;border-radius:50%;animation:krspin .7s linear infinite;vertical-align:-2px;margin-right:8px}
+@keyframes krspin{to{transform:rotate(360deg)}}
+
 /* SCROLL REVEAL */
 .reveal{opacity:0;transform:translateY(28px);transition:opacity .6s cubic-bezier(.21,.6,.35,1),transform .6s cubic-bezier(.21,.6,.35,1)}
 .reveal.visible{opacity:1;transform:translateY(0)}
@@ -342,6 +345,7 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
     <button class="nl" onclick="scrollToPricing()">Pricing</button>
     <button class="nl" onclick="window.open('https://www.facebook.com/profile.php?id=61571653626007','_blank')">Facebook</button>
     <button class="nl" onclick="window.open('https://www.gmbx.co.uk','_blank')">Website</button>
+    <button class="nl" onclick="scrollToContact()">Contact Us</button>
     <button class="nl" onclick="showAdminLogin()" style="color:#9CA3AF;font-size:10px">Admin</button>
     <button class="nc" onclick="focusInput()">Free Audit</button>
   </div>
@@ -362,6 +366,7 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
     <div class="audit-form">
       <input type="text" id="gbp-url" class="audit-input" placeholder="Paste your Google Maps or Business Profile link…"/>
       <input type="email" id="user-email" class="audit-input" placeholder="Enter your email to receive your audit report"/>
+      <input type="tel" id="user-phone" class="audit-input" placeholder="Phone number (optional) — for faster contact"/>
       <label style="display:flex;align-items:flex-start;gap:8px;font-size:11px;color:var(--muted);text-align:left;padding:2px 4px">
         <input type="checkbox" id="consent-check" style="margin-top:2px;flex-shrink:0"/>
         <span>I confirm I'm authorised to request this audit and allow GMBX to access and analyse this Google Business Profile's publicly visible information for the purpose of generating this report.</span>
@@ -421,11 +426,12 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
       <p>Simple monthly plans. Cancel anytime.</p>
     </div>
     <div class="pgrid">
-      <div class="pcard"><div class="ptier">Starter</div><div class="pname">Basic Optimisations</div><div class="pamt">£10<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--teal)">✓</span>1 update per week</li><li><span class="pchk" style="color:var(--teal)">✓</span>Review responses</li><li><span class="pchk" style="color:var(--teal)">✓</span>Profile setup with correct info</li><li><span class="pchk" style="color:var(--teal)">✓</span>Pinpoint service area optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://buy.stripe.com/fZudRa1af5xI7X6ehl1kA00','_blank')">Get Started</button></div>
-      <div class="pcard fp"><div class="pbadge" style="background:var(--blue)">Most Popular</div><div class="ptier">Growth</div><div class="pname">Medium Optimisations</div><div class="pamt">£20<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--blue)">✓</span>Everything in Starter</li><li><span class="pchk" style="color:var(--blue)">✓</span>2 updates per week</li><li><span class="pchk" style="color:var(--blue)">✓</span>Flag / report bad reviews & photos</li><li><span class="pchk" style="color:var(--blue)">✓</span>Service area optimisation for reach</li><li><span class="pchk" style="color:var(--blue)">✓</span>Service description optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://buy.stripe.com/7sY28saKPd0a1yI5KP1kA01','_blank')">Get Started</button></div>
-      <div class="pcard pp"><div class="pbadge" style="background:var(--red)">Best Value</div><div class="ptier">Premium</div><div class="pname">Max Optimisations</div><div class="pamt">£30<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--red)">✓</span>Everything in Growth</li><li><span class="pchk" style="color:var(--red)">✓</span>3 updates per week</li><li><span class="pchk" style="color:var(--red)">✓</span>1–2 mile niche exclusivity</li><li><span class="pchk" style="color:var(--red)">✓</span>Category optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Service optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Main description optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Full profile optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://buy.stripe.com/bJe14o1af7FQ4KU7SX1kA02','_blank')">Get Started</button></div>
+      <div class="pcard"><div class="ptier">Starter</div><div class="pname">Basic Optimisations</div><div class="pamt">£10<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--teal)">✓</span>1 update per week</li><li><span class="pchk" style="color:var(--teal)">✓</span>Review responses</li><li><span class="pchk" style="color:var(--teal)">✓</span>Profile setup with correct info</li><li><span class="pchk" style="color:var(--teal)">✓</span>Pinpoint service area optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://buy.stripe.com/14A7sM6uzgcm0uE1uz1kA06','_blank')">Get Started</button></div>
+      <div class="pcard fp"><div class="pbadge" style="background:var(--blue)">Most Popular</div><div class="ptier">Growth</div><div class="pname">Medium Optimisations</div><div class="pamt">£20<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--blue)">✓</span>Everything in Starter</li><li><span class="pchk" style="color:var(--blue)">✓</span>2 updates per week</li><li><span class="pchk" style="color:var(--blue)">✓</span>Flag / report bad reviews & photos</li><li><span class="pchk" style="color:var(--blue)">✓</span>Service area optimisation for reach</li><li><span class="pchk" style="color:var(--blue)">✓</span>Service description optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://buy.stripe.com/bJe14o6uze4ea5e3CH1kA05','_blank')">Get Started</button></div>
+      <div class="pcard pp"><div class="pbadge" style="background:var(--red)">Best Value</div><div class="ptier">Premium</div><div class="pname">Max Optimisations</div><div class="pamt">£30<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--red)">✓</span>Everything in Growth</li><li><span class="pchk" style="color:var(--red)">✓</span>3 updates per week</li><li><span class="pchk" style="color:var(--red)">✓</span>1–2 mile niche exclusivity</li><li><span class="pchk" style="color:var(--red)">✓</span>Category optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Service optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Main description optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Full profile optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://buy.stripe.com/9B68wQ5qvd0a7X6flp1kA04','_blank')">Get Started</button></div>
       <div class="pcard smp"><div class="pbadge" style="background:#7C3AED">Add-On</div><div class="ptier">Social Media</div><div class="pname">Social Package</div><div class="pamt">£150<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:#7C3AED">✓</span>3 posts weekly</li><li><span class="pchk" style="color:#7C3AED">✓</span>3 platforms of your choice</li><li><span class="pchk" style="color:#7C3AED">✓</span>Group outreach & engagement</li><li><span class="pchk" style="color:#7C3AED">✓</span>Run boosted ads</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://buy.stripe.com/fZu7sMbOT9NY1yI4GL1kA03','_blank')">Get Started</button></div>
     </div>
+    <p class="pkg-note" style="text-align:center;font-size:12px;color:var(--muted);margin:18px auto 0;max-width:640px;line-height:1.6">ℹ️ After your purchase you'll receive an onboarding WhatsApp message or email from us to get everything set up.</p>
   </div>
 
   <div class="wave-div" style="background:var(--bg)"><svg viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true"><path fill="#1A1A2E" d="M0,18 C240,48 480,5 720,25 C960,45 1200,8 1440,30 L1440,60 L0,60 Z"/></svg></div>
@@ -483,6 +489,7 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
     <div class="footer-links">
       <a href="https://www.gmbx.co.uk" target="_blank" class="footer-link">🌐 gmbx.co.uk</a>
       <a href="https://www.facebook.com/profile.php?id=61571653626007" target="_blank" class="footer-link">📘 GMBX on Facebook</a>
+      <button class="footer-link" onclick="scrollToContact()" style="background:none;border:none;cursor:pointer;font-family:inherit">✉ Contact Us</button>
     </div>
     <div class="footer-copy">© 2025 GMBX · Google Business Profile Management</div>
     <div class="footer-legal">
@@ -618,6 +625,7 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
       <div>
         <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:6px">What keywords are you trying to rank for?</label>
         <input type="text" id="ctx-keywords" class="audit-input" placeholder="e.g. nail salon Whitley Bay, gel nails"/>
+        <p style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">💡 Use short, specific terms your customers would actually type into Google — e.g. "massage" or "deep tissue massage", not "all types of massages". We'll check your real local ranking for each one.</p>
       </div>
       <div>
         <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:6px">What area(s) do you serve?</label>
@@ -641,7 +649,11 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
 
 <!-- RESULTS -->
 <div class="page" id="page-results">
-  <div class="rpage">
+  <div class="rpage" style="position:relative">
+    <svg class="side-blob side-blob-l" style="top:120px" viewBox="0 0 200 200" aria-hidden="true"><path fill="#E8342A" d="M52.6,-62.3C66.8,-51.6,75.8,-32.8,77.4,-13.7C79,5.4,73.2,24.8,61.4,39.6C49.6,54.4,31.8,64.6,12.4,69.3C-7,74,-28,73.2,-43.9,62.8C-59.8,52.4,-70.6,32.4,-73.1,11.5C-75.6,-9.4,-69.8,-31.2,-56.7,-43.6C-43.6,-56,-23.2,-59,-2.1,-58.6C19,-58.2,38.4,-73,52.6,-62.3Z" transform="translate(100 100)"/></svg>
+    <svg class="side-blob side-blob-r" style="top:480px" viewBox="0 0 200 200" aria-hidden="true"><path fill="#2B6FD4" d="M44.7,-56.8C58.1,-47.6,68.8,-32.8,72.6,-16.1C76.4,0.6,73.3,19.2,63.7,33.6C54.1,48,38,58.2,20.2,63.5C2.4,68.8,-17.1,69.2,-33.5,61.8C-49.9,54.4,-63.2,39.2,-68.6,21.4C-74,3.6,-71.5,-16.7,-61.7,-32.1C-51.9,-47.5,-34.8,-58,-17.4,-63.8C0,-69.6,31.3,-66,44.7,-56.8Z" transform="translate(100 100)"/></svg>
+    <svg class="side-blob side-blob-l" style="top:1050px" viewBox="0 0 200 200" aria-hidden="true"><path fill="#1A9B6C" d="M48.2,-57.4C60.5,-47.5,67.6,-30.8,69.1,-13.9C70.6,3,66.5,20.1,57.1,34.1C47.7,48.1,33,59,16.1,63.8C-0.8,68.6,-19.9,67.3,-35.6,58.9C-51.3,50.5,-63.6,35,-67.8,17.6C-72,0.2,-68.1,-19.1,-57.8,-33.6C-47.5,-48.1,-30.8,-57.8,-13.6,-62.6C3.6,-67.4,21.9,-67.3,48.2,-57.4Z" transform="translate(100 100)"/></svg>
+    <svg class="side-blob side-blob-r" style="top:1500px" viewBox="0 0 200 200" aria-hidden="true"><path fill="#F5A623" d="M40.1,-50.3C52.4,-41.6,62.8,-28.9,66.5,-14.1C70.2,0.7,67.2,17.6,58.4,30.9C49.6,44.2,35,53.9,18.6,58.7C2.2,63.5,-15.9,63.4,-31.6,56.6C-47.3,49.8,-60.6,36.3,-65.7,20.1C-70.8,3.9,-67.7,-15,-58.1,-29.6C-48.5,-44.2,-32.4,-54.5,-16.1,-58.6C0.2,-62.7,16.4,-60.6,40.1,-50.3Z" transform="translate(100 100)"/></svg>
     <div class="rheader">
       <div class="rmeta">
         <div class="rurl">Audit for: <span id="rdisplay"></span></div>
@@ -667,6 +679,10 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
     </div>
     <div class="stitle">Score breakdown</div>
     <div class="cgrid" id="cgrid"></div>
+    <div id="krsec" style="display:none">
+      <div class="stitle">📍 Local ranking for your keywords</div>
+      <div id="krgrid"></div>
+    </div>
     <div class="fsec"><div class="stitle" style="color:var(--teal)">✓ What you're doing well</div><div id="fgood"></div></div>
     <div class="fsec"><div class="stitle" style="color:var(--red)">⚠ Opportunities for improvement</div><div id="fbad"></div></div>
     <div class="stitle">Recommended actions</div>
@@ -679,10 +695,35 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
     <div id="results-packages" style="background:var(--bg);border-radius:12px;padding:20px 14px 24px;margin-bottom:14px">
       <div class="stitle">Packages</div>
       <div class="pgrid">
-        <div class="pcard"><div class="ptier">Starter</div><div class="pname">Basic Optimisations</div><div class="pamt">£10<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--teal)">✓</span>1 update per week</li><li><span class="pchk" style="color:var(--teal)">✓</span>Review responses</li><li><span class="pchk" style="color:var(--teal)">✓</span>Profile setup with correct info</li><li><span class="pchk" style="color:var(--teal)">✓</span>Pinpoint service area optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://buy.stripe.com/fZudRa1af5xI7X6ehl1kA00','_blank')">Get Started</button></div>
-        <div class="pcard fp"><div class="pbadge" style="background:var(--blue)">Most Popular</div><div class="ptier">Growth</div><div class="pname">Medium Optimisations</div><div class="pamt">£20<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--blue)">✓</span>Everything in Starter</li><li><span class="pchk" style="color:var(--blue)">✓</span>2 updates per week</li><li><span class="pchk" style="color:var(--blue)">✓</span>Flag / report bad reviews & photos</li><li><span class="pchk" style="color:var(--blue)">✓</span>Service area optimisation for reach</li><li><span class="pchk" style="color:var(--blue)">✓</span>Service description optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://buy.stripe.com/7sY28saKPd0a1yI5KP1kA01','_blank')">Get Started</button></div>
-        <div class="pcard pp"><div class="pbadge" style="background:var(--red)">Best Value</div><div class="ptier">Premium</div><div class="pname">Max Optimisations</div><div class="pamt">£30<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--red)">✓</span>Everything in Growth</li><li><span class="pchk" style="color:var(--red)">✓</span>3 updates per week</li><li><span class="pchk" style="color:var(--red)">✓</span>1–2 mile niche exclusivity</li><li><span class="pchk" style="color:var(--red)">✓</span>Category optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Service optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Main description optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Full profile optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://buy.stripe.com/bJe14o1af7FQ4KU7SX1kA02','_blank')">Get Started</button></div>
+        <div class="pcard"><div class="ptier">Starter</div><div class="pname">Basic Optimisations</div><div class="pamt">£10<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--teal)">✓</span>1 update per week</li><li><span class="pchk" style="color:var(--teal)">✓</span>Review responses</li><li><span class="pchk" style="color:var(--teal)">✓</span>Profile setup with correct info</li><li><span class="pchk" style="color:var(--teal)">✓</span>Pinpoint service area optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://buy.stripe.com/14A7sM6uzgcm0uE1uz1kA06','_blank')">Get Started</button></div>
+        <div class="pcard fp"><div class="pbadge" style="background:var(--blue)">Most Popular</div><div class="ptier">Growth</div><div class="pname">Medium Optimisations</div><div class="pamt">£20<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--blue)">✓</span>Everything in Starter</li><li><span class="pchk" style="color:var(--blue)">✓</span>2 updates per week</li><li><span class="pchk" style="color:var(--blue)">✓</span>Flag / report bad reviews & photos</li><li><span class="pchk" style="color:var(--blue)">✓</span>Service area optimisation for reach</li><li><span class="pchk" style="color:var(--blue)">✓</span>Service description optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://buy.stripe.com/bJe14o6uze4ea5e3CH1kA05','_blank')">Get Started</button></div>
+        <div class="pcard pp"><div class="pbadge" style="background:var(--red)">Best Value</div><div class="ptier">Premium</div><div class="pname">Max Optimisations</div><div class="pamt">£30<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:var(--red)">✓</span>Everything in Growth</li><li><span class="pchk" style="color:var(--red)">✓</span>3 updates per week</li><li><span class="pchk" style="color:var(--red)">✓</span>1–2 mile niche exclusivity</li><li><span class="pchk" style="color:var(--red)">✓</span>Category optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Service optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Main description optimisation</li><li><span class="pchk" style="color:var(--red)">✓</span>Full profile optimisation</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://buy.stripe.com/9B68wQ5qvd0a7X6flp1kA04','_blank')">Get Started</button></div>
         <div class="pcard smp"><div class="pbadge" style="background:#7C3AED">Add-On</div><div class="ptier">Social Media</div><div class="pname">Social Package</div><div class="pamt">£150<span>/mo</span></div><ul class="pfeats"><li><span class="pchk" style="color:#7C3AED">✓</span>3 posts weekly</li><li><span class="pchk" style="color:#7C3AED">✓</span>3 platforms of your choice</li><li><span class="pchk" style="color:#7C3AED">✓</span>Group outreach & engagement</li><li><span class="pchk" style="color:#7C3AED">✓</span>Run boosted ads</li><div class="pfeat-spacer"></div></ul><button class="bprice" onclick="window.open('https://buy.stripe.com/fZu7sMbOT9NY1yI4GL1kA03','_blank')">Get Started</button></div>
+      </div>
+      <p class="pkg-note" style="text-align:center;font-size:12px;color:var(--muted);margin:18px auto 0;max-width:640px;line-height:1.6">ℹ️ After your purchase you'll receive an onboarding WhatsApp message or email from us to get everything set up.</p>
+    </div>
+    <div class="about-sec" style="border-radius:12px;margin-bottom:14px">
+      <div class="about-inner">
+        <div class="hbadge" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.12);margin-bottom:20px">✦ About GMBX</div>
+        <div class="about-avatar"><img src="nick.jpg" alt="Nick - Founder of GMBX"/></div>
+        <div class="about-name">Nick</div>
+        <div class="about-title">Founder & Owner · GMBX</div>
+        <h2>Built by a Young Entrepreneur,<br>Driven by Real Results</h2>
+        <p class="about-sub">At just 18 years old, I started GMBX with one goal — help local businesses get the visibility they deserve on Google. Over the past 2 years we've worked with businesses across the UK, optimising their Google Business Profiles and watching them climb the rankings. Most of our clients start seeing real results in just 4 to 6 weeks.</p>
+        <div class="about-stats">
+          <div class="about-stat">
+            <div class="about-stat-num">2<span>+ yrs</span></div>
+            <div class="about-stat-label">Helping UK businesses grow on Google</div>
+          </div>
+          <div class="about-stat">
+            <div class="about-stat-num">4–6<span>wks</span></div>
+            <div class="about-stat-label">Average time clients see results</div>
+          </div>
+          <div class="about-stat">
+            <div class="about-stat-num">90<span>%</span></div>
+            <div class="about-stat-label">Of clients recommend us on Facebook</div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="contact-sec" style="border-radius:12px;margin-bottom:14px">
@@ -706,6 +747,7 @@ svg.side-blob{position:absolute !important;width:300px;height:300px;opacity:.12;
       <div class="footer-links">
         <a href="https://www.gmbx.co.uk" target="_blank" class="footer-link">🌐 gmbx.co.uk</a>
         <a href="https://www.facebook.com/profile.php?id=61571653626007" target="_blank" class="footer-link">📘 GMBX on Facebook</a>
+      <button class="footer-link" onclick="scrollToContact()" style="background:none;border:none;cursor:pointer;font-family:inherit">✉ Contact Us</button>
       </div>
       <div class="footer-copy">© 2025 GMBX · Google Business Profile Management</div>
     </div>
@@ -920,6 +962,7 @@ function showPage(id){
 }
 function focusInput(){showPage('landing');setTimeout(function(){document.getElementById('gbp-url').focus();},100);}
 function scrollToPricing(){showPage('landing');setTimeout(function(){document.getElementById('pricing-section').scrollIntoView({behavior:'smooth'});},100);}
+function scrollToContact(){showPage('landing');setTimeout(function(){document.querySelector('.contact-sec').scrollIntoView({behavior:'smooth'});},100);}
 
 // ── UTIL ──
 function escapeHtml(s){
@@ -931,9 +974,9 @@ function escapeHtml(s){
 // ── EMAIL STORAGE ──
 var adminToken=null;
 
-async function saveEmail(email,url){
+async function saveEmail(email,url,phone,source){
   try{
-    await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,url:url})});
+    await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,url:url,phone:phone||'',source:source||'audit'})});
   }catch(e){console.log('Storage error:',e);}
 }
 
@@ -966,6 +1009,7 @@ async function checkAdminPass(){
       showPage('admin');
       renderAdmin();
     } else {
+      errEl.textContent=(data&&data.error)?data.error:'Incorrect password. Please try again.';
       errEl.style.display='block';
     }
   }catch(e){
@@ -1032,8 +1076,8 @@ function startAudit(){
   currentUrl=url;
   currentEmail=email;
 
-  // Save email immediately
-  saveEmail(email,url);
+  // Save email immediately (with optional phone)
+  saveEmail(email,url,document.getElementById('user-phone').value.trim(),'audit');
 
   var display=url.length>55?url.substring(0,55)+'…':url;
   document.getElementById('rdisplay').textContent=display;
@@ -1168,6 +1212,14 @@ function renderResults(data){
   (data.categories||[]).forEach(function(cat){var cc=getC(cat.score);var d2=document.createElement('div');d2.className='ccard';d2.innerHTML='<div class="ctop"><div class="clbl">'+escapeHtml(cat.label)+'</div><div class="csco" style="color:'+cc.t+'">'+cat.score+'</div></div><div class="cbg"><div class="cbar" style="background:'+cc.s+'" data-w="'+cat.score+'%"></div></div><div class="cst" style="color:'+cc.t+'">'+cc.l+'</div>';cg.appendChild(d2);});
   setTimeout(function(){document.querySelectorAll('.cbar').forEach(function(b){b.style.width=b.dataset.w;});},500);
   revealGroup('#cgrid .ccard');
+  var krsec=document.getElementById('krsec');
+  if(data.rankingContext){
+    krsec.style.display='block';
+    document.getElementById('krgrid').innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px"><span class="kr-spin"></span>Checking your live local rankings… this can take up to a minute</div>';
+    loadRankings(data.rankingContext);
+  } else {
+    krsec.style.display='none';
+  }
   var ge=document.getElementById('fgood');ge.innerHTML='';
   (data.good||[]).forEach(function(f){ge.innerHTML+='<div class="fcard"><div class="fh"><div class="fdot" style="background:#1A9B6C"></div><div class="ftit">'+escapeHtml(f.title)+'</div><div class="ftag" style="background:#F0FDF4;color:#166534">GOOD</div></div><div class="fbody">'+escapeHtml(f.body)+'</div></div>';});
   revealGroup('#fgood .fcard');
@@ -1179,6 +1231,32 @@ function renderResults(data){
   revealGroup('#alist .aitem');
   reveal(document.querySelector('.shero'));
   reveal(document.querySelector('.ctasec'));
+}
+
+function loadRankings(ctx){
+  fetch('/api/rankings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(ctx)})
+    .then(function(r){return r.json();})
+    .then(function(res){renderRankings(res.keywordRankings||[]);})
+    .catch(function(){renderRankings([]);});
+}
+function renderRankings(list){
+  function ordSuffix(n){var v=n%100;if(v>=11&&v<=13)return 'th';switch(n%10){case 1:return 'st';case 2:return 'nd';case 3:return 'rd';default:return 'th';}}
+  var krsec=document.getElementById('krsec'),krgrid=document.getElementById('krgrid');
+  var krs=(list||[]).filter(function(k){return k.localMapsPosition!=='unavailable';});
+  if(!krs.length){krsec.style.display='none';return;}
+  krsec.style.display='block';krgrid.innerHTML='';
+  krs.forEach(function(k){
+    var total=k.totalResultsChecked||20;
+    var isRanked=typeof k.localMapsPosition==='number';
+    var pos=isRanked?k.localMapsPosition:null;
+    var pct=isRanked?Math.max(8,Math.round((total-pos+1)/total*100)):4;
+    var col=isRanked?(pos<=3?'#1A9B6C':pos<=10?'#F5A623':'#E8342A'):'#9CA3AF';
+    var lbl=isRanked?('Ranking '+pos+ordSuffix(pos)+' currently'):(total>=15?('Ranking '+(total+1)+ordSuffix(total+1)+' currently'):'Not ranking yet');
+    var st=isRanked?(pos<=3?'Excellent':pos<=10?'Good':'Needs work'):'Needs work';
+    krgrid.innerHTML+='<div class="ccard" style="margin-bottom:10px"><div class="ctop"><div class="clbl">'+escapeHtml(k.keyword)+'<span style="font-weight:400;color:#9CA3AF;font-size:11px"> — searched as "'+escapeHtml(k.searchedAs||k.keyword)+'"</span></div><div class="csco" style="color:'+col+'">'+lbl+'</div></div><div class="cbg"><div class="cbar" style="background:'+col+'" data-w="'+pct+'%"></div></div><div class="cst" style="color:'+col+'">'+st+'</div></div>';
+  });
+  setTimeout(function(){document.querySelectorAll('#krgrid .cbar').forEach(function(b){b.style.width=b.dataset.w;});},100);
+  revealGroup('#krgrid .ccard');
 }
 
 document.getElementById('gbp-url').addEventListener('keydown',function(e){if(e.key==='Enter')startAudit();document.getElementById('uerr').style.display='none';});

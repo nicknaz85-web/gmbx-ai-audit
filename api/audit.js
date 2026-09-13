@@ -4,35 +4,64 @@
 // 3. Sends ONLY that real data to Claude and asks it to score/summarize it — no invented numbers.
 
 import { Resend } from 'resend';
+import { isRateLimited, clientIp } from './admin.js';
+
+// Only URLs on these hosts are ever fetched server-side — the audit only makes
+// sense for Google Business Profile links, and this prevents the endpoint being
+// used to make requests to arbitrary/internal hosts (SSRF).
+const ALLOWED_URL_HOSTS = /^(?:[a-z0-9-]+\.)*(?:google\.[a-z.]{2,6}|share\.google|goo\.gl|g\.co|g\.page)$/i;
+
+function isAllowedAuditUrl(raw) {
+  try {
+    const u = new URL(raw.startsWith('http') ? raw : 'https://' + raw);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
+    return ALLOWED_URL_HOSTS.test(u.hostname);
+  } catch { return false; }
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // 10 audits per hour per IP — each audit costs real money (Claude + Places + Outscraper)
+  if (await isRateLimited('audit', clientIp(req), 10, 3600)) {
+    return res.status(429).json({ error: 'Too many audits from this connection. Please try again in an hour.' });
+  }
+
   const { url, email, updatesPerMonth, targetKeywords, serviceArea } = req.body || {};
-  if (!url || typeof url !== 'string' || url.trim().length < 3) {
+  if (!url || typeof url !== 'string' || url.trim().length < 3 || url.length > 2000) {
     return res.status(400).json({ error: 'Missing or invalid url' });
+  }
+  if (!isAllowedAuditUrl(url.trim())) {
+    return res.status(400).json({ error: 'Please paste a Google Maps or Google Business Profile link (google.com/maps/..., share.google/..., or maps.app.goo.gl/...).' });
   }
 
   const PLACES_KEY = process.env.GOOGLE_PLACES_API_KEY;
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+  const OUTSCRAPER_KEY = process.env.OUTSCRAPER_API_KEY;
   if (!PLACES_KEY || !ANTHROPIC_KEY) {
     return res.status(500).json({ error: 'Server is missing API keys. Set GOOGLE_PLACES_API_KEY and ANTHROPIC_API_KEY in your Vercel project settings.' });
   }
 
   try {
-    const place = await resolvePlace(url.trim(), PLACES_KEY);
+    const place = await resolvePlace(url.trim(), PLACES_KEY, OUTSCRAPER_KEY);
     if (!place) {
       return res.status(404).json({ error: "Couldn't find a matching Google Business Profile for that link. Please check the link and try again." });
+    }
+    if (place === 'SHARE_LINK_UNRESOLVABLE') {
+      return res.status(404).json({ error: "This share link couldn't be resolved automatically. Please open the business on Google Maps in your browser, copy the full URL from the address bar (it starts with google.com/maps/place/), and paste that instead." });
+    }
+    if (place === 'NOT_IN_PLACES_API') {
+      return res.status(404).json({ error: "This business exists on Google Maps but isn't indexed in Google's Places API, which is required to run the audit. This affects some small or newly-created listings. Ask the business owner to ensure their Google Business Profile is fully verified and published." });
     }
 
     // Self-reported by the person submitting the audit, NOT independently verified — pass
     // through clearly labelled so the prompt/model treats it as a claim, not a confirmed fact.
     place.selfReported = {
       updatesPerMonth: (typeof updatesPerMonth === 'number' && updatesPerMonth >= 0) ? updatesPerMonth : null,
-      targetKeywords: (typeof targetKeywords === 'string' && targetKeywords.trim()) ? targetKeywords.trim() : null,
-      serviceArea: (typeof serviceArea === 'string' && serviceArea.trim()) ? serviceArea.trim() : null
+      targetKeywords: (typeof targetKeywords === 'string' && targetKeywords.trim()) ? targetKeywords.trim().slice(0, 300) : null,
+      serviceArea: (typeof serviceArea === 'string' && serviceArea.trim()) ? serviceArea.trim().slice(0, 300) : null
     };
     if (place.selfReported.updatesPerMonth != null) {
       place.dataNotAvailable = place.dataNotAvailable.filter(d => d !== 'Google Posts / update frequency');
@@ -42,6 +71,19 @@ export default async function handler(req, res) {
     }
 
     const report = await analyseWithClaude(place, ANTHROPIC_KEY);
+
+    // Local keyword ranking is slow (Outscraper polling), so we DON'T block the audit on it.
+    // Instead return the context the browser needs to fetch rankings separately via
+    // /api/rankings once the audit is already on screen.
+    if (place.selfReported.targetKeywords && OUTSCRAPER_KEY) {
+      report.rankingContext = {
+        keywords: place.selfReported.targetKeywords,
+        name: place.name,
+        address: place.address,
+        phone: place.phone,
+        serviceArea: place.selfReported.serviceArea
+      };
+    }
 
     // Send audit email — fire-and-forget so it never blocks or errors the audit response
     if (email && typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -111,7 +153,7 @@ async function sendAuditEmail({ email, businessName, report, resendKey, fromEmai
             <div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase">Starter</div>
             <div style="font-size:11px;font-weight:800;color:#1A1A2E;margin:4px 0">Basic Opts</div>
             <div style="font-size:20px;font-weight:800;color:#1A1A2E">&#163;10<span style="font-size:10px;font-weight:400;color:#6B7280">/mo</span></div>
-            <a href="https://buy.stripe.com/fZudRa1af5xI7X6ehl1kA00" style="display:block;background:#1A1A2E;color:#fff;text-decoration:none;font-size:11px;font-weight:700;padding:8px 4px;border-radius:6px;margin-top:10px">Get Started</a>
+            <a href="https://buy.stripe.com/14A7sM6uzgcm0uE1uz1kA06" style="display:block;background:#1A1A2E;color:#fff;text-decoration:none;font-size:11px;font-weight:700;padding:8px 4px;border-radius:6px;margin-top:10px">Get Started</a>
           </div>
         </td>
         <td width="25%" style="padding:4px;vertical-align:top">
@@ -120,7 +162,7 @@ async function sendAuditEmail({ email, businessName, report, resendKey, fromEmai
             <div style="font-size:10px;font-weight:700;color:#2563EB;text-transform:uppercase">Growth</div>
             <div style="font-size:11px;font-weight:800;color:#1A1A2E;margin:4px 0">Medium Opts</div>
             <div style="font-size:20px;font-weight:800;color:#1A1A2E">&#163;20<span style="font-size:10px;font-weight:400;color:#6B7280">/mo</span></div>
-            <a href="https://buy.stripe.com/7sY28saKPd0a1yI5KP1kA01" style="display:block;background:#2563EB;color:#fff;text-decoration:none;font-size:11px;font-weight:700;padding:8px 4px;border-radius:6px;margin-top:10px">Get Started</a>
+            <a href="https://buy.stripe.com/bJe14o6uze4ea5e3CH1kA05" style="display:block;background:#2563EB;color:#fff;text-decoration:none;font-size:11px;font-weight:700;padding:8px 4px;border-radius:6px;margin-top:10px">Get Started</a>
           </div>
         </td>
         <td width="25%" style="padding:4px;vertical-align:top">
@@ -129,7 +171,7 @@ async function sendAuditEmail({ email, businessName, report, resendKey, fromEmai
             <div style="font-size:10px;font-weight:700;color:#E63946;text-transform:uppercase">Premium</div>
             <div style="font-size:11px;font-weight:800;color:#1A1A2E;margin:4px 0">Max Opts</div>
             <div style="font-size:20px;font-weight:800;color:#1A1A2E">&#163;30<span style="font-size:10px;font-weight:400;color:#6B7280">/mo</span></div>
-            <a href="https://buy.stripe.com/bJe14o1af7FQ4KU7SX1kA02" style="display:block;background:#E63946;color:#fff;text-decoration:none;font-size:11px;font-weight:700;padding:8px 4px;border-radius:6px;margin-top:10px">Get Started</a>
+            <a href="https://buy.stripe.com/9B68wQ5qvd0a7X6flp1kA04" style="display:block;background:#E63946;color:#fff;text-decoration:none;font-size:11px;font-weight:700;padding:8px 4px;border-radius:6px;margin-top:10px">Get Started</a>
           </div>
         </td>
         <td width="25%" style="padding:4px;vertical-align:top">
@@ -167,67 +209,50 @@ function esc(str) {
 }
 
 // ── Resolve a Google Maps/Business Profile URL to real place data ──
-async function resolvePlace(rawUrl, placesKey) {
-  // Expand short/share links to the full Maps URL.
-  // share.google and maps.app.goo.gl may serve an HTML page (JS redirect) rather than
-  // an HTTP redirect, so we must read the body and extract the real Maps URL from it.
+// Returns null for "not found", or the string 'SHARE_LINK_UNRESOLVABLE' when
+// a share.google link can't be resolved server-side (so the caller can show a helpful message).
+async function resolvePlace(rawUrl, placesKey, outscraperKey) {
+  const isShareLink = /share\.google|maps\.app\.goo\.gl/i.test(rawUrl);
   let url = rawUrl;
   try {
     const resp = await fetch(rawUrl, {
-      method: 'GET',
-      redirect: 'follow',
+      method: 'GET', redirect: 'follow',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
       }
     });
     if (resp.url && resp.url !== rawUrl) url = resp.url;
-    console.log('DEBUG after redirect: url=', url, 'status=', resp.status);
-
-    // If the followed URL is still a short/share URL, read the body and look for
-    // an embedded full Maps URL (og:url, canonical, or raw URL in the HTML).
-    if (/share\.google|maps\.app\.goo\.gl|goo\.gl/i.test(url)) {
-      const body = await resp.text();
-      console.log('DEBUG body snippet:', body.slice(0, 500));
-      // og:url is the most reliable signal
-      const ogUrl = body.match(/property="og:url"\s+content="([^"]+)"/i)
-                 || body.match(/content="([^"]+)"\s+property="og:url"/i);
-      if (ogUrl && /google\.com\/maps/i.test(ogUrl[1])) {
-        url = ogUrl[1];
-        console.log('DEBUG extracted og:url:', url);
-      } else {
-        // Fall back to any raw Maps URL present in the page source
-        const mapsUrl = body.match(/(https:\/\/(?:www\.)?google\.com\/maps\/(?:place|search)\/[^\s"'<>\\]+)/);
-        if (mapsUrl) url = mapsUrl[1].replace(/\\u003d/g, '=').replace(/\\u0026/g, '&');
-        console.log('DEBUG extracted fallback mapsUrl:', url);
-      }
-    }
-  } catch (e) { console.error('URL expansion failed (non-fatal):', e.message); }
-  console.log('DEBUG final url:', url);
-  console.log('DEBUG extractPlaceId:', extractPlaceId(url));
-  console.log('DEBUG extractSearchText:', extractSearchText(url));
+  } catch (e) { console.error('URL expansion failed:', e.message); }
 
   let placeId = extractPlaceId(url);
 
-  // share.google links resolve to a Google Search URL (google.com/search?kgmid=...)
-  // rather than a Maps URL. Use the kgmid to fetch the actual Maps listing, which
-  // contains the real ChIJ place ID or CID in its URL/HTML.
   if (!placeId && /google\.com\/search/i.test(url)) {
     placeId = await resolveViaKgmid(url, placesKey);
-    console.log('DEBUG resolveViaKgmid result:', placeId);
   }
 
   if (!placeId) {
     const queryText = extractSearchText(url);
-    if (!queryText) return null;
-    // Extract lat/lng from Maps URL for location-biased search (far more accurate)
+    if (!queryText) return isShareLink ? 'SHARE_LINK_UNRESOLVABLE' : null;
     const latLng = extractLatLng(url);
-    console.log('DEBUG latLng from url:', latLng);
     placeId = await findPlaceId(queryText, placesKey, latLng);
-    if (!placeId) return null;
+    if (!placeId) return isShareLink ? 'SHARE_LINK_UNRESOLVABLE' : null;
   }
 
-  const place = await getPlaceDetails(placeId, placesKey);
+  let place = await getPlaceDetails(placeId, placesKey);
+
+  // ftid lookup via Places API doesn't always work — go straight to Outscraper with the
+  // original Maps URL (which encodes the exact business) rather than falling back to a
+  // name text-search that can return a completely different business.
+  if (!place && placeId.startsWith('FTID:')) {
+    if (outscraperKey) place = await resolveViaOutscraper(url, outscraperKey);
+    if (!place) return 'NOT_IN_PLACES_API';
+  }
+  // Share links that couldn't be resolved via kgmid/text-search — try Outscraper
+  if (!place && isShareLink && outscraperKey) {
+    place = await resolveViaOutscraper(rawUrl, outscraperKey);
+    if (!place) return 'SHARE_LINK_UNRESOLVABLE';
+  }
   if (!place) return null;
 
   const enrichment = await enrichFromLiveMapsListing(place, url);
@@ -261,17 +286,14 @@ async function resolveViaKgmid(searchUrl, placesKey) {
         headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml', 'Accept-Language': 'en-GB,en;q=0.9' }
       }, 5000);
       const mUrl = mResp.url || '';
-      console.log('DEBUG maps kgmid url:', mUrl.slice(0, 120));
       const pidFromUrl = extractPlaceId(mUrl);
       if (pidFromUrl) return pidFromUrl;
-      // Read body — Maps page may contain coords or ChIJ IDs in server-rendered HTML
       const mHtml = await mResp.text().catch(() => '');
       const latLngInBody = extractLatLng(mUrl) || (() => {
         const m = mHtml.match(/"lat":(-?\d+\.\d+),"lng":(-?\d+\.\d+)/);
         return m ? { lat: parseFloat(m[1]), lng: parseFloat(m[2]) } : null;
       })();
       const chijInBody = (mHtml.match(/ChIJ[A-Za-z0-9_\-]{10,60}/g) || []);
-      console.log('DEBUG maps body chij count:', chijInBody.length, 'latLng:', latLngInBody);
       if (chijInBody.length) return chijInBody[0];
       if (latLngInBody) {
         const pid = await findPlaceId(qText, placesKey, latLngInBody);
@@ -289,7 +311,6 @@ async function resolveViaKgmid(searchUrl, placesKey) {
         body: JSON.stringify({ textQuery: qText, regionCode: 'GB', languageCode: 'en' })
       }, 5000);
       const d = await r.json();
-      console.log('DEBUG new Places API:', r.status, JSON.stringify(d).slice(0, 200));
       if (d.places && d.places[0] && d.places[0].id) return d.places[0].id;
     } catch (e) { console.error('New Places API failed:', e.message); }
   }
@@ -297,22 +318,170 @@ async function resolveViaKgmid(searchUrl, placesKey) {
   return null;
 }
 
+// Check where the business ranks in Google Maps results when searching each target
+// keyword in its local area — this is the ranking that actually matters for a GBP.
+function normName(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+export async function fetchKeywordRankings(targetKeywords, businessName, businessAddress, businessPhone, outscraperKey, serviceArea) {
+  try {
+    const keywords = targetKeywords.split(/[,\n]+/).map(k => k.trim()).filter(Boolean).slice(0, 3);
+    // Derive the locality from the address: use the middle parts (skip street, skip country/postcode)
+    const addrParts = (businessAddress || '').split(',').map(s => s.trim()).filter(Boolean);
+    let locality = addrParts.length >= 2 ? addrParts[addrParts.length - 2].replace(/\s+[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i, '').trim() : (addrParts[0] || '');
+    // Service-area businesses often have no public address — fall back to the
+    // self-reported service area (first named area, e.g. "Exeter and Newton Abbot" -> "Exeter")
+    if (!locality && serviceArea) {
+      locality = serviceArea.split(/,|\band\b|&|\//i)[0].trim();
+    }
+    if (!locality) return null;
+
+    const results = await Promise.all(keywords.map(async keyword => {
+      try {
+        const query = `${keyword}, ${locality}`;
+        const params = new URLSearchParams({ query, limit: '40', language: 'en', async: 'true' });
+        const r = await fetchWithTimeout(`https://api.app.outscraper.com/maps/search-v3?${params}`, {
+          headers: { 'X-API-KEY': outscraperKey }
+        }, 15000);
+        let data = await r.json();
+        console.log('DEBUG local rank submit:', r.status, query, JSON.stringify(data).slice(0, 200));
+
+        if (data.results_location && !data.data) {
+          const resultsUrl = data.results_location;
+          for (let attempt = 0; attempt < 6; attempt++) {
+            await new Promise(res => setTimeout(res, 4000));
+            const pr = await fetchWithTimeout(resultsUrl, { headers: { 'X-API-KEY': outscraperKey } }, 10000);
+            const pd = await pr.json();
+            if (pd.status === 'Success' && pd.data) { data = pd; break; }
+            if (pd.status === 'Error') break;
+          }
+        }
+
+        const items = data.data && data.data[0] ? data.data[0] : [];
+        console.log('DEBUG local rank items:', items.length, 'names:', items.map(it => it.name).join(' | ').slice(0, 500));
+        console.log('DEBUG matching against name:', businessName, 'phone:', businessPhone, 'street:', (businessAddress || '').split(',')[0]);
+        const nameNorm = normName(businessName);
+        const phoneDigits = (businessPhone || '').replace(/\D/g, '').slice(-9);
+        const streetNorm = normName((businessAddress || '').split(',')[0]);
+        let position = null;
+        let matchedName = null;
+        for (let i = 0; i < items.length; i++) {
+          const itemName = normName(items[i].name);
+          const itemPhone = (items[i].phone || '').replace(/\D/g, '').slice(-9);
+          const itemAddr = normName(items[i].full_address || items[i].address || '');
+          const nameHit = nameNorm && itemName && (itemName.includes(nameNorm) || nameNorm.includes(itemName));
+          const phoneHit = phoneDigits && itemPhone && itemPhone === phoneDigits;
+          const addrHit = streetNorm && streetNorm.length > 5 && itemAddr.includes(streetNorm);
+          if (nameHit || phoneHit || addrHit) {
+            position = i + 1;
+            matchedName = items[i].name;
+            break;
+          }
+        }
+        console.log('DEBUG local rank match:', keyword, 'position:', position, 'matched:', matchedName);
+        return {
+          keyword,
+          searchedAs: query,
+          totalResultsChecked: items.length || 20,
+          localMapsPosition: position || `Not in top ${items.length || 20} local results`
+        };
+      } catch (e) {
+        console.error('Local rank lookup failed for', keyword, ':', e.message);
+        return { keyword, localMapsPosition: 'unavailable' };
+      }
+    }));
+    return results;
+  } catch (e) {
+    console.error('Keyword rankings failed (non-fatal):', e.message);
+    return null;
+  }
+}
+
+async function resolveViaOutscraper(mapsUrl, outscraperKey) {
+  try {
+    const params = new URLSearchParams({ query: mapsUrl, limit: '1', language: 'en', async: 'false', reviews_limit: '5' });
+    const r = await fetchWithTimeout(`https://api.app.outscraper.com/maps/search-v3?${params}`, {
+      headers: { 'X-API-KEY': outscraperKey }
+    }, 25000);
+    const data = await r.json();
+    const raw = data.data && data.data[0] && data.data[0][0];
+    if (!raw || !raw.name) return null;
+    const photoCount = raw.photos_count || 0;
+    const reviews = (raw.reviews_data || []).slice(0, 5).map(rv => {
+      const fullText = rv.review_text || '';
+      const truncated = fullText.length > 800;
+      return {
+        rating: rv.review_rating,
+        text: truncated ? fullText.slice(0, 800) + '…' : fullText,
+        textWasTruncatedForBrevityByUs: truncated,
+        time: rv.review_datetime_utc || null
+      };
+    });
+
+    const hoursObj = raw.working_hours || null;
+    const weekdayText = hoursObj
+      ? Object.entries(hoursObj).map(([day, hrs]) => `${day}: ${hrs}`)
+      : (raw.working_hours_csv_compatible ? [raw.working_hours_csv_compatible] : []);
+
+    return {
+      name: raw.name || null,
+      rating: raw.rating ?? null,
+      reviewCount: raw.reviews ?? 0,
+      address: raw.full_address || raw.address || null,
+      phone: raw.phone || null,
+      website: raw.website || null,
+      hasHours: weekdayText.length > 0,
+      openNow: null,
+      googleTypeTags: raw.subtypes ? raw.subtypes.split(', ') : (raw.type ? [raw.type] : []),
+      businessStatus: raw.business_status || null,
+      googleEditorialSummary: null,
+      photoCountReturned: Math.min(photoCount, 10),
+      photoCountIsApiCapped: photoCount >= 10,
+      reviews,
+      reviewsSortedBy: 'newest',
+      mapsUrl: raw.url || mapsUrl,
+      lat: raw.latitude ?? null,
+      lng: raw.longitude ?? null,
+      dataSource: 'outscraper',
+      dataNotAvailable: [
+        'owner-written business description',
+        'review reply status / reply rate',
+        'service area list',
+        'service/product listings',
+        'Google Posts / update frequency'
+      ]
+    };
+  } catch (e) {
+    console.error('Outscraper lookup failed:', e.message);
+    return null;
+  }
+}
+
 function extractPlaceId(url) {
   // ?query_place_id=... or ?place_id=...
   const m1 = url.match(/[?&](?:query_)?place_id=([^&]+)/);
   if (m1) return decodeURIComponent(m1[1]);
 
-  // data=...!1s<placeId>... embedded in full Maps URLs (e.g. after following share.google links)
+  // data=...!1s<placeId>... embedded in full Maps URLs
   const dataParam = url.match(/[?&/]data=([^?&\s#]+)/);
   if (dataParam) {
     const decoded = decodeURIComponent(dataParam[1]);
+    // ChIJ format (old-style place ID)
     const pid = decoded.match(/!1s(ChIJ[^!&]+)/);
     if (pid) return pid[1];
+    // Hex CID pair format 0xFEATURE:0xCID — use ftid lookup
+    const hex = decoded.match(/!1s(0x[0-9a-f]+:0x[0-9a-f]+)/i);
+    if (hex) return 'FTID:' + hex[1];
   }
 
-  // ftid= parameter used in some Maps share formats
+  // ftid= parameter
   const ftid = url.match(/[?&]ftid=(ChIJ[^&]+)/);
   if (ftid) return decodeURIComponent(ftid[1]);
+
+  // Bare hex pair in URL path (some share links)
+  const hexPair = url.match(/(0x[0-9a-f]+:0x[0-9a-f]+)/i);
+  if (hexPair) return 'FTID:' + hexPair[1];
 
   return null;
 }
@@ -344,29 +513,22 @@ async function findPlaceId(queryText, placesKey, latLng) {
     const p0 = new URLSearchParams({ location: `${latLng.lat},${latLng.lng}`, radius: '500', name: queryText, key: placesKey });
     const r0 = await fetch(`https://maps.googleapis.com/maps/api/place/nearbysearch/json?${p0}`);
     const d0 = await r0.json();
-    console.log('DEBUG nearbysearch status:', d0.status, 'results:', d0.results ? d0.results.length : 0);
     if (d0.status === 'OK' && d0.results && d0.results[0]) return d0.results[0].place_id;
 
-    // Also try textsearch with location bias
     const p1b = new URLSearchParams({ query: queryText, location: `${latLng.lat},${latLng.lng}`, radius: '1000', key: placesKey });
     const r1b = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?${p1b}`);
     const d1b = await r1b.json();
-    console.log('DEBUG textsearch+location status:', d1b.status, 'results:', d1b.results ? d1b.results.length : 0);
     if (d1b.status === 'OK' && d1b.results && d1b.results[0]) return d1b.results[0].place_id;
   }
 
-  // Try findplacefromtext — fast but misses some local businesses
   const p1 = new URLSearchParams({ input: queryText, inputtype: 'textquery', fields: 'place_id', key: placesKey });
   const r1 = await fetch(`https://maps.googleapis.com/maps/api/place/findplacefromtext/json?${p1}`);
   const d1 = await r1.json();
-  console.log('DEBUG findplacefromtext status:', d1.status, 'candidates:', d1.candidates ? d1.candidates.length : 0);
   if (d1.status === 'OK' && d1.candidates && d1.candidates[0]) return d1.candidates[0].place_id;
 
-  // Fall back to textsearch without location
   const p2 = new URLSearchParams({ query: queryText, key: placesKey });
   const r2 = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?${p2}`);
   const d2 = await r2.json();
-  console.log('DEBUG textsearch status:', d2.status, 'results:', d2.results ? d2.results.length : 0);
   if (d2.status === 'OK' && d2.results && d2.results[0]) return d2.results[0].place_id;
 
   return null;
@@ -378,7 +540,9 @@ async function getPlaceDetails(placeId, placesKey) {
     'website', 'opening_hours', 'business_status', 'types', 'editorial_summary',
     'reviews', 'photos', 'url', 'geometry'
   ].join(',');
-  const params = new URLSearchParams({ place_id: placeId, fields, key: placesKey, reviews_sort: 'newest' });
+  // FTID:0x...:0x... comes from extractPlaceId when the URL uses hex pair format
+  const idParam = placeId.startsWith('FTID:') ? { ftid: placeId.slice(5) } : { place_id: placeId };
+  const params = new URLSearchParams({ ...idParam, fields, key: placesKey, reviews_sort: 'newest' });
   const r = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?${params}`);
   const data = await r.json();
   if (data.status !== 'OK' || !data.result) return null;
@@ -554,7 +718,7 @@ Two specific traps to avoid:
 
 "selfReported" holds answers the business owner typed in when requesting this audit — NOT independently verified, so treat it as a claim, not a confirmed fact, and say so when you use it:
 - "updatesPerMonth" (number or null): if not null, you may now score an "Update Activity" category and discuss posting frequency, framed as "the business reports posting ~N times/month" — don't claim this is independently confirmed.
-- "targetKeywords" (string or null): if not null, you may now score a "Keyword Alignment" category assessing whether the website/categories/address support ranking for these self-reported target keywords — frame findings around whether the visible profile data (categories, website, location) plausibly supports these keyword goals.
+- "targetKeywords" (string or null): if not null, you may now score a "Keyword Alignment" category assessing whether the website/categories/address support ranking for these self-reported target keywords — frame findings around whether the visible profile data (categories, website, location) plausibly supports these keyword goals. If "keywordRankings" is present in the data, each entry shows the business's actual current position in local Google Maps results when searching that keyword in its area ("searchedAs" shows the exact query used) — use these real local rankings to ground your Keyword Alignment score and findings (localMapsPosition 1-3 = excellent, 4-10 = good, 11-20 = needs work, "Not in top N" = poor; "unavailable" means the check failed — do not treat that as a bad ranking or create findings from it).
 - "serviceArea" (string or null): if not null, you may now score a "Service Area Coverage" category, framed around whether the address/categories are consistent with serving that self-reported area — don't claim to have independently verified the actual configured service-area radius on the profile.
 For any of the three that ARE null, do not invent or score them — they remain in dataNotAvailable.
 
@@ -609,6 +773,7 @@ Make good 2-4 items, bad 2-4 items (only from directly-observed gaps — e.g. mi
 
   const parsed = JSON.parse(text);
   parsed.profileName = place.name;
+  parsed.keywordRankings = place.keywordRankings || null;
   stripUnverifiableFindings(parsed, place);
   return parsed;
 }
@@ -623,8 +788,10 @@ const ALWAYS_UNVERIFIABLE_PATTERN = /editorial summary|review repl|owner repl|se
 // These become verifiable once the matching selfReported field is supplied.
 const UPDATE_ACTIVITY_PATTERN = /google post|update activity|post frequency|post(ing)? activity/i;
 const SERVICE_AREA_PATTERN = /service area/i;
-const CATEGORY_CLAIM_PATTERN = /subcategor|categor(y|ies) (is|are) (broad|limited|generic)|no specialist|category breadth|categor(y|ies).*not.*populat|no live categor|categor.*not.*currently|live category data/i;
+const CATEGORY_CLAIM_PATTERN = /subcategor|categor(y|ies) (is|are) (broad|limited|generic)|no specialist|category breadth|categor(y|ies).*not.*populat|no live categor|categor.*not.*currently|live category data|categor(y|ies).*(could not|couldn'?t|cannot|can'?t|unable|not be).*(confirm|verif|retriev|return|check)|category lookup|categor(y|ies).*lookup/i;
 const LOW_PHOTO_CLAIM_PATTERN = /photo/i;
+const HOURS_PATTERN = /business hours|hours (are|not|missing)|no hours|hours set|opening hours/i;
+const REVIEW_RECENCY_PATTERN = /review recency|recency.*confirm|no review text|no.*timestamp|timestamp.*unavailable/i;
 
 function stripUnverifiableFindings(parsed, place) {
   const hasLiveCategories = Array.isArray(place.liveProfileCategories) && place.liveProfileCategories.length > 0;
@@ -642,6 +809,12 @@ function stripUnverifiableFindings(parsed, place) {
         // Photo count is ambiguous (API-capped) — drop any photo-related claim in that case,
         // since we can't tell if the real count is 10 or 10,000.
         if (place.photoCountIsApiCapped && LOW_PHOTO_CLAIM_PATTERN.test(text)) return false;
+        // Only trust a "missing hours" finding when our data source actually confirms hours
+        // are absent (hasHours === false AND we have hours data at all). Both the Places API
+        // and Outscraper frequently omit hours that DO exist on the live profile (especially
+        // service-area businesses), so never assert "no hours" unless we're sure.
+        if (!place.hasHours && HOURS_PATTERN.test(text)) return false;
+        if (place.dataSource === 'outscraper' && REVIEW_RECENCY_PATTERN.test(text)) return false;
         return true;
       });
     }
