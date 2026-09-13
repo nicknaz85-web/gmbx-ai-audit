@@ -922,13 +922,14 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 
 /* Clubbit AI chat screen */
 .chatscreen{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:var(--bg);
-  transform:translateY(14px);opacity:0;transition:transform .22s ease,opacity .22s ease}
-.chatscreen.open{transform:translateY(0);opacity:1}
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.22,.61,.36,1)}
+.chatscreen[hidden]{display:none!important}
+.chatscreen.open{transform:translateY(0)}
 .chat-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--card)}
 .chat-title{font-size:16px;font-weight:800;display:flex;align-items:center;gap:10px;color:var(--text)}
 .chat-title>span{display:flex;flex-direction:column;line-height:1.15}
 .chat-title small{font-size:11px;font-weight:600;color:var(--muted)}
-.chat-ai-av{width:36px;height:36px;border-radius:50%;object-fit:cover;flex:none;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.chat-ai-av{width:48px;height:48px;border-radius:50%;object-fit:cover;flex:none;box-shadow:0 1px 5px rgba(0,0,0,.3)}
 .chat-close{width:36px;height:36px;border-radius:50%;border:none;background:var(--surface-3);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .chat-close svg{width:18px;height:18px}
 .chat-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;display:flex;flex-direction:column;gap:12px}
@@ -948,7 +949,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .chat-bubble.typing span:nth-child(3){animation-delay:.3s}
 @keyframes chatdot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
 .chat-welcome{text-align:center;margin:auto;max-width:340px;padding:20px 10px}
-.chat-welcome-av{width:72px;height:72px;border-radius:50%;object-fit:cover;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.chat-welcome-av{width:108px;height:108px;border-radius:50%;object-fit:cover;box-shadow:0 6px 22px rgba(0,0,0,.35)}
 .chat-welcome h3{margin:12px 0 6px;font-size:20px;color:var(--text)}
 .chat-welcome p{margin:0 0 18px;font-size:14px;color:var(--muted);line-height:1.5}
 .chat-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}

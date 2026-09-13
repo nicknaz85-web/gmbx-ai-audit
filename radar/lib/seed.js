@@ -612,7 +612,7 @@ const VENUE_DEFS = [
 
   // GERMANY — more Berlin & Munich
   ['KitKatClub',       'kreuzberg',      'Dancing', 'Club', 700, 2.2, 18, 20, { mult: 1.1,  trend: 0.9 }, true],
-  ['://about blank',   'friedrichshain', 'Dancing', 'Club', 800, 2.2, 19, 15, { mult: 1.1,  trend: 0.9 }, false],
+  ['about blank',      'friedrichshain', 'Dancing', 'Club', 800, 2.2, 19, 15, { mult: 1.1,  trend: 0.9 }, false],
   ['Kater Blau',       'friedrichshain', 'Dancing', 'Club', 700, 2.0, 17, 15, { mult: 1.05, trend: 0.9 }, true],  ['Rote Sonne',       'sonnenstrasse',  'Dancing', 'Club', 400, 1.8, 13, 12, { mult: 1.0,  trend: 0.8 }, false],
   // GERMANY — Hamburg
   ['Uebel & Gefährlich','hamburg-stpauli','Dancing','Club', 600, 1.6, 16, 12, { mult: 1.05, trend: 0.8 }, true],
