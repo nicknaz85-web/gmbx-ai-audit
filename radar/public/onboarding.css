@@ -180,6 +180,18 @@ button{font-family:inherit;color:inherit;border:none;background:none;cursor:poin
 .oc-slide .mascot.nb{width:min(38vw,158px)}              /* non-binary fills most → smallest */
 .oc-slide .h1{margin-top:18px}
 .oc-slide .sub{margin:12px auto 0}
+/* short landscape: shrink the carousel art + let screens scroll so nothing is cut off
+   (keeps the man/woman/non-binary character sizes equal at ratio 262:214:158) */
+@media (orientation:landscape) and (max-height:520px){
+  .screen{overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .oc-slide .mascot{width:150px}
+  .oc-slide .mascot.fem{width:122px}
+  .oc-slide .mascot.nb{width:90px}
+  .oc-slide .h1{margin-top:10px}
+  .oc-slide .sub{margin-top:8px}
+  .oc-note{margin-top:10px}
+  .h1.big{font-size:23px}
+}
 .oc-note{display:inline-flex;align-items:center;gap:7px;margin:16px auto 0;padding:8px 15px;border-radius:20px;
   font-size:13px;font-weight:600;color:var(--gold);background:rgba(246,201,68,.12);
   box-shadow:inset 0 0 0 1px rgba(246,201,68,.25)}

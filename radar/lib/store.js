@@ -9,7 +9,11 @@ import { fileURLToPath } from 'node:url';
 import { now, MIN } from './util.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, '..', '.data');
+// Where accounts/reports/media persist. Defaults to a local .data folder, but set
+// CLUBBIT_DATA_DIR to a PERSISTENT disk mount (e.g. Render disk at /var/data) so
+// accounts survive redeploys/restarts — otherwise the host's ephemeral filesystem
+// wipes everyone on every deploy (returning sign-in then can't find the account).
+const DATA_DIR = process.env.CLUBBIT_DATA_DIR || path.join(__dirname, '..', '.data');
 const SNAPSHOT = path.join(DATA_DIR, 'snapshot.json');
 export const MEDIA_DIR = path.join(DATA_DIR, 'media');
 export function ensureMediaDir() { if (!fs.existsSync(MEDIA_DIR)) fs.mkdirSync(MEDIA_DIR, { recursive: true }); }

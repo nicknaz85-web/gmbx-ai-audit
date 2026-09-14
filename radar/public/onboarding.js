@@ -72,11 +72,22 @@
     else window.history.pushState({}, '');
   });
 
+  let _lastProgressPct = 0;
   function setProgress(name) {
     const p = PROGRESS[name];
     const scr = screenEl(name);
     const fill = scr && $('.progress-fill', scr);
-    if (fill && p) fill.style.width = (p / 5 * 100) + '%';
+    if (!fill) return;
+    const target = p ? (p / 5 * 100) : 0;
+    // start this screen's bar AT the previous step's fill (no transition), then
+    // animate forward to the new fill — so the bar visibly slides/fills across
+    // screens instead of each one fading in from empty.
+    fill.style.transition = 'none';
+    fill.style.width = _lastProgressPct + '%';
+    void fill.offsetWidth; // commit the start position
+    fill.style.transition = '';
+    requestAnimationFrame(() => { fill.style.width = target + '%'; });
+    if (p) _lastProgressPct = target;
   }
 
   // ---- reusable mascot control ----

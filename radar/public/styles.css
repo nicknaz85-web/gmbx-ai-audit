@@ -721,7 +721,10 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   background:var(--tint-blue);padding:7px 13px;border-radius:20px}
 
 /* ============================================================ SETTINGS / LANGUAGE SHEETS */
-.msheet-scrim{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.5);backdrop-filter:blur(2px)}
+.msheet-scrim{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.5);backdrop-filter:blur(2px);touch-action:none}
+/* while a modal sheet (Settings, Language…) is open, freeze the content behind it
+   so the map/list can't scroll or pan underneath */
+body.msheet-open .sheet-body,body.msheet-open #map,body.msheet-open .radar-stage{touch-action:none!important;overflow:hidden!important;pointer-events:none}
 .msheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--card);color:var(--ink);
   border-radius:22px 22px 0 0;max-height:88vh;display:flex;flex-direction:column;
   transform:translateY(100%);transition:transform .32s cubic-bezier(.3,.7,.25,1);box-shadow:0 -8px 30px rgba(0,0,0,.25);
@@ -944,9 +947,9 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
    ~86%), so the image inside a chat avatar is positioned per gender to render the
    CHARACTER at the same on-screen size, centred, in every avatar. */
 .chat-ai-av>img,.chat-av>img,.chat-welcome-av>img{position:absolute;width:auto;height:100%;left:0;top:0}
-.mav-man>img{height:155%;left:-15%;top:-31%}
-.mav-fem>img{height:133%;left:-4%;top:-16%}
-.mav-nb>img{height:99%;left:7%;top:1.5%}
+.mav-man>img{height:155%;left:-10%;top:-29%}
+.mav-fem>img{height:133%;left:0%;top:-11%}
+.mav-nb>img{height:99%;left:12%;top:5%}
 .chat-close{width:36px;height:36px;border-radius:50%;border:none;background:var(--surface-3);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .chat-close svg{width:18px;height:18px}
 .chat-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;display:flex;flex-direction:column;gap:12px}

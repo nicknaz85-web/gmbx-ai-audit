@@ -393,25 +393,35 @@ async function api(req, res, url) {
     const lastUser = [...msgs].reverse().find((m) => m.role === 'user');
     const context = buildChatContext(lastUser ? lastUser.content : '', validCoords(body.userLoc));
     const model = process.env.CLUBBIT_CHAT_MODEL || 'gemini-3.6-flash';
-    const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), 18000); // never hang the request on a slow Gemini
-    try {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        signal: ac.signal,
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: CHAT_SYSTEM + '\n\n' + context }] },
-          contents: msgs.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
-          generationConfig: { maxOutputTokens: 1400, temperature: 0.7, thinkingConfig: { thinkingLevel: 'low' } },
-        }),
-      });
-      clearTimeout(timer);
-      if (!r.ok) { console.warn('chat', r.status, (await r.text()).slice(0, 200)); return send(res, 200, { reply: "Sorry, I couldn't reach the AI just now — give it another try in a sec." }); }
-      const j = await r.json();
-      const reply = (((j.candidates || [])[0] || {}).content || {}).parts ? j.candidates[0].content.parts.map((p) => p.text || '').join('').trim() : '';
-      return send(res, 200, { reply: reply || "Hmm, I didn't catch that — try rephrasing?" });
-    } catch (e) { clearTimeout(timer); return send(res, 200, { reply: e && e.name === 'AbortError' ? "That took too long — the AI's a bit busy. Try again in a sec!" : "Sorry, the AI is unavailable right now. Try again shortly." }); }
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+    const payload = {
+      system_instruction: { parts: [{ text: CHAT_SYSTEM + '\n\n' + context }] },
+      contents: msgs.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+      generationConfig: { maxOutputTokens: 1400, temperature: 0.7, thinkingConfig: { thinkingLevel: 'low' } },
+    };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    // Retry transient failures (a slow response, a 429 rate-limit under load, or a 5xx)
+    // so a single hiccup doesn't surface as "that took too long" — important as usage
+    // grows and Gemini's shared free-tier throttles the odd request.
+    let resp = null, lastStatus = 0;
+    for (let attempt = 0; attempt < 2 && !resp; attempt++) {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), 12000); // per-attempt cap
+      try {
+        const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, signal: ac.signal, body: JSON.stringify(payload) });
+        clearTimeout(timer);
+        if ((r.status === 429 || r.status >= 500) && attempt < 1) { lastStatus = r.status; await sleep(600); continue; } // backoff + retry once
+        resp = r;
+      } catch (e) {
+        clearTimeout(timer); lastStatus = e && e.name === 'AbortError' ? 408 : -1;
+        if (attempt < 1) { await sleep(300); continue; } // retry a timeout/network blip once
+      }
+    }
+    if (!resp) return send(res, 200, { reply: lastStatus === 429 ? "The AI's getting a lot of questions right now — give it a few seconds and try again 🙂" : "That took a moment too long — try again in a sec!" });
+    if (!resp.ok) { console.warn('chat', resp.status, (await resp.text()).slice(0, 200)); return send(res, 200, { reply: "Sorry, I couldn't reach the AI just now — give it another try in a sec." }); }
+    const j = await resp.json();
+    const reply = (((j.candidates || [])[0] || {}).content || {}).parts ? j.candidates[0].content.parts.map((p) => p.text || '').join('').trim() : '';
+    return send(res, 200, { reply: reply || "Hmm, I didn't catch that — try rephrasing?" });
   }
 
   // GET /api/ig/:id — 302-redirect to the venue's Instagram profile. Baked/pinned

@@ -16,7 +16,7 @@ const API = {
   deleteAccount: (token, email, name) => post('/api/auth/delete', { token, email, name }),
   chat: (messages, userLoc) => {
     const ac = new AbortController();
-    const t = setTimeout(() => ac.abort(), 24000);
+    const t = setTimeout(() => ac.abort(), 30000); // allow for the server's one retry
     return fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages, userLoc }), signal: ac.signal })
       .then((r) => r.json()).finally(() => clearTimeout(t));
   },
@@ -1685,14 +1685,58 @@ function toggleSave(id) {
 }
 window.toggleSave = toggleSave;
 
-// reapply a remembered choice on load (no gate); or show the gate on first visit
-function bootLocation() {
+// Is location permission ALREADY granted at the OS/browser level? (so we never
+// re-prompt someone who already said yes on a previous session/sign-in.)
+async function checkGeoPermission() {
+  try {
+    if (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.Geolocation && Capacitor.Plugins.Geolocation.checkPermissions) {
+      const r = await Capacitor.Plugins.Geolocation.checkPermissions();
+      return r.location || r.coarseLocation || 'prompt';
+    }
+  } catch (e) {}
+  try {
+    if (navigator.permissions && navigator.permissions.query) {
+      const r = await navigator.permissions.query({ name: 'geolocation' });
+      return r.state; // 'granted' | 'denied' | 'prompt'
+    }
+  } catch (e) {}
+  return 'prompt';
+}
+// Fly to a GPS fix + remember it (shared by the gate's Allow button and silent boot).
+function applyGps(loc, opts) {
+  S.userLoc = loc; S._userIsGps = true;
+  try { map.setUserLocation(loc); } catch (e) {}
+  const nearest = (S.data && S.data.venues) ? S.data.venues.map((v) => ({ v, dkm: haversineKm(loc, v.coords) })).sort((a, b) => a.dkm - b.dkm)[0] : null;
+  let t = loc, label = 'Best near you', z = 12.5;
+  if (nearest && nearest.dkm > 60) { t = { lat: nearest.v.coords.lat, lng: nearest.v.coords.lng }; label = 'Nearest scene · ' + cityOf(nearest.v); z = 12; }
+  S.locLabel = label;
+  saveLoc({ lat: t.lat, lng: t.lng, label, mode: 'gps', userLat: loc.lat, userLng: loc.lng });
+  try { map.flyToLatLng(t.lat, t.lng, z); } catch (e) {}
+  updateChrome();
+  if (opts && opts.openSheet) { openSheet('near'); }
+}
+// reapply a remembered choice on load (no gate); or — if the OS already granted
+// location — use it silently; only show the gate to first-timers who haven't decided.
+async function bootLocation() {
   const saved = loadLoc();
-  if (!saved) { showGate(); return; }
-  if (saved.skip) return; // remembered "browse the map"
-  if (saved.mode === 'gps') { S.userLoc = { lat: saved.userLat, lng: saved.userLng }; S._userIsGps = true; S._flyTarget = { lat: saved.lat, lng: saved.lng }; }
-  else { S.userLoc = { lat: saved.lat, lng: saved.lng }; }
-  S.locLabel = saved.label; S._rememberFly = true;
+  if (saved) {
+    if (saved.skip) return; // remembered "browse the map"
+    if (saved.mode === 'gps') { S.userLoc = { lat: saved.userLat, lng: saved.userLng }; S._userIsGps = true; S._flyTarget = { lat: saved.lat, lng: saved.lng }; }
+    else { S.userLoc = { lat: saved.lat, lng: saved.lng }; }
+    S.locLabel = saved.label; S._rememberFly = true;
+    return;
+  }
+  // no remembered choice — if permission is already granted, use it without a prompt
+  let granted = false;
+  try { granted = (await checkGeoPermission()) === 'granted'; } catch (e) {}
+  if (granted) {
+    try {
+      const p = await getPosition({ enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 });
+      applyGps({ lat: p.coords.latitude, lng: p.coords.longitude });
+      return;
+    } catch (e) { /* fall through to the gate */ }
+  }
+  showGate();
 }
 function skipGate() { saveLoc({ skip: true }); hideGate(); }
 
@@ -2033,12 +2077,13 @@ function hideProfile() { const scr = $('#profileScreen'); if (scr) scr.hidden = 
 // ---- settings + language bottom sheets ----
 function openMSheet(sheetId, scrimId) {
   const s = $(sheetId), sc = $(scrimId);
+  document.body.classList.add('msheet-open'); // lock the content behind so it can't scroll
   if (sc) sc.hidden = false; if (s) { s.hidden = false; requestAnimationFrame(() => s.classList.add('open')); }
 }
 function closeMSheet(sheetId, scrimId) {
   const s = $(sheetId), sc = $(scrimId);
   if (s) s.classList.remove('open');
-  setTimeout(() => { if (s) s.hidden = true; if (sc) sc.hidden = true; }, 320);
+  setTimeout(() => { if (s) s.hidden = true; if (sc) sc.hidden = true; if (!document.querySelector('.msheet.open')) document.body.classList.remove('msheet-open'); }, 320);
 }
 function openSettings() {
   renderSettings();
