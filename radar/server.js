@@ -754,13 +754,41 @@ async function api(req, res, url) {
     return send(res, 200, { ok: true, profile: db.authUsers[key].profile || null, email: db.authUsers[key].email });
   }
 
-  // POST /api/auth/delete { token } — permanently delete the account (email,
-  // password and saved profile). Irreversible.
+  // POST /api/auth/delete { token, email, name } — permanently and COMPLETELY erase
+  // the user: their login (email/password/profile) AND all their device activity
+  // (reports, photos/videos + the files, check-ins, pulses, level/badges, and any
+  // feed lines naming them). Irreversible.
   if (method === 'POST' && route === 'auth/delete') {
     const body = await readBody(req);
-    const key = tokenKey(body.token);
-    if (key && db.authUsers[key]) { delete db.authUsers[key]; saveSnapshotSoon(); }
-    return send(res, 200, { ok: true });
+    const uHash = id.uHash;
+    let removed = { auth: 0, reports: 0, media: 0, checkins: 0, pulses: 0, feed: 0, user: 0 };
+    // 1) login/profile record — by token AND by email (so it goes even if the token
+    // was lost), plus any auth record whose saved profile carries this uHash.
+    const keys = new Set();
+    const tk = tokenKey(body.token); if (tk) keys.add(tk);
+    if (body.email) { const ek = emailKey(body.email); if (ek) keys.add(ek); }
+    for (const k of keys) { if (db.authUsers[k]) { delete db.authUsers[k]; removed.auth++; } }
+    // 2) identity / level / badges record
+    if (db.users[uHash]) { delete db.users[uHash]; removed.user = 1; }
+    // 3) uploaded media — records AND the files on disk
+    db.media = db.media.filter((m) => {
+      if (m.uHash === uHash) { try { fs.unlinkSync(path.join(MEDIA_DIR, m.id + '.' + m.ext)); } catch (e) {} removed.media++; return false; }
+      return true;
+    });
+    // 4) reports, pulses, check-ins tied to this device
+    const nR = db.reports.length; db.reports = db.reports.filter((r) => r.uHash !== uHash); removed.reports = nR - db.reports.length;
+    const nP = db.pulses.length; db.pulses = db.pulses.filter((p) => p.uHash !== uHash); removed.pulses = nP - db.pulses.length;
+    const nC = db.checkins.length; db.checkins = db.checkins.filter((c) => c.uHash !== uHash); removed.checkins = nC - db.checkins.length;
+    // 5) feed lines that name this reporter (best-effort — feed rows store the name,
+    // not the uHash; matched on the exact "Name, age" / "Name " prefix we wrote)
+    const nm = (body.name && String(body.name).trim()) || '';
+    if (nm) {
+      const nF = db.feed.length;
+      db.feed = db.feed.filter((f) => !(f && f.kind === 'report' && typeof f.text === 'string' && (f.text.startsWith(nm + ',') || f.text.startsWith(nm + ' '))));
+      removed.feed = nF - db.feed.length;
+    }
+    saveSnapshotSoon();
+    return send(res, 200, { ok: true, removed });
   }
 
   return send(res, 404, { error: 'unknown route' });

@@ -159,6 +159,7 @@ button{font-family:inherit;color:inherit;border:none;background:none;cursor:poin
   80%{transform:translateX(14%) translateY(0) rotate(1deg)}
   100%{transform:translateX(0) translateY(0) rotate(0)}}
 .shine.shine-f{-webkit-mask-image:url('/clubbit-mascot-f.png');mask-image:url('/clubbit-mascot-f.png')}
+.shine.shine-nb{-webkit-mask-image:url('/clubbit-mascot-nb.png');mask-image:url('/clubbit-mascot-nb.png')}
 .welcome .h1{margin-top:2vh}
 .welcome .sub{margin-left:auto;margin-right:auto}
 .disco{position:absolute;top:11%;font-size:26px;opacity:.9;animation:floaty 4s ease-in-out infinite}
@@ -171,7 +172,12 @@ button{font-family:inherit;color:inherit;border:none;background:none;cursor:poin
 .oc-track{display:flex;width:100%;transition:transform .42s var(--ease)}
 .oc-slide{flex:0 0 100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:0 6px;box-sizing:border-box}
-.oc-slide .mascot{width:min(56vw,236px);margin:0 auto}
+/* Each character art fills its 1080×1350 frame by a different amount (man ~55%,
+   woman ~67%, non-binary ~90%), so per-type widths are tuned to make the CHARACTER
+   render at the same on-screen height across all slides. */
+.oc-slide .mascot{width:min(62vw,262px);margin:0 auto}   /* man (default) */
+.oc-slide .mascot.fem{width:min(51vw,214px)}             /* woman fills more of the frame */
+.oc-slide .mascot.nb{width:min(38vw,158px)}              /* non-binary fills most → smallest */
 .oc-slide .h1{margin-top:18px}
 .oc-slide .sub{margin:12px auto 0}
 .oc-note{display:inline-flex;align-items:center;gap:7px;margin:16px auto 0;padding:8px 15px;border-radius:20px;

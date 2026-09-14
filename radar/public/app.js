@@ -13,7 +13,7 @@ const API = {
   me: () => fetch('/api/me').then(r => r.json()),
   deleteMedia: (id) => post('/api/media/delete', { id }),
   deleteReport: (id) => post('/api/report/delete', { id }),
-  deleteAccount: (token) => post('/api/auth/delete', { token }),
+  deleteAccount: (token, email, name) => post('/api/auth/delete', { token, email, name }),
   chat: (messages, userLoc) => {
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), 24000);
@@ -2169,10 +2169,14 @@ function doSignOut() {
   location.replace('/onboarding.html');
 }
 async function doDeleteAccount() {
-  if (!confirm('Delete your account permanently? This erases your account, saved profile and level. This cannot be undone.')) return;
+  if (!confirm('Delete your account permanently? This erases your account, saved profile, level and every report and photo you added. This cannot be undone.')) return;
   let token = ''; try { token = localStorage.getItem('clubbit_token') || ''; } catch {}
-  try { await API.deleteAccount(token); } catch (e) {}
-  try { ['clubbit_onboarding_complete', 'clubbit_profile', 'clubbit_onboarding', 'clubbit_token', 'clubbit_reports_count', 'pr_saved', 'pr_loc'].forEach((k) => localStorage.removeItem(k)); } catch {}
+  const prof = myProfile();
+  // send email + name too, so the server wipes the account and all its content even
+  // if the token was lost, and scrubs feed lines that named the user
+  let res = null; try { res = await API.deleteAccount(token, prof.email || null, prof.firstName || null); } catch (e) {}
+  if (!res || res.error) { toast('Could not fully delete your account — check your connection and try again.', 3200); return; }
+  try { localStorage.clear(); } catch {}
   location.replace('/onboarding.html');
 }
 
