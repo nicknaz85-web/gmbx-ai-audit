@@ -415,10 +415,12 @@ class RadarMap {
       if (!this._clusterById) this._clusterById = {};
       const z = this.map.getZoom();
       // cluster/pin switch with hysteresis: a dead zone [5.7, 6.3] so slow zooming
+      // (raised below so regional/metro views show ONE count bubble per city instead
+      // of a messy mix of individual pins and stack badges)
       // near the boundary doesn't flicker bubbles and pins in and out.
-      if (this._clusterMode === undefined) this._clusterMode = z < 6;
-      if (this._clusterMode && z > 6.3) this._clusterMode = false;
-      else if (!this._clusterMode && z < 5.7) this._clusterMode = true;
+      if (this._clusterMode === undefined) this._clusterMode = z < 8.6;
+      if (this._clusterMode && z > 9.1) this._clusterMode = false;   // zoomed into a city → individual pins
+      else if (!this._clusterMode && z < 8.6) this._clusterMode = true; // zoomed out → one bubble per city
       const clusterMode = this._clusterMode;
 
       // ---- count bubbles (clusters) ----
@@ -791,27 +793,24 @@ function feedItems() {
   const seen = new Set();
   const items = [];
   const add = (v, emoji, text, sub) => {
-    if (seen.has(v.id) || items.length >= 14) return; seen.add(v.id);
+    if (seen.has(v.id) || items.length >= 20) return; seen.add(v.id);
     items.push({ v, emoji, text, sub });
   };
+  // ONLY currently-open venues appear in notifications, so the bell count always
+  // equals how many spots near you are open right now.
   const openV = vs.filter((v) => v.open).sort((a, b) => b.radar.score - a.radar.score);
   const dist = (v) => v._dist != null ? ' · ' + distLabel(v._dist) : '';
   // 1) tonight's top pick
   if (openV[0]) add(openV[0], '⭐', `Tonight: head to ${openV[0].name}`, `${openV[0].radar.label} now · ${openV[0].neighborhoodName}${openV[0].hours ? ' · till ' + openV[0].hours.closesLabel : ''}`);
   // 2) popping / heating up right now
-  vs.filter((v) => v.open && ['surging', 'exploding', 'heating'].includes(v.momentum.state))
+  openV.filter((v) => ['surging', 'exploding', 'heating'].includes(v.momentum.state))
     .sort((a, b) => b.momentum.M - a.momentum.M).slice(0, 4)
     .forEach((v) => add(v, '🔥', `${v.name} is ${v.momentum.state === 'heating' ? 'heating up' : 'popping off'}`, `${v.neighborhoodName}${v.pct > 0 ? ' · +' + v.pct + '%' : ''}${dist(v)}`));
   // 3) peaks later tonight
   openV.filter((v) => v.expectedPeak).slice(0, 3)
     .forEach((v) => add(v, '⏰', `${v.name} peaks around ${v.expectedPeak}`, `${v.neighborhoodName}${dist(v)}`));
-  // 4) opening later tonight (closed venues) — ONLY to fill the feed when little is
-  //    open right now, so open bars/clubs always come ahead of closed ones
-  if (items.length < 6) {
-    vs.filter((v) => !v.open && v.hours && v.hours.opensLabel)
-      .sort((a, b) => b.radar.score - a.radar.score).slice(0, 6 - items.length)
-      .forEach((v) => add(v, '🌙', `${v.name} opens ${v.hours.opensLabel}`, `${v.neighborhoodName}${v.dress ? ' · ' + v.dress.code : ''}${dist(v)}`));
-  }
+  // 4) every other open venue near you
+  openV.forEach((v) => add(v, '🎉', `${v.name} is open now`, `${v.radar.label} · ${v.neighborhoodName}${v.hours && v.hours.closesLabel ? ' · till ' + v.hours.closesLabel : ''}${dist(v)}`));
   return items;
 }
 function feedRows() {
