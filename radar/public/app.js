@@ -843,14 +843,18 @@ async function openVenue(id) {
   // waiting on a network round-trip, then quietly upgrade with the full detail
   // (user photos + full events) when it arrives.
   const cached = (S.data && S.data.venues || []).find((x) => x.id === id);
-  if (cached) { S.activeVenueData = cached; renderVenue(cached); }
-  else $('#venueCard').innerHTML = '<div class="vc-hero skel" style="height:220px"></div>';
+  let shown = false;
+  // the cached (state) snapshot is lighter than the full payload — if rendering it
+  // throws for any missing field, fall back to the skeleton and the full fetch so
+  // the venue ALWAYS opens.
+  if (cached) { try { S.activeVenueData = cached; renderVenue(cached); shown = true; } catch (e) { shown = false; } }
+  if (!shown) $('#venueCard').innerHTML = '<div class="vc-hero skel" style="height:220px"></div>';
   try {
     const v = await API.venue(id);
     if (S.activeVenue !== id) return;
     S.activeVenueData = v; // full detail incl. media + full events
     renderVenue(v);
-  } catch (e) { if (!cached) $('#venueCard').innerHTML = '<div class="empty">Couldn’t load this venue — try again.</div>'; }
+  } catch (e) { if (!shown) $('#venueCard').innerHTML = '<div class="empty">Couldn’t load this venue — try again.</div>'; }
 }
 function closeVenue() { $('#venueOverlay').hidden = true; S.activeVenue = null; S.activeVenueData = null; map.selected = null; map.refreshSelection && map.refreshSelection(); }
 
@@ -1032,11 +1036,13 @@ function renderVenue(v) {
   const band = bandKey(v.radar.score);
   const bc = BAND_COLOR[band];
   const mc = momClass(v.momentum.state);
-  const dec = v.decision;
-  const decClass = dec.verdict === 'GO NOW' ? 'go' : dec.verdict === 'WAIT' ? 'wait' : 'your';
+  // decision + forecast are only in the full payload (not the cached state snapshot);
+  // render those sections only when present so an instant cached card doesn't crash.
+  const dec = v.decision || null;
+  const decClass = dec ? (dec.verdict === 'GO NOW' ? 'go' : dec.verdict === 'WAIT' ? 'wait' : 'your') : 'your';
   const momPct = Math.min(50, Math.abs(v.momentum.M) * 1.6);
   const momDir = v.momentum.M >= 0;
-  const fc = v.forecast.points;
+  const fc = (v.forecast && v.forecast.points) || [];
   const maxPct = Math.max(...fc.map(p => p.pct), 60);
   const srcLabel = { community: 'COMMUNITY', venue: 'VENUE UPDATE', estimate: 'ESTIMATE', live: 'LIVE', besttime: 'FOOT TRAFFIC', closed: 'CLOSED' }[v.source] || 'ESTIMATE';
   const closed = v.open === false;
@@ -1122,7 +1128,7 @@ function renderVenue(v) {
 
     ${v.dress ? `<div class="dress"><span class="dress-ic">👔</span><div class="dress-txt"><b>Dress code · ${esc(v.dress.code)}</b><div class="dress-tip">${esc(v.dress.tip)}</div></div></div>` : ''}
 
-    <div class="forecast">
+    ${fc.length ? `<div class="forecast">
       <div class="section-h"><h3>Forecast</h3><span class="count">next 8 hours</span></div>
       <div class="fc-bars">
         ${fc.map(p => `<div class="fc-col">
@@ -1131,13 +1137,13 @@ function renderVenue(v) {
           <div class="fc-lab">${esc(p.label)}</div></div>`).join('')}
       </div>
       ${v.expectedPeak ? `<div class="peak-flag">★ Expected peak <b style="margin-left:4px">${esc(v.expectedPeak)}</b></div>` : ''}
-    </div>
+    </div>` : ''}
 
-    <div class="decision ${decClass}">
+    ${dec ? `<div class="decision ${decClass}">
       <div class="dec-verdict">${(dec.verdict === 'GO NOW' ? '✓ ' : dec.verdict === 'WAIT' ? '◷ ' : dec.verdict === 'CLOSED' ? '🌙 ' : '') + titleCase(dec.verdict)}</div>
       <div class="dec-head">${esc(dec.headline)}</div>
-      <ul class="dec-reasons">${dec.reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>
-    </div>
+      <ul class="dec-reasons">${(dec.reasons || []).map(r => `<li>${esc(r)}</li>`).join('')}</ul>
+    </div>` : ''}
 
     ${v._checkedIn ? `<div class="pulse-row"><span class="pq">Still popping?</span>
       <button class="pulse-btn" onclick="sendPulse('${v.id}','busier')">Busier</button>
