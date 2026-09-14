@@ -784,16 +784,21 @@ function renderSheet() {
 // count use this, so the number on the bell always equals the rows you see.
 function feedItems() {
   const d = S.data; if (!d) return [];
-  let vs = [...d.venues];
+  // Base the feed on venues NEAR you (or, before location is known, on what's in the
+  // current map view) — never the whole world, so the bell never shows a global count.
+  let vs;
   if (S.userLoc) {
-    vs.forEach((v) => { v._dist = haversineKm(S.userLoc, v.coords); });
+    vs = d.venues.map((v) => { v._dist = haversineKm(S.userLoc, v.coords); return v; });
     const near = vs.filter((v) => v._dist <= 40);
-    vs = near.length ? near : vs.sort((a, b) => a._dist - b._dist).slice(0, 20);
+    vs = near.length ? near : vs.slice().sort((a, b) => a._dist - b._dist).slice(0, 25);
+  } else {
+    vs = d.venues.filter((v) => (typeof inScope === 'function' ? inScope(v) : true));
+    if (!vs.length) vs = d.venues.slice(0, 25);
   }
   const seen = new Set();
   const items = [];
   const add = (v, emoji, text, sub) => {
-    if (seen.has(v.id) || items.length >= 20) return; seen.add(v.id);
+    if (seen.has(v.id) || items.length >= 30) return; seen.add(v.id);
     items.push({ v, emoji, text, sub });
   };
   // ONLY currently-open venues appear in notifications, so the bell count always
@@ -1569,6 +1574,7 @@ const CITY_COUNTRY = {
   'Düsseldorf':'Germany', Dresden:'Germany', Bremen:'Germany', Zaragoza:'Spain', Alicante:'Spain', Murcia:'Spain', Genoa:'Italy', Verona:'Italy', Catania:'Italy Sicily', Bari:'Italy', Strasbourg:'France', Montpellier:'France', Rennes:'France', Leicester:'UK England', Southampton:'UK England', Aberdeen:'UK Scotland', Braga:'Portugal', Faro:'Portugal Algarve', Coimbra:'Portugal', 'The Hague':'Netherlands', Groningen:'Netherlands', Katowice:'Poland', Szczecin:'Poland', Larissa:'Greece', Volos:'Greece', 'Goiânia':'Brazil', Manaus:'Brazil', Puebla:'Mexico', 'Mérida':'Mexico', Tijuana:'Mexico', Canberra:'Australia', Hobart:'Australia', Chandigarh:'India', Kochi:'India', Indore:'India', Pattaya:'Thailand', 'Hua Hin':'Thailand', 'Mar del Plata':'Argentina', Barranquilla:'Colombia', Izmir:'Turkey', Antalya:'Turkey', Bodrum:'Turkey', Nagoya:'Japan', Sapporo:'Japan', Daegu:'South Korea', Raleigh:'USA United States', Richmond:'USA United States', 'Nha Trang':'Vietnam', Surabaya:'Indonesia', Davao:'Philippines', Pretoria:'South Africa',
   'Birmingham AL':'USA United States Alabama', Anchorage:'USA United States Alaska', 'Little Rock':'USA United States Arkansas', 'New Haven':'USA United States Connecticut', Wilmington:'USA United States Delaware', 'Des Moines':'USA United States Iowa', Wichita:'USA United States Kansas', 'Portland ME':'USA United States Maine', Baltimore:'USA United States Maryland', Jackson:'USA United States Mississippi', Bozeman:'USA United States Montana', 'Manchester NH':'USA United States New Hampshire', 'Atlantic City':'USA United States New Jersey', Fargo:'USA United States North Dakota', Providence:'USA United States Rhode Island', Charleston:'USA United States South Carolina', 'Sioux Falls':'USA United States South Dakota', Burlington:'USA United States Vermont', Morgantown:'USA United States West Virginia', 'Jackson Hole':'USA United States Wyoming', Maui:'USA United States Hawaii',
   Ankara:'Turkey', Marmaris:'Turkey', 'Çeşme':'Turkey', Alanya:'Turkey', Karachi:'Pakistan', Lahore:'Pakistan', Islamabad:'Pakistan',
+  Skopje:'North Macedonia Macedonia', Ohrid:'North Macedonia Macedonia',
 };
 // a venue is "in view" if it's within the current map bounds — used so the
 // filter counts reflect what's near you, growing only as you zoom out
@@ -1725,7 +1731,7 @@ function recenterToMe() {
     if (S._userIsGps) {
       getPosition({ enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 }).then((p) => {
         const loc = { lat: p.coords.latitude, lng: p.coords.longitude };
-        S.userLoc = loc; map.setUserLocation(loc); map.flyToLatLng(loc.lat, loc.lng, 14);
+        S.userLoc = loc; map.setUserLocation(loc); map.flyToLatLng(loc.lat, loc.lng, 14); updateChrome();
       }).catch(() => {});
     }
   } else {
@@ -1746,6 +1752,7 @@ function requestLocation() {
     const loc = { lat: p.coords.latitude, lng: p.coords.longitude };
     S.userLoc = loc; S._userIsGps = true;
     hideGate();
+    updateChrome(); // refresh the bell count for the new location right away
     map.setUserLocation(loc);
     const nearest = S.data.venues.map((v) => ({ v, dkm: haversineKm(loc, v.coords) })).sort((a, b) => a.dkm - b.dkm)[0];
     let t = loc, label = 'Best near you', z = 12.5;
@@ -2453,6 +2460,17 @@ function chatMascot() {
   if (g === 'Non-binary' || g === 'Prefer not to say') return '/clubbit-mascot-nb.png';
   return '/clubbit-mascot.png'; // Man / unset
 }
+// per-gender positioning class so the character renders the same size in every avatar
+function chatMascotClass() {
+  const g = (typeof myProfile === 'function' && (myProfile() || {}).gender) || '';
+  if (g === 'Woman') return 'mav-fem';
+  if (g === 'Non-binary' || g === 'Prefer not to say') return 'mav-nb';
+  return 'mav-man';
+}
+// one avatar element (a circular wrapper with the mascot positioned inside)
+function chatAvatar(cls, extra) {
+  return `<span class="${cls} ${chatMascotClass()}"${extra || ''}><img src="${chatMascot()}" alt="" onerror="this.style.display='none'"/></span>`;
+}
 function openChat() {
   closeSheet(); hideProfile();
   S.tab = 'chat'; setBn('chat');
@@ -2461,7 +2479,7 @@ function openChat() {
     ov = document.createElement('div'); ov.id = 'chatScreen'; ov.className = 'chatscreen';
     ov.innerHTML = `
       <div class="chat-head">
-        <span class="chat-title"><img class="chat-ai-av" src="${chatMascot()}" alt="" onerror="this.style.display='none'"/><span>Clubbit AI<small>Nightlife concierge</small></span></span>
+        <span class="chat-title">${chatAvatar('chat-ai-av')}<span>Clubbit AI<small>Nightlife concierge</small></span></span>
         <button class="chat-close" id="chatClose" aria-label="Close chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="chat-body" id="chatBody"></div>
@@ -2475,7 +2493,7 @@ function openChat() {
   }
   // the header is built once, so refresh its mascot each open to match the current
   // profile (man / woman / non-binary)
-  try { const av = ov.querySelector('.chat-ai-av'); if (av) av.src = chatMascot(); } catch (e) {}
+  try { const av = ov.querySelector('.chat-ai-av'); if (av) { av.className = 'chat-ai-av ' + chatMascotClass(); const im = av.querySelector('img'); if (im) { im.src = chatMascot(); im.style.display = ''; } } } catch (e) {}
   // stop the panel above the bottom nav so the nav stays visible & tappable (always an exit)
   try { const nav = document.querySelector('.bottomnav'); ov.style.bottom = (nav ? nav.offsetHeight : 64) + 'px'; } catch (e) {}
   ov.hidden = false;
@@ -2498,8 +2516,9 @@ function openChat() {
 function closeChat() {
   const ov = document.getElementById('chatScreen');
   if (ov) {
-    ov.classList.remove('open');   // slide back down (transform transition), then hide
-    setTimeout(() => { if (ov && !ov.classList.contains('open')) ov.hidden = true; }, 320);
+    ov.classList.add('closing');   // crisp accelerate-out easing for the dismiss
+    ov.classList.remove('open');   // slide back down, then hide once it's off-screen
+    setTimeout(() => { if (ov && !ov.classList.contains('open')) { ov.hidden = true; ov.classList.remove('closing'); } }, 300);
   }
   setBn('map'); S.tab = 'near';
 }
@@ -2522,7 +2541,7 @@ function renderChatWelcome() {
     ? [`Best clubs in ${city}?`, `Where should I party tonight in ${city}?`, `Best area for a night out in ${city}`, 'Cheap bars near me']
     : ['Best clubs near me?', 'Where should I party tonight?', 'Best area for a night out near me', 'Cheap bars near me'];
   body.innerHTML = `<div class="chat-welcome">
-      <img class="chat-welcome-av" src="${chatMascot()}" alt="" onerror="this.style.display='none'"/>
+      ${chatAvatar('chat-welcome-av')}
       <h3>Ask me anything about nightlife</h3>
       <p>Venues, vibes, the best areas to party — I've got live data on ${esc(String(n))} spots worldwide.</p>
       <div class="chat-chips">${chips.map((c) => `<button class="chat-chip" onclick="sendChat(this.textContent)">${esc(c)}</button>`).join('')}</div>
@@ -2591,9 +2610,9 @@ function renderChatMessages() {
     // while typing out, show the revealed slice (+ a caret) and hold the chips back
     const body = m._typing ? partialMd(m.content.slice(0, m._typed)) + '<span class="chat-caret"></span>' : chatMd(m.content);
     const chips = (!m._typing && m.venues && m.venues.length) ? `<div class="chat-venues">${m.venues.map((v) => `<button class="chat-venue-chip" onclick="closeChatAndOpen('${v.id}')">${v.photo ? `<img src="${esc(v.photo)}" alt="" loading="lazy" onerror="this.remove()"/>` : '<span class="cvc-ic">📍</span>'}<span class="cvc-name">${esc(v.name)}</span><span class="cvc-go">›</span></button>`).join('')}</div>` : '';
-    return `<div class="chat-msg assistant"><img class="chat-av" src="${chatMascot()}" alt="" onerror="this.style.display='none'"/><div class="chat-col"><div class="chat-bubble">${body}</div>${chips}</div></div>`;
+    return `<div class="chat-msg assistant">${chatAvatar('chat-av')}<div class="chat-col"><div class="chat-bubble">${body}</div>${chips}</div></div>`;
   }).join('');
-  const typing = S._chatPending ? `<div class="chat-msg assistant"><span class="chat-av-load"><img class="chat-av" src="${chatMascot()}" alt="" onerror="this.style.display='none'"/></span><div class="chat-col"><div class="chat-bubble typing"><span></span><span></span><span></span></div></div></div>` : '';
+  const typing = S._chatPending ? `<div class="chat-msg assistant"><span class="chat-av-load">${chatAvatar('chat-av')}</span><div class="chat-col"><div class="chat-bubble typing"><span></span><span></span><span></span></div></div></div>` : '';
   body.innerHTML = rows + typing;
   body.scrollTop = body.scrollHeight;
 }

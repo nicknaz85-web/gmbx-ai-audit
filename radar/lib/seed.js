@@ -534,6 +534,9 @@ const NEIGHBORHOODS = [
   { id: 'karachi',     name: 'Karachi',         city: 'Karachi',           center: { lat: 24.8607, lng: 67.0011 }, radius: 500, bestFor: ['Bars', 'Late Night'] },
   { id: 'lahore',      name: 'Lahore',          city: 'Lahore',            center: { lat: 31.5204, lng: 74.3587 }, radius: 500, bestFor: ['Bars', 'Late Night'] },
   { id: 'islamabad',   name: 'Islamabad',       city: 'Islamabad',         center: { lat: 33.6844, lng: 73.0479 }, radius: 500, bestFor: ['Bars', 'Late Night'] },
+  // --- North Macedonia ---
+  { id: 'skopje',      name: 'Skopje',          city: 'Skopje',            center: { lat: 41.9981, lng: 21.4254 }, radius: 480, bestFor: ['Bars', 'Dancing'] },
+  { id: 'ohrid',       name: 'Ohrid',           city: 'Ohrid',             center: { lat: 41.1231, lng: 20.8016 }, radius: 460, bestFor: ['Dancing', 'Beach'] },
 ];
 
 // Per-venue tuning:
@@ -3665,6 +3668,17 @@ const VENUE_DEFS = [
   ['Crimson Moon', 'wilmington', 'Dancing', 'Club', 400, 0, 9, 5, { mult: 1, trend: 0.6 }, true],
   ['Bar XIII Delaware', 'wilmington', 'Dancing', 'Club', 400, 0, 15, 10, { mult: 1, trend: 0.6 }, true],
   ['The Nomad Bar', 'wilmington', 'Dancing', 'Club', 400, 0, 12, 5, { mult: 1, trend: 0.6 }, true],
+  // --- discovered from Google Places ---
+  ['Omnia Night Club', 'ohrid', 'Dancing', 'Club', 400, 0, 9, 10, { mult: 1, trend: 0.6 }, true],
+  ['Rebel Ohrid', 'ohrid', 'Dancing', 'Club', 400, 0, 10, 10, { mult: 1, trend: 0.6 }, true],
+  ['Cuba Libre Night Club', 'ohrid', 'Dancing', 'Club', 400, 0, 9, 30, { mult: 1, trend: 0.6 }, true],
+  ['INclusive', 'ohrid', 'Dancing', 'Club', 400, 0, 11, 10, { mult: 1, trend: 0.6 }, true],
+  ['Cuba Libre Beach & Bar', 'ohrid', 'Dancing', 'Club', 400, 0, 18, 10, { mult: 1, trend: 0.6 }, true],
+  ['Summer Club Havana', 'skopje', 'Dancing', 'Club', 400, 0, 12, 30, { mult: 1, trend: 0.6 }, true],
+  ['House of Legends Club', 'skopje', 'Dancing', 'Club', 400, 0, 9, 10, { mult: 1, trend: 0.6 }, true],
+  ['Street Pub', 'skopje', 'Dancing', 'Club', 400, 0, 14, 10, { mult: 1, trend: 0.6 }, true],
+  ['Intermezzo Music Bar', 'skopje', 'Dancing', 'Club', 400, 0, 15, 30, { mult: 1, trend: 0.6 }, true],
+  ['Eclipse Club Kids', 'skopje', 'Dancing', 'Club', 400, 0, 8, 5, { mult: 1, trend: 0.6 }, true],
 ];
 
 function jitter(center, seed, spreadM = 140) {

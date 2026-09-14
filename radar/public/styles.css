@@ -933,18 +933,27 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   transform:translateY(100vh);transition:transform .3s cubic-bezier(.22,.61,.36,1)}
 .chatscreen[hidden]{display:none!important}
 .chatscreen.open{transform:translateY(0)}
+/* closing accelerates away (ease-in) so the dismiss feels crisp, not draggy */
+.chatscreen.closing{transition-timing-function:cubic-bezier(.4,0,1,1);transition-duration:.26s}
 .chat-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--card)}
 .chat-title{font-size:16px;font-weight:800;display:flex;align-items:center;gap:10px;color:var(--text)}
 .chat-title>span{display:flex;flex-direction:column;line-height:1.15}
 .chat-title small{font-size:11px;font-weight:600;color:var(--muted)}
-.chat-ai-av{width:60px;height:60px;border-radius:50%;object-fit:cover;flex:none;box-shadow:0 1px 5px rgba(0,0,0,.3)}
+.chat-ai-av{width:60px;height:60px;border-radius:50%;overflow:hidden;position:relative;flex:none;display:block;box-shadow:0 1px 5px rgba(0,0,0,.3)}
+/* Each mascot art fills its frame differently (man ~55%, woman ~64%, non-binary
+   ~86%), so the image inside a chat avatar is positioned per gender to render the
+   CHARACTER at the same on-screen size, centred, in every avatar. */
+.chat-ai-av>img,.chat-av>img,.chat-welcome-av>img{position:absolute;width:auto;height:100%;left:0;top:0}
+.mav-man>img{height:155%;left:-15%;top:-31%}
+.mav-fem>img{height:133%;left:-4%;top:-16%}
+.mav-nb>img{height:99%;left:7%;top:1.5%}
 .chat-close{width:36px;height:36px;border-radius:50%;border:none;background:var(--surface-3);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .chat-close svg{width:18px;height:18px}
 .chat-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;display:flex;flex-direction:column;gap:12px}
 .chat-msg{display:flex;align-items:flex-end;gap:8px}
 .chat-msg.user{justify-content:flex-end}
 .chat-msg.assistant{justify-content:flex-start}
-.chat-av{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none;align-self:flex-start;margin-top:2px}
+.chat-av{width:40px;height:40px;border-radius:50%;overflow:hidden;position:relative;flex:none;display:block;align-self:flex-start;margin-top:2px}
 /* spinning ring around the mascot while the AI is composing a reply */
 .chat-av-load{position:relative;flex:none;align-self:flex-start;margin-top:2px;display:inline-flex}
 .chat-av-load .chat-av{margin-top:0}
@@ -967,7 +976,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .chat-bubble.typing span:nth-child(3){animation-delay:.3s}
 @keyframes chatdot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
 .chat-welcome{text-align:center;margin:auto;max-width:340px;padding:20px 10px}
-.chat-welcome-av{width:108px;height:108px;border-radius:50%;object-fit:cover;box-shadow:0 6px 22px rgba(0,0,0,.35)}
+.chat-welcome-av{width:108px;height:108px;border-radius:50%;overflow:hidden;position:relative;flex:none;display:block;box-shadow:0 6px 22px rgba(0,0,0,.35)}
 .chat-welcome h3{margin:12px 0 6px;font-size:20px;color:var(--text)}
 .chat-welcome p{margin:0 0 18px;font-size:14px;color:var(--muted);line-height:1.5}
 .chat-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
