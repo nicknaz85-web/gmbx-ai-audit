@@ -180,17 +180,30 @@ button{font-family:inherit;color:inherit;border:none;background:none;cursor:poin
 .oc-slide .mascot.nb{width:min(38vw,158px)}              /* non-binary fills most → smallest */
 .oc-slide .h1{margin-top:18px}
 .oc-slide .sub{margin:12px auto 0}
-/* short landscape: shrink the carousel art + let screens scroll so nothing is cut off
-   (keeps the man/woman/non-binary character sizes equal at ratio 262:214:158) */
-@media (orientation:landscape) and (max-height:520px){
-  .screen{overflow-y:auto;-webkit-overflow-scrolling:touch}
-  .oc-slide .mascot{width:150px}
-  .oc-slide .mascot.fem{width:122px}
-  .oc-slide .mascot.nb{width:90px}
+/* short landscape: shrink ALL the onboarding art + let screens scroll so nothing is
+   cut off (keeps the man/woman/non-binary character sizes equal at ratio 262:214:158). */
+@media (orientation:landscape) and (max-height:560px){
+  .screen{overflow-y:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start}
+  .screen .spacer{flex:0 0 auto;min-height:6px;height:6px}
+  /* welcome */
+  .welcome{justify-content:center}
+  .welcome .duo{margin-top:0}
+  .welcome .duo .mascot{width:118px}
+  .welcome .duo .mascot.alt{width:103px}
+  .welcome .brand img{width:38vw;max-width:170px}
+  .welcome .mascot{width:150px}
+  .welcome .sub{margin-top:8px!important}
+  /* carousel */
+  .oc-slide .mascot{width:140px}
+  .oc-slide .mascot.fem{width:114px}
+  .oc-slide .mascot.nb{width:84px}
   .oc-slide .h1{margin-top:10px}
   .oc-slide .sub{margin-top:8px}
   .oc-note{margin-top:10px}
-  .h1.big{font-size:23px}
+  /* step screens (name/gender/dob/photo) — trim heading + top spacing */
+  .h1.big,.h1{font-size:22px}
+  .step-count{font-size:11px}
+  .field{margin-top:10px}
 }
 .oc-note{display:inline-flex;align-items:center;gap:7px;margin:16px auto 0;padding:8px 15px;border-radius:20px;
   font-size:13px;font-weight:600;color:var(--gold);background:rgba(246,201,68,.12);
