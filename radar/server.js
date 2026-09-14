@@ -248,16 +248,28 @@ function buildChatContext(query, userLoc) {
   const cityCounts = {};
   for (const v of db.venues) cityCounts[v.city] = (cityCounts[v.city] || 0) + 1;
   const cities = Object.keys(cityCounts).sort();
-  // relevance: token match on name/neighbourhood/city/category/kind (city match weighs more)
-  const scored = [];
-  for (const v of db.venues) {
+  const q = String(query || '').toLowerCase();
+  // intent: a "club(s)" query should rank actual clubs, a "bar(s)" query bars.
+  // (plain token-includes misses this: the token "clubs" doesn't contain "club".)
+  const wantClub = /\b(club|clubs|clubbing|nightclub|nightclubs|dance|dancing|dancefloor|techno|rave|djs?)\b/.test(q);
+  const wantBar = /\b(bar|bars|pub|pubs|drinks?|cocktails?|lounges?|wine)\b/.test(q);
+  const stem = (t) => (t.length > 4 && t.endsWith('s')) ? t.slice(0, -1) : t; // clubs→club, bars→bar
+  // relevance: token match (singular/plural) on name/hood/city/category/kind, plus
+  // a strong nudge toward the venue TYPE the user asked for.
+  function relScore(v, cityWeight) {
     const hay = (v.name + ' ' + v.neighborhoodName + ' ' + v.city + ' ' + v.category + ' ' + v.kind).toLowerCase();
     let sc = 0;
-    for (const t of toks) if (hay.includes(t)) sc += v.city.toLowerCase().includes(t) ? 2 : 1;
-    if (sc > 0) scored.push({ v, sc });
+    for (const t of toks) { const s = stem(t); if (hay.includes(t) || (s !== t && hay.includes(s))) sc += (cityWeight && v.city.toLowerCase().includes(t)) ? 2 : 1; }
+    const isClub = v.category === 'Dancing' || v.kind === 'Club';
+    const isBar = v.category === 'Bars';
+    if (wantClub) sc += isClub ? 3 : (isBar ? -1 : 0);
+    if (wantBar) sc += isBar ? 3 : (isClub ? -1 : 0);
+    return sc;
   }
+  // relevance across all venues (city match weighs more)
+  const scored = [];
+  for (const v of db.venues) { const sc = relScore(v, true); if (sc > 0) scored.push({ v, sc }); }
   scored.sort((a, b) => b.sc - a.sc);
-  const q = String(query || '').toLowerCase();
   // did the user name a specific city? (whole-word match against our known cities)
   const mentionsCity = cities.some((c) => new RegExp('\\b' + c.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b').test(q));
   let picks = scored.slice(0, 26).map((x) => x.v);
@@ -274,12 +286,8 @@ function buildChatContext(query, userLoc) {
       if (!mentionsCity && !far) {
         const localPool = near.filter((x) => x.d <= Math.max(60, nearest.d + 45));
         const pool = localPool.length >= 8 ? localPool : near.slice(0, 26);
-        const ls = pool.map(({ v }) => {
-          const hay = (v.name + ' ' + v.neighborhoodName + ' ' + v.category + ' ' + v.kind).toLowerCase();
-          let sc = 0; for (const t of toks) if (hay.includes(t)) sc += 1;
-          return { v, sc };
-        });
-        ls.sort((a, b) => b.sc - a.sc); // keyword match first; pool is already distance-ordered for ties
+        const ls = pool.map(({ v }) => ({ v, sc: relScore(v, false) }));
+        ls.sort((a, b) => b.sc - a.sc); // keyword + type intent first; pool is distance-ordered for ties
         picks = ls.slice(0, 22).map((x) => x.v);
         const dNear = Math.round(nearest.d);
         // Only claim the user is IN a neighbourhood when they're actually there.
@@ -428,8 +436,11 @@ async function api(req, res, url) {
   if (method === 'GET' && seg[1] === 'venue' && seg[2]) {
     const v = venueById(seg[2]);
     if (!v) return send(res, 404, { error: 'not found' });
-    if (btEnabled()) { try { await btRefresh(v); } catch (e) {} } // opportunistic real busyness
-    if (gpEnabled() && process.env.PLACES_LIVE) { try { await gpRefresh(v); } catch (e) {} }  // baked data covers this; live gated
+    // don't BLOCK the response on live refreshes — fire them off to warm the cache
+    // for next time; the baked/estimated data already covers this open. (Was awaiting
+    // BestTime, which made opening a venue feel slow.)
+    if (btEnabled()) { btRefresh(v).catch(() => {}); }
+    if (gpEnabled() && process.env.PLACES_LIVE) { gpRefresh(v).catch(() => {}); }
     return send(res, 200, venueSnapshot(v, now(), { viewerHash: id.uHash, fullEvents: true }));
   }
 

@@ -950,6 +950,9 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   border:2.5px solid rgba(124,58,237,.2);border-top-color:var(--primary);
   animation:chatAvSpin .8s linear infinite}
 @keyframes chatAvSpin{to{transform:rotate(360deg)}}
+/* blinking caret shown at the end of a message while it types out */
+.chat-caret{display:inline-block;width:2px;height:1em;margin-left:1px;vertical-align:-2px;border-radius:1px;background:var(--primary);animation:chatCaret .7s steps(1) infinite}
+@keyframes chatCaret{50%{opacity:0}}
 .chat-col{display:flex;flex-direction:column;gap:6px;min-width:0;max-width:82%}
 .chat-bubble{padding:11px 14px;border-radius:16px;font-size:14.5px;line-height:1.5;word-wrap:break-word;overflow-wrap:anywhere}
 .chat-msg.user .chat-bubble{max-width:82%}

@@ -575,7 +575,7 @@
   //  WELCOME CAROUSEL (3 steps) — ends onboarding
   // ============================================================
   var ocIndex = 0;
-  const OC_COUNT = 3;
+  const OC_COUNT = 4;
   const ocTrack = $('#ocTrack'), ocCta = $('#ocCta'), ocDotsBox = $('#ocDots');
   function ocRender() {
     if (ocTrack) ocTrack.style.transform = `translateX(${ocIndex * -100}%)`;

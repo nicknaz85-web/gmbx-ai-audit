@@ -839,11 +839,18 @@ async function openVenue(id) {
   S.activeVenue = id; map.selected = id; map.refreshSelection && map.refreshSelection();
   closeSheet();
   const ov = $('#venueOverlay'); ov.hidden = false;
-  $('#venueCard').innerHTML = '<div class="vc-hero skel" style="height:220px"></div>';
-  const v = await API.venue(id);
-  if (S.activeVenue !== id) return;
-  S.activeVenueData = v; // full detail incl. Google place id + reviews
-  renderVenue(v);
+  // Show the venue INSTANTLY from the data we already loaded (/api/state) instead of
+  // waiting on a network round-trip, then quietly upgrade with the full detail
+  // (user photos + full events) when it arrives.
+  const cached = (S.data && S.data.venues || []).find((x) => x.id === id);
+  if (cached) { S.activeVenueData = cached; renderVenue(cached); }
+  else $('#venueCard').innerHTML = '<div class="vc-hero skel" style="height:220px"></div>';
+  try {
+    const v = await API.venue(id);
+    if (S.activeVenue !== id) return;
+    S.activeVenueData = v; // full detail incl. media + full events
+    renderVenue(v);
+  } catch (e) { if (!cached) $('#venueCard').innerHTML = '<div class="empty">Couldn’t load this venue — try again.</div>'; }
 }
 function closeVenue() { $('#venueOverlay').hidden = true; S.activeVenue = null; S.activeVenueData = null; map.selected = null; map.refreshSelection && map.refreshSelection(); }
 
@@ -2449,7 +2456,12 @@ function openChat() {
   // stop the panel above the bottom nav so the nav stays visible & tappable (always an exit)
   try { const nav = document.querySelector('.bottomnav'); ov.style.bottom = (nav ? nav.offsetHeight : 64) + 'px'; } catch (e) {}
   ov.hidden = false;
-  requestAnimationFrame(() => ov.classList.add('open'));
+  // commit the closed (translateY 100%) start state with a forced reflow, THEN add
+  // .open so the slide-up transition always plays — more reliable than rAF, which a
+  // backgrounded tab throttles (and guarantees the panel rests at translateY(0) so
+  // closing has a state to animate back down from).
+  void ov.offsetHeight;
+  ov.classList.add('open');
   if (S.chatMessages && S.chatMessages.length) renderChatMessages(); else renderChatWelcome();
   // refresh location so the starter suggestions match where you are right now
   if (!S.chatMessages || !S.chatMessages.length) {
@@ -2500,6 +2512,30 @@ function chatMd(t) {
   h = h.replace(/\*(?!\s)([^*\n]+?)\*/g, '<i>$1</i>');     // italic
   return h.replace(/\n/g, '<br>');
 }
+// markdown for a PARTIALLY-revealed message (typewriter): drop a half-typed
+// marker at the end and auto-close an open bold so no stray "**" flashes.
+function partialMd(t) {
+  let s = String(t).replace(/\*{1,2}$/, '');
+  if (((s.match(/\*\*/g) || []).length) % 2) s += '**';
+  return chatMd(s);
+}
+// Reveal the last assistant message character-by-character (snapping to word
+// boundaries) so it "types out" instead of popping in whole. Chips appear at the end.
+function typeOutLast(done) {
+  const idx = (S.chatMessages || []).length - 1;
+  const m = S.chatMessages[idx];
+  if (!m || m.role !== 'assistant' || !m.content) { renderChatMessages(); done && done(); return; }
+  const full = m.content; m._typing = true; m._typed = 0;
+  const tick = () => {
+    if (!chatIsOpen() || S.chatMessages[idx] !== m) { m._typing = false; return; } // panel closed / superseded
+    m._typed = Math.min(full.length, m._typed + 2);
+    while (m._typed < full.length && /\S/.test(full[m._typed])) m._typed++; // finish the current word
+    renderChatMessages();
+    if (m._typed < full.length) setTimeout(tick, 18);
+    else { m._typing = false; renderChatMessages(); done && done(); }
+  };
+  tick();
+}
 // venues the assistant named → clickable chips. The AI bolds the venues it
 // recommends, so match those first (precise); fall back to a strict word scan.
 function findMentionedVenues(text) {
@@ -2529,8 +2565,10 @@ function renderChatMessages() {
   const body = document.getElementById('chatBody'); if (!body) return;
   const rows = (S.chatMessages || []).map((m) => {
     if (m.role !== 'assistant') return `<div class="chat-msg user"><div class="chat-bubble">${esc(m.content)}</div></div>`;
-    const chips = (m.venues && m.venues.length) ? `<div class="chat-venues">${m.venues.map((v) => `<button class="chat-venue-chip" onclick="closeChatAndOpen('${v.id}')">${v.photo ? `<img src="${esc(v.photo)}" alt="" loading="lazy" onerror="this.remove()"/>` : '<span class="cvc-ic">📍</span>'}<span class="cvc-name">${esc(v.name)}</span><span class="cvc-go">›</span></button>`).join('')}</div>` : '';
-    return `<div class="chat-msg assistant"><img class="chat-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/><div class="chat-col"><div class="chat-bubble">${chatMd(m.content)}</div>${chips}</div></div>`;
+    // while typing out, show the revealed slice (+ a caret) and hold the chips back
+    const body = m._typing ? partialMd(m.content.slice(0, m._typed)) + '<span class="chat-caret"></span>' : chatMd(m.content);
+    const chips = (!m._typing && m.venues && m.venues.length) ? `<div class="chat-venues">${m.venues.map((v) => `<button class="chat-venue-chip" onclick="closeChatAndOpen('${v.id}')">${v.photo ? `<img src="${esc(v.photo)}" alt="" loading="lazy" onerror="this.remove()"/>` : '<span class="cvc-ic">📍</span>'}<span class="cvc-name">${esc(v.name)}</span><span class="cvc-go">›</span></button>`).join('')}</div>` : '';
+    return `<div class="chat-msg assistant"><img class="chat-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/><div class="chat-col"><div class="chat-bubble">${body}</div>${chips}</div></div>`;
   }).join('');
   const typing = S._chatPending ? `<div class="chat-msg assistant"><span class="chat-av-load"><img class="chat-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/></span><div class="chat-col"><div class="chat-bubble typing"><span></span><span></span><span></span></div></div></div>` : '';
   body.innerHTML = rows + typing;
@@ -2554,7 +2592,8 @@ async function sendChat(text) {
   } catch (e) {
     S.chatMessages.push({ role: 'assistant', content: "Sorry, I'm having trouble connecting right now — try again in a moment." });
   }
-  S._chatPending = false; renderChatMessages();
+  S._chatPending = false;
+  typeOutLast(); // reveal the reply with a typewriter effect (chips appear at the end)
 }
 window.sendChat = sendChat;
 // the "Events near you" call-to-action, shown in the Tonight feed AND the main list
