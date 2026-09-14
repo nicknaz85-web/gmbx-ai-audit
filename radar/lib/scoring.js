@@ -459,6 +459,16 @@ function venueForecast(venue, currentEst, ref, place) {
   // i.e. it isn't open now and its next busy moment is more than ~14h away
   // (a future day), so a closed venue never advertises a peak.
   if (bestTs != null && !openNow && (bestTs - ref) / MIN > 14 * 60) bestTs = null;
+  // If the venue CLOSES while its crowd curve is still rising (e.g. a bar that shuts
+  // at midnight but would naturally peak ~1am), the "busiest open moment" is just the
+  // last minute before close — not a real peak. Don't advertise "peaks at 11:59" when
+  // it closes at 12: it's simply busy right up to close.
+  if (bestTs != null) {
+    const after = bestTs + 30 * MIN;
+    const stillRising = shape(after) > shape(bestTs) + 0.001;      // hasn't peaked yet
+    const closesSoon = !resolveOpen(venue, after, place).open;      // shut within 30 min
+    if (stillRising && closesSoon) bestTs = null;
+  }
   return {
     points,
     peakLabel: bestTs == null ? null : fmtHour(nightHour(bestTs, tz)),
