@@ -2796,7 +2796,7 @@ function initUI() {
   $('#addFab').addEventListener('click', () => { S.reportPick = true; openSheet('near'); toast('Tap a place to report the vibe'); });
 
   // list + bottom nav
-  $('#listBtn').addEventListener('click', () => openSheet('feed'));
+  $('#listBtn').addEventListener('click', () => openSheet('near'));
   document.querySelectorAll('.bn').forEach((b) => b.addEventListener('click', () => {
     const nav = b.dataset.nav;
     if (nav === 'chat') { if (chatIsOpen()) closeChat(); else openChat(); return; }
