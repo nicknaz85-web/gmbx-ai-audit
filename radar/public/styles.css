@@ -976,7 +976,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .chat-bubble.typing span:nth-child(3){animation-delay:.3s}
 @keyframes chatdot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
 .chat-welcome{text-align:center;margin:auto;max-width:340px;padding:20px 10px}
-.chat-welcome-av{width:108px;height:108px;border-radius:50%;overflow:hidden;position:relative;flex:none;display:block;box-shadow:0 6px 22px rgba(0,0,0,.35)}
+.chat-welcome-av{width:108px;height:108px;border-radius:50%;overflow:hidden;position:relative;flex:none;display:block;margin:0 auto;box-shadow:0 6px 22px rgba(0,0,0,.35)}
 .chat-welcome h3{margin:12px 0 6px;font-size:20px;color:var(--text)}
 .chat-welcome p{margin:0 0 18px;font-size:14px;color:var(--muted);line-height:1.5}
 .chat-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
