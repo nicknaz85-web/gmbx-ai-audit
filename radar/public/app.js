@@ -2439,6 +2439,14 @@ window.closePinStack = closePinStack;
 
 // ---- Clubbit AI chat (bottom-right nav) ----
 const MASCOT = '/clubbit-mascot.png';
+// The AI chat mascot matches the user's own profile: man→man, woman→woman,
+// non-binary (or "prefer not to say")→the non-binary mascot.
+function chatMascot() {
+  const g = (typeof myProfile === 'function' && (myProfile() || {}).gender) || '';
+  if (g === 'Woman') return '/clubbit-mascot-f.png';
+  if (g === 'Non-binary' || g === 'Prefer not to say') return '/clubbit-mascot-nb.png';
+  return '/clubbit-mascot.png'; // Man / unset
+}
 function openChat() {
   closeSheet(); hideProfile();
   S.tab = 'chat'; setBn('chat');
@@ -2447,7 +2455,7 @@ function openChat() {
     ov = document.createElement('div'); ov.id = 'chatScreen'; ov.className = 'chatscreen';
     ov.innerHTML = `
       <div class="chat-head">
-        <span class="chat-title"><img class="chat-ai-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/><span>Clubbit AI<small>Nightlife concierge</small></span></span>
+        <span class="chat-title"><img class="chat-ai-av" src="${chatMascot()}" alt="" onerror="this.style.display='none'"/><span>Clubbit AI<small>Nightlife concierge</small></span></span>
         <button class="chat-close" id="chatClose" aria-label="Close chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="chat-body" id="chatBody"></div>
@@ -2459,6 +2467,9 @@ function openChat() {
     ov.querySelector('#chatClose').onclick = closeChat;
     ov.querySelector('#chatForm').onsubmit = (e) => { e.preventDefault(); const i = document.getElementById('chatInput'); const t = (i.value || '').trim(); if (!t || S._chatPending) return; i.value = ''; sendChat(t); };
   }
+  // the header is built once, so refresh its mascot each open to match the current
+  // profile (man / woman / non-binary)
+  try { const av = ov.querySelector('.chat-ai-av'); if (av) av.src = chatMascot(); } catch (e) {}
   // stop the panel above the bottom nav so the nav stays visible & tappable (always an exit)
   try { const nav = document.querySelector('.bottomnav'); ov.style.bottom = (nav ? nav.offsetHeight : 64) + 'px'; } catch (e) {}
   ov.hidden = false;
@@ -2505,7 +2516,7 @@ function renderChatWelcome() {
     ? [`Best clubs in ${city}?`, `Where should I party tonight in ${city}?`, `Best area for a night out in ${city}`, 'Cheap bars near me']
     : ['Best clubs near me?', 'Where should I party tonight?', 'Best area for a night out near me', 'Cheap bars near me'];
   body.innerHTML = `<div class="chat-welcome">
-      <img class="chat-welcome-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/>
+      <img class="chat-welcome-av" src="${chatMascot()}" alt="" onerror="this.style.display='none'"/>
       <h3>Ask me anything about nightlife</h3>
       <p>Venues, vibes, the best areas to party — I've got live data on ${esc(String(n))} spots worldwide.</p>
       <div class="chat-chips">${chips.map((c) => `<button class="chat-chip" onclick="sendChat(this.textContent)">${esc(c)}</button>`).join('')}</div>
@@ -2574,9 +2585,9 @@ function renderChatMessages() {
     // while typing out, show the revealed slice (+ a caret) and hold the chips back
     const body = m._typing ? partialMd(m.content.slice(0, m._typed)) + '<span class="chat-caret"></span>' : chatMd(m.content);
     const chips = (!m._typing && m.venues && m.venues.length) ? `<div class="chat-venues">${m.venues.map((v) => `<button class="chat-venue-chip" onclick="closeChatAndOpen('${v.id}')">${v.photo ? `<img src="${esc(v.photo)}" alt="" loading="lazy" onerror="this.remove()"/>` : '<span class="cvc-ic">📍</span>'}<span class="cvc-name">${esc(v.name)}</span><span class="cvc-go">›</span></button>`).join('')}</div>` : '';
-    return `<div class="chat-msg assistant"><img class="chat-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/><div class="chat-col"><div class="chat-bubble">${body}</div>${chips}</div></div>`;
+    return `<div class="chat-msg assistant"><img class="chat-av" src="${chatMascot()}" alt="" onerror="this.style.display='none'"/><div class="chat-col"><div class="chat-bubble">${body}</div>${chips}</div></div>`;
   }).join('');
-  const typing = S._chatPending ? `<div class="chat-msg assistant"><span class="chat-av-load"><img class="chat-av" src="${MASCOT}" alt="" onerror="this.style.display='none'"/></span><div class="chat-col"><div class="chat-bubble typing"><span></span><span></span><span></span></div></div></div>` : '';
+  const typing = S._chatPending ? `<div class="chat-msg assistant"><span class="chat-av-load"><img class="chat-av" src="${chatMascot()}" alt="" onerror="this.style.display='none'"/></span><div class="chat-col"><div class="chat-bubble typing"><span></span><span></span><span></span></div></div></div>` : '';
   body.innerHTML = rows + typing;
   body.scrollTop = body.scrollHeight;
 }
