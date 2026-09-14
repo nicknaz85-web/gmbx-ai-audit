@@ -616,12 +616,14 @@
       const p = document.createElement('i');
       p.style.left = Math.random() * 100 + '%';
       p.style.background = cols[i % cols.length];
-      p.style.animationDuration = (2.2 + Math.random() * 1.8) + 's';
+      p.style.animationDuration = (2.6 + Math.random() * 1.6) + 's'; // 2.6–4.2s
       p.style.animationDelay = (Math.random() * .5) + 's';
       p.style.width = p.style.height = (5 + Math.random() * 6) + 'px';
       box.appendChild(p);
     }
-    setTimeout(() => { box.innerHTML = ''; }, 4200);
+    // clear only AFTER the slowest piece (max ~4.2s + 0.5s delay) has fallen the full
+    // screen — was 4200ms, which removed the slow pieces before they reached the bottom
+    setTimeout(() => { box.innerHTML = ''; }, 5200);
   }
 
   async function finishOnboarding() {

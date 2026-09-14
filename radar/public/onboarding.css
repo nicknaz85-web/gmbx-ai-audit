@@ -271,10 +271,12 @@ button{font-family:inherit;color:inherit;border:none;background:none;cursor:poin
 .pcard .pc-ava img{width:100%;height:100%;object-fit:cover}
 .pcard .pc-name{font-size:19px;font-weight:800;text-align:left}
 .pcard .pc-meta{font-size:13.5px;color:var(--txt-dim);text-align:left;margin-top:2px}
-.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:3}
+/* fixed to the whole viewport (not the section) so pieces fall the FULL screen
+   height instead of being clipped at the intro card's bottom edge */
+.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:6}
 .confetti i{position:absolute;top:-12px;width:8px;height:8px;border-radius:1px;opacity:.9;
   animation:fall linear forwards}
-@keyframes fall{to{transform:translateY(115vh) rotate(540deg);opacity:.6}}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg);opacity:.6}}
 
 /* social buttons */
 .socials{display:flex;flex-direction:column;gap:11px;margin-top:26px}
