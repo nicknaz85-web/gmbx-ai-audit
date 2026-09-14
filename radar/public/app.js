@@ -673,26 +673,44 @@ class RadarMap {
 /* ============================================================
    RENDER: sheet lists
    ============================================================ */
+// Airbnb-style list card: big photo (heart + open pill), then title + rating, the
+// neighbourhood/kind, tonight's hours, the entry price, and live vibe badges.
 function venueRow(v) {
   const closed = v.open === false;
   const band = closed ? 'quiet' : bandKey(v.radar.score);
-  const mc = momClass(v.momentum.state);
-  const sub = [v.neighborhoodName, v.category];
-  sub.push(closed && v.hours ? 'Opens ' + v.hours.opensLabel : `${v.recentSignals} signals`);
-  if (v.google && v.google.rating) sub.push('★ ' + v.google.rating);
-  if (v._dist != null) sub.unshift('📍 ' + distLabel(v._dist));
-  const tile = (closed && v.googlePhoto)
-    ? `<div class="vthumb"><img src="${esc(v.googlePhoto)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('noimg')" /><span class="vthumb-badge">CLOSED</span></div>`
-    : `<div class="vscore${band === 'busy' ? ' amber' : ''}" style="background:${BAND_COLOR[band].core}">${closed ? '—' : v.radar.score}<small>${closed ? 'CLOSED' : 'SCORE'}</small></div>`;
-  return `<div class="vrow${closed ? ' closed' : ''}" onclick="rowClick('${v.id}')">
-    ${tile}
-    <div class="vmeta">
-      <div class="vname">${esc(v.name)} ${v.verified ? '<span class="verified">✔</span>' : ''}</div>
-      <div class="vsub">${sub.map((x, i) => (i ? '<i class="dot"></i>' : '') + `<span>${esc(x)}</span>`).join('')}</div>
+  const photo = v.googlePhoto || v.photo || null;
+  const rating = (v.google && v.google.rating) ? v.google.rating : null;
+  const ratings = (v.google && v.google.ratings) ? v.google.ratings : null;
+  const saved = isSaved(v.id);
+  const entry = entryText(v);
+  const priceTxt = entry === 'Free' ? 'Free entry' : (entry === '—' ? 'Entry varies' : entry + ' entry');
+  const hoursLine = closed
+    ? (v.hours && v.hours.opensLabel ? 'Opens ' + v.hours.opensLabel : 'Closed now')
+    : (v.hours && v.hours.closesLabel ? 'Open now · till ' + v.hours.closesLabel : 'Open now');
+  const hot = !closed && ['surging', 'exploding', 'heating'].includes(v.momentum.state);
+  const photoInner = photo
+    ? `<img class="lc-img" src="${esc(photo)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('noimg');this.remove()"/>`
+    : `<span class="lc-ph">${venueIcon(v)}</span>`;
+  return `<div class="lcard${closed ? ' closed' : ''}" onclick="rowClick('${v.id}')">
+    <div class="lc-photo" style="--pc:${BAND_COLOR[band].core}">
+      ${photoInner}
+      <button class="lc-heart${saved ? ' on' : ''}" aria-label="Save" onclick="event.stopPropagation();toggleSave('${v.id}');this.classList.toggle('on')">
+        <svg viewBox="0 0 24 24"><path d="M12 20.5C7 16.5 3.5 13.4 3.5 9.6 3.5 7 5.5 5 8 5c1.6 0 3 .9 4 2.3C13 5.9 14.4 5 16 5c2.5 0 4.5 2 4.5 4.6 0 3.8-3.5 6.9-8.5 10.9z"/></svg>
+      </button>
+      <span class="lc-status ${closed ? 'shut' : 'now'}">${closed ? 'Closed' : 'Open now'}</span>
     </div>
-    <div class="vright">
-      <div class="vlabel c-${band}">${closed ? 'CLOSED' : esc(v.radar.label)}</div>
-      <div class="vmom ${closed ? 'c-steady' : mc}">${closed ? (v.hours ? 'opens ' + v.hours.opensLabel : 'closed') : v.momentum.arrow + ' ' + (v.momentum.state === 'steady' ? 'STEADY' : (v.pct != null && v.pct > 0 ? '+' + v.pct + '%' : v.momentum.label))}</div>
+    <div class="lc-body">
+      <div class="lc-row1">
+        <span class="lc-title">${esc(v.name)}${v.verified ? ' <span class="verified">✔</span>' : ''}</span>
+        ${rating ? `<span class="lc-rating">★ ${rating}${ratings ? ` (${ratings})` : ''}</span>` : ''}
+      </div>
+      <div class="lc-sub">${esc(v.neighborhoodName)} · ${esc(v.kind)}${v._dist != null ? ' · ' + distLabel(v._dist) : ''}</div>
+      <div class="lc-sub">${esc(hoursLine)}</div>
+      <div class="lc-price"><b>${esc(priceTxt)}</b></div>
+      <div class="lc-badges">
+        <span class="lc-badge c-${band}">${closed ? 'Closed' : esc(v.radar.label)}</span>
+        ${hot ? `<span class="lc-badge hot">🔥 ${v.momentum.state === 'heating' ? 'Heating up' : 'Popping'}${v.pct != null && v.pct > 0 ? ' +' + v.pct + '%' : ''}</span>` : ''}
+      </div>
     </div>
   </div>`;
 }
