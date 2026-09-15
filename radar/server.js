@@ -202,6 +202,10 @@ function invalidateState() { _stateAt = 0; } // mark stale; next request revalid
 // runs at most once per TTL and — via stale-while-revalidate below — never on a
 // user's critical path after the first build.
 function buildStateJSON() {
+  // Live Google refresh (OFF unless GOOGLE_PLACES_KEY *and* PLACES_LIVE are set on
+  // the server) runs here — at most once per rebuild (~1/12s), never per request —
+  // so it can't rack up charges under load. Baking is done locally, not by the server.
+  if (gpEnabled() && process.env.PLACES_LIVE) gpRefreshStale(db.venues, 8).catch(() => {});
   const ref = now();
   const venues = db.venues.map((v) => {
     const s = venueSnapshot(v, ref);
@@ -386,7 +390,6 @@ async function api(req, res, url) {
   // O(1) with thousands of users); when it's older than the TTL we rebuild it in
   // the background so the next request has a fresh one — no user waits on scoring.
   if (method === 'GET' && route === 'state') {
-    if (gpEnabled() && process.env.PLACES_LIVE) gpRefreshStale(db.venues, 8).catch(() => {});
     if (_stateJSON) {
       if (Date.now() - _stateAt >= STATE_TTL_MS && !_stateBuilding) {
         _stateBuilding = true;
