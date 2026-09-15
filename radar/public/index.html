@@ -66,17 +66,9 @@
     <div class="map-overlay" id="mapOverlay"></div>
 
     <!-- shown until the map + data are ready, so it's never just blank -->
-    <div class="map-skeleton" id="mapSkeleton" aria-hidden="true">
-      <span class="mk-pin" style="left:16%;top:26%"></span>
-      <span class="mk-pin" style="left:62%;top:20%"></span>
-      <span class="mk-pin" style="left:38%;top:40%"></span>
-      <span class="mk-pin" style="left:78%;top:46%"></span>
-      <span class="mk-pin" style="left:24%;top:60%"></span>
-      <span class="mk-pin" style="left:56%;top:66%"></span>
-      <span class="mk-pin" style="left:84%;top:72%"></span>
-      <span class="mk-pin" style="left:30%;top:80%"></span>
-      <div class="mk-loader"><span></span><span></span><span></span></div>
-    </div>
+    <!-- just the map-coloured ground so the reveal to the real basemap is seamless
+         (no fake pins/dots) — venues then fade in on top as the data loads -->
+    <div class="map-skeleton" id="mapSkeleton" aria-hidden="true"></div>
 
     <div class="map-controls" id="mapControls">
       <button class="round-btn search-btn" id="searchBtn" aria-label="Search">

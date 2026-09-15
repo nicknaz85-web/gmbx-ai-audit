@@ -537,6 +537,9 @@ const NEIGHBORHOODS = [
   // --- North Macedonia ---
   { id: 'skopje',      name: 'Skopje',          city: 'Skopje',            center: { lat: 41.9981, lng: 21.4254 }, radius: 480, bestFor: ['Bars', 'Dancing'] },
   { id: 'ohrid',       name: 'Ohrid',           city: 'Ohrid',             center: { lat: 41.1231, lng: 20.8016 }, radius: 460, bestFor: ['Dancing', 'Beach'] },
+  // --- Syracuse (both readings) ---
+  { id: 'syracuse-ny', name: 'Syracuse',        city: 'Syracuse',          center: { lat: 43.0481, lng: -76.1474 }, radius: 480, bestFor: ['Bars', 'Dancing'] },
+  { id: 'siracusa',    name: 'Siracusa',        city: 'Siracusa',          center: { lat: 37.0755, lng: 15.2866 }, radius: 460, bestFor: ['Bars', 'Beach'] },
 ];
 
 // Per-venue tuning:
@@ -3679,6 +3682,17 @@ const VENUE_DEFS = [
   ['Street Pub', 'skopje', 'Dancing', 'Club', 400, 0, 14, 10, { mult: 1, trend: 0.6 }, true],
   ['Intermezzo Music Bar', 'skopje', 'Dancing', 'Club', 400, 0, 15, 30, { mult: 1, trend: 0.6 }, true],
   ['Eclipse Club Kids', 'skopje', 'Dancing', 'Club', 400, 0, 8, 5, { mult: 1, trend: 0.6 }, true],
+  // --- discovered from Google Places ---
+  ['Regina Margherita Privè', 'siracusa', 'Dancing', 'Club', 400, 0, 9, 10, { mult: 1, trend: 0.6 }, true],
+  ['The Atrium 2.0', 'siracusa', 'Dancing', 'Club', 400, 0, 8, 5, { mult: 1, trend: 0.6 }, true],
+  ['Punto Zero disco pub', 'siracusa', 'Dancing', 'Club', 400, 0, 9, 10, { mult: 1, trend: 0.6 }, true],
+  ['Il club', 'siracusa', 'Dancing', 'Club', 400, 0, 11, 10, { mult: 1, trend: 0.6 }, true],
+  ['Stone | Specialty Coffee • Mixology • Listening Bar', 'siracusa', 'Dancing', 'Club', 400, 0, 8, 5, { mult: 1, trend: 0.6 }, true],
+  ['Orbis Lounge', 'syracuse-ny', 'Dancing', 'Club', 400, 0, 11, 10, { mult: 1, trend: 0.6 }, true],
+  ['Trexx', 'syracuse-ny', 'Dancing', 'Club', 400, 0, 12, 5, { mult: 1, trend: 0.6 }, true],
+  ['Benjamin\'s on Franklin', 'syracuse-ny', 'Dancing', 'Club', 400, 0, 13, 10, { mult: 1, trend: 0.6 }, true],
+  ['Paradise Night Club', 'syracuse-ny', 'Dancing', 'Club', 400, 0, 13, 30, { mult: 1, trend: 0.6 }, true],
+  ['GILDED CLUB', 'syracuse-ny', 'Dancing', 'Club', 400, 0, 9, 10, { mult: 1, trend: 0.6 }, true],
 ];
 
 function jitter(center, seed, spreadM = 140) {

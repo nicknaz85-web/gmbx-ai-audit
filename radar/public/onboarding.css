@@ -256,6 +256,7 @@ button{font-family:inherit;color:inherit;border:none;background:none;cursor:poin
 .wheel .w-item{height:40px;line-height:40px;scroll-snap-align:center;font-size:19px;font-weight:600;
   color:var(--txt-faint);transition:color .15s,transform .15s,opacity .15s}
 .wheel .w-item.on{color:#fff;transform:scale(1.12)}
+.wheel .w-item.day-off{opacity:.22;pointer-events:none} /* days this month doesn't have */
 .wheel-frame{position:relative}
 .wheel-frame::after{content:"";position:absolute;left:0;right:0;top:80px;height:40px;pointer-events:none;
   border-top:1.5px solid var(--violet-2);border-bottom:1.5px solid var(--violet-2);

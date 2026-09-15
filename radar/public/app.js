@@ -243,10 +243,10 @@ class RadarMap {
     if (first) this._initialCamera();
     this._maybeHideSkeleton();
   }
-  // hide the loading skeleton once the map is up AND venues have loaded (or the
-  // simple fallback map is in use) — whichever finishes last
+  // Reveal the MAP as soon as its basemap is up (don't wait for venue data) — the map
+  // appears first and the venues then fade in on top, instead of a fake-pin skeleton.
   _maybeHideSkeleton() {
-    if (!((this._ready || this._fallback) && this.venues && this.venues.length)) return;
+    if (!(this._ready || this._fallback)) return;
     const sk = document.getElementById('mapSkeleton');
     if (sk && !sk.classList.contains('gone')) { sk.classList.add('gone'); setTimeout(() => { try { sk.remove(); } catch (e) {} }, 550); }
   }
@@ -1593,6 +1593,7 @@ const CITY_COUNTRY = {
   'Birmingham AL':'USA United States Alabama', Anchorage:'USA United States Alaska', 'Little Rock':'USA United States Arkansas', 'New Haven':'USA United States Connecticut', Wilmington:'USA United States Delaware', 'Des Moines':'USA United States Iowa', Wichita:'USA United States Kansas', 'Portland ME':'USA United States Maine', Baltimore:'USA United States Maryland', Jackson:'USA United States Mississippi', Bozeman:'USA United States Montana', 'Manchester NH':'USA United States New Hampshire', 'Atlantic City':'USA United States New Jersey', Fargo:'USA United States North Dakota', Providence:'USA United States Rhode Island', Charleston:'USA United States South Carolina', 'Sioux Falls':'USA United States South Dakota', Burlington:'USA United States Vermont', Morgantown:'USA United States West Virginia', 'Jackson Hole':'USA United States Wyoming', Maui:'USA United States Hawaii',
   Ankara:'Turkey', Marmaris:'Turkey', 'Çeşme':'Turkey', Alanya:'Turkey', Karachi:'Pakistan', Lahore:'Pakistan', Islamabad:'Pakistan',
   Skopje:'North Macedonia Macedonia', Ohrid:'North Macedonia Macedonia',
+  Syracuse:'USA United States New York', Siracusa:'Italy Sicily',
 };
 // a venue is "in view" if it's within the current map bounds — used so the
 // filter counts reflect what's near you, growing only as you zoom out

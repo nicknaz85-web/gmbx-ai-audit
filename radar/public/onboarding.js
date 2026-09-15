@@ -435,19 +435,28 @@
     fillWheel($('#wMonth'), MONTHS, MONTHS[wsel.m]);
     fillDayWheel();
     // wire scroll snapping
-    wireWheel($('#wDay'), (i, items) => { wsel.d = +items[i]; onDobChange(); });
+    wireWheel($('#wDay'), (i, items) => {
+      const n = daysIn(wsel.m, wsel.y);
+      wsel.d = Math.min(+items[i], n);            // can't pick a day this month lacks
+      if (+items[i] > n) { const w = $('#wDay'); w.scrollTo({ top: (n - 1) * 40, behavior: 'smooth' }); markWheel(w); }
+      onDobChange();
+    });
     wireWheel($('#wMonth'), (i) => { wsel.m = i; fillDayWheel(); onDobChange(); });
     wireWheel($('#wYear'), (i, items) => { wsel.y = +items[i]; fillDayWheel(); onDobChange(); });
     setTimeout(onDobChange, 60);
   }
   function range(a, b) { const r = []; if (a >= b) for (let i = a; i >= b; i--) r.push(i); else for (let i = a; i <= b; i++) r.push(i); return r; }
   function fillDayWheel() {
-    const n = daysIn(wsel.m, wsel.y); if (wsel.d > n) wsel.d = n;
     const wheel = $('#wDay');
-    // only rebuild when the number of days changed (e.g. → Feb / 30-day month);
-    // otherwise leave the day column untouched so it doesn't flash on month/year scroll
-    if (wheel._items && wheel._items.length === n) return;
-    fillWheel(wheel, range(1, n).map(String), String(wsel.d));
+    const n = daysIn(wsel.m, wsel.y);
+    // Build the day column ONCE with all 31 days; from then on never rebuild its HTML
+    // (rebuilding is what made the number flash on month/year change). Instead just
+    // grey out the days this month doesn't have and clamp the selection into range.
+    if (!wheel._items || wheel._items.length !== 31) {
+      fillWheel(wheel, range(1, 31).map(String), String(Math.min(wsel.d, n)));
+    }
+    $$('.w-item', wheel).forEach((it, i) => it.classList.toggle('day-off', i + 1 > n));
+    if (wsel.d > n) { wsel.d = n; wheel.scrollTop = (n - 1) * 40; markWheel(wheel); }
   }
   function fillWheel(wheel, items, selectedVal) {
     const idx = Math.max(0, items.indexOf(selectedVal));
@@ -621,7 +630,9 @@
   })();
 
   function burstConfetti() {
-    const box = $('#confetti'); if (!box) return; box.innerHTML = '';
+    const box = $('#confetti'); if (!box) return;
+    // no animation → no confetti (and no leftover pieces that never fall)
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches) return;
     const cols = ['#8b5cf6', '#f6c944', '#ffffff', '#c4b5fd', '#7c3aed'];
     for (let i = 0; i < 46; i++) {
       const p = document.createElement('i');
@@ -630,11 +641,14 @@
       p.style.animationDuration = (2.6 + Math.random() * 1.6) + 's'; // 2.6–4.2s
       p.style.animationDelay = (Math.random() * .5) + 's';
       p.style.width = p.style.height = (5 + Math.random() * 6) + 'px';
+      // Remove each piece ONLY once it has finished falling all the way off-screen —
+      // never a global wipe, so re-triggering (going back then forward to the last
+      // slide) never cuts an in-flight batch short; each piece always falls completely.
+      p.addEventListener('animationend', () => p.remove(), { once: true });
+      // safety net if animationend somehow doesn't fire (bg tab): remove well after it lands
+      setTimeout(() => p.remove(), 7000);
       box.appendChild(p);
     }
-    // clear only AFTER the slowest piece (max ~4.2s + 0.5s delay) has fallen the full
-    // screen — was 4200ms, which removed the slow pieces before they reached the bottom
-    setTimeout(() => { box.innerHTML = ''; }, 5200);
   }
 
   async function finishOnboarding() {
