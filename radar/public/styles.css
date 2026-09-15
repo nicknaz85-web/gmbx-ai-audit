@@ -974,9 +974,12 @@ body.msheet-open .sheet-body,body.msheet-open #map,body.msheet-open .radar-stage
    ~86%), so the image inside a chat avatar is positioned per gender to render the
    CHARACTER at the same on-screen size, centred, in every avatar. */
 .chat-ai-av>img,.chat-av>img,.chat-welcome-av>img{position:absolute;width:auto;height:100%;left:0;top:0}
-.mav-man>img{height:155%;left:-10%;top:-29%}
-.mav-fem>img{height:133%;left:0%;top:-11%}
-.mav-nb>img{height:99%;left:12%;top:5%}
+/* character rendered at ~68% of the circle (smaller, more padding), centred, equal
+   size for every gender (each art fills its frame differently — man 55%, woman 64%,
+   non-binary 86% — so the height % and offsets are tuned per gender). */
+.mav-man>img{height:124%;left:2%;top:-13%}
+.mav-fem>img{height:107%;left:10%;top:1%}
+.mav-nb>img{height:79%;left:20%;top:14%}
 .chat-close{width:36px;height:36px;border-radius:50%;border:none;background:var(--surface-3);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .chat-close svg{width:18px;height:18px}
 .chat-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;display:flex;flex-direction:column;gap:12px}
