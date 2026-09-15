@@ -27,8 +27,10 @@ const ASPECTS = {
 
 const has = (text, words) => words.some((w) => text.includes(w));
 
-// classify one clause for one aspect: +1 praise, -1 complaint, 0 unclear
-function polarity(clause, reviewRating) {
+// classify one clause for one aspect: +1 praise, -1 complaint, 0 unclear.
+// `overall` is the venue's Google star rating — at a poorly-rated spot a neutral
+// clause is more likely a muted gripe than praise, so we lean it negative.
+function polarity(clause, reviewRating, overall) {
   const pos = has(clause, POS), neg = has(clause, NEG);
   if (pos && !neg) return 1;
   if (neg && !pos) return -1;
@@ -36,15 +38,19 @@ function polarity(clause, reviewRating) {
   // no sentiment words in the clause — lean on the star rating
   if (reviewRating >= 4) return 1;
   if (reviewRating <= 2) return -1;
+  if (reviewRating === 3) return overall && overall <= 3.4 ? -1 : 0;
   return 0;
 }
 
 // reviews: [{ rating, text }]  ·  editorial: Google's one-line blurb (optional)
-export function summarizeReviews(reviews, editorial) {
+// overall: the venue's Google star rating (0–5) — lets us stay honest about a
+// low-rated venue whose "most relevant" reviews Google returns still skew positive.
+export function summarizeReviews(reviews, editorial, overall) {
   const list = (reviews || []).filter((r) => r && r.text);
   if (!list.length) return editorial ? { summary: editorial, pros: [], cons: [] } : null;
+  const lowRated = overall != null && overall <= 3.5;
 
-  const tally = {}; // aspect -> net score
+  const tally = {}, seen = {}; // aspect -> net score, and whether it was mentioned at all
   for (const r of list) {
     const text = String(r.text).toLowerCase();
     const clauses = text.split(/[.!?;\n]+/);
@@ -52,7 +58,8 @@ export function summarizeReviews(reviews, editorial) {
       if (clause.trim().length < 3) continue;
       for (const [key, a] of Object.entries(ASPECTS)) {
         if (!has(clause, a.kw)) continue;
-        tally[key] = (tally[key] || 0) + polarity(clause, r.rating || 0);
+        tally[key] = (tally[key] || 0) + polarity(clause, r.rating || 0, overall);
+        seen[key] = true;
       }
     }
   }
@@ -61,9 +68,18 @@ export function summarizeReviews(reviews, editorial) {
   for (const [key, score] of Object.entries(tally)) {
     if (score > 0) pros.push({ key, phrase: ASPECTS[key].pro, weight: score });
     else if (score < 0) cons.push({ key, phrase: ASPECTS[key].con, weight: -score });
+    // a mentioned-but-neutral aspect at a genuinely low-rated venue reads as a
+    // mixed point — surface it as a mild con so the section isn't all praise.
+    else if (lowRated && seen[key]) cons.push({ key, phrase: ASPECTS[key].con, weight: 0.5 });
   }
   pros.sort((a, b) => b.weight - a.weight);
   cons.sort((a, b) => b.weight - a.weight);
+
+  // Low-rated but the text still yielded no complaint? Add one honest, rating-based
+  // note so people see the venue divides opinion — never hide bad reviews.
+  if (lowRated && !cons.length) {
+    cons.push({ phrase: overall <= 3.0 ? 'Reviews are mixed — plenty of unhappy visitors' : 'Reviews are hit or miss', weight: 1 });
+  }
 
   return {
     summary: editorial || null,

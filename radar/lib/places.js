@@ -269,7 +269,7 @@ export async function refreshVenue(venue) {
     try {
       const d = await details(rec.placeId);
       const reviews = (d.reviews || []).map((r) => ({ rating: r.rating, text: r.text?.text || r.originalText?.text || '' }));
-      const review = summarizeReviews(reviews, d.editorialSummary?.text || null);
+      const review = summarizeReviews(reviews, d.editorialSummary?.text || null, d.rating ?? rec.rating ?? null);
       Object.assign(rec, {
         rating: d.rating ?? rec.rating,
         ratings: d.userRatingCount ?? rec.ratings,

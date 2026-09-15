@@ -1025,16 +1025,32 @@ function closeHour24(v) {
   if (h >= 0 && h <= 6) h += 24; // after-midnight closings sort after evening ones
   return h;
 }
+function bHash(s) { let h = 5381; s = String(s); for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return Math.abs(h); }
+// A short, varied "what it is" line — the venue TYPE, what it's good for, its music
+// and dress — so every venue reads a little differently (not just "A bar in Florence").
 function venueBlurb(v) {
-  const kindWord = { Club: 'nightclub', Bar: 'bar', Rooftop: 'rooftop bar', 'Wine Bar': 'wine bar', Venue: 'live-music venue' }[v.kind] || 'nightlife spot';
-  const music = (v.music && typeof v.music === 'string') ? v.music : null;
+  const kindWord = { Club: 'nightclub', Bar: 'cocktail bar', Rooftop: 'rooftop bar', 'Wine Bar': 'wine bar', Pub: 'pub', Venue: 'live-music venue' }[v.kind] || (v.category === 'Dancing' ? 'club' : 'bar');
   const g = v.lgbtq ? 'LGBTQ+ ' : '';
-  let s = `A ${g}${kindWord} in ${v.neighborhoodName}, ${v.city}`;
-  // "late-night" only when it actually stays open into the early hours (≥1 AM);
-  // a club that shuts at midnight just gets "for dancing".
+  const music = (v.music && typeof v.music === 'string' && v.music.toLowerCase() !== 'mixed') ? v.music
+    : (v.musicHint && typeof v.musicHint === 'string' ? v.musicHint : null);
   const ch = closeHour24(v);
   const lateNight = ch != null && ch >= 25; // closes 1 AM or later
-  s += music ? ` — expect ${music}.` : (v.category === 'Dancing' ? (lateNight ? ' for late-night dancing.' : ' for dancing.') : '.');
+  const dress = v.dress && v.dress.code ? v.dress.code : null;
+  const pick = (arr) => arr[bHash(v.id) % arr.length];
+  const purpose = v.category === 'Dancing'
+    ? (lateNight ? pick(['dancing into the early hours', 'a proper late-night dancefloor', 'a big night on the floor'])
+      : pick(['dancing and drinks', 'a lively night out', 'music and dancing']))
+    : v.kind === 'Wine Bar' ? pick(['wine and small plates', 'a relaxed glass of wine', 'an easy-going evening'])
+      : v.kind === 'Rooftop' ? pick(['drinks with a view', 'sunset drinks and a good crowd', 'a rooftop session'])
+        : v.kind === 'Pub' ? pick(['pints and a laid-back crowd', 'a casual pint', 'a relaxed drink'])
+          : pick(['cocktails and a good crowd', 'drinks and a laid-back night', 'a chilled night out']);
+  let s = `A ${g}${kindWord} in ${v.neighborhoodName}, ${v.city} — good for ${purpose}.`;
+  if (music) s += ` Expect ${music}.`;
+  if (dress === 'Dress to impress') s += ' Dress to impress — the door can be picky.';
+  else if (dress === 'Casual / all-black' || dress === 'Casual clubwear') s += ' Casual, dark clubwear fits the vibe.';
+  else if (dress === 'Beach & resort') s += ' Beachwear by day, light resort style at night.';
+  else if (dress === 'Smart casual' || dress === 'Relaxed smart') s += ' Smart casual — a step up from jeans and a tee.';
+  else if (dress) s += ` ${dress}.`;
   return s;
 }
 // Description ("what it is") + "what people say" pros/cons distilled from Google reviews.

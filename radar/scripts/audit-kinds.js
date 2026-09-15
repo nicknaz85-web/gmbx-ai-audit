@@ -14,9 +14,12 @@ const env = readFileSync(path.join(ROOT, '.env'), 'utf8');
 const KEY = (env.match(/GOOGLE_PLACES_KEY=(.+)/) || [])[1]?.trim();
 if (!KEY) { console.error('No GOOGLE_PLACES_KEY in .env'); process.exit(1); }
 const ALL = process.argv.includes('--all');
+const CLUBS = process.argv.includes('--clubs'); // verify every venue shown as a Club
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-process.env.CLUBBIT_RAW_KINDS = '1'; // see venues' base kind, not the overridden one
+// --clubs needs the EFFECTIVE (overridden) kind to know what's shown as a Club;
+// --all / default use the raw base kind so stale overrides can be detected/dropped.
+if (!CLUBS) process.env.CLUBBIT_RAW_KINDS = '1';
 const { db } = await import('../lib/store.js');
 const seedMod = await import('../lib/seed.js');
 seedMod.seed();
@@ -29,20 +32,32 @@ const barRe = /\b(bar|lounge|pub|taberna|tavern|cocktail|wine|speakeasy|cervecer
 // primaryType is authoritative; only fall back to the types[] set when the
 // primaryType is uninformative (many live/concert venues *also* list night_club).
 const VENUE_TYPES = ['performing_arts_theater', 'concert_hall', 'event_venue', 'live_music_venue', 'amphitheatre', 'auditorium'];
+// every "it's really a bar" primaryType. IMPORTANT: these are checked BEFORE the
+// types[] fallback, because Google lists 'night_club' in the types[] of loads of
+// ordinary bars — trusting types over an authoritative bar primaryType is exactly
+// what mislabelled dive/lounge/cocktail bars (e.g. Van's Dive Bar → lounge_bar) as Clubs.
+const BAR_TYPES = ['bar', 'pub', 'bar_and_grill', 'sports_bar', 'cocktail_bar', 'lounge_bar', 'irish_pub', 'pub_bar', 'beer_hall', 'beer_garden', 'brewpub', 'tavern'];
 function kindFromGoogle(primaryType, types) {
   if (primaryType === 'night_club') return { kind: 'Club', category: 'Dancing' };
   if (VENUE_TYPES.includes(primaryType)) return { kind: 'Venue', category: 'Live' };
   if (primaryType === 'wine_bar') return { kind: 'Wine Bar', category: 'Bars' };
-  if (['bar', 'pub', 'bar_and_grill'].includes(primaryType)) return { kind: 'Bar', category: 'Bars' };
+  if (BAR_TYPES.includes(primaryType)) return { kind: 'Bar', category: 'Bars' };
   // primaryType wasn't a nightlife type (e.g. restaurant, tourist_attraction) —
   // fall back to the types list for a hint, else leave the hand-set kind alone.
   const t = new Set([primaryType, ...(types || [])]);
   if (t.has('night_club')) return { kind: 'Club', category: 'Dancing' };
   if (t.has('wine_bar')) return { kind: 'Wine Bar', category: 'Bars' };
-  if (t.has('bar') || t.has('pub')) return { kind: 'Bar', category: 'Bars' };
+  if (BAR_TYPES.some((x) => t.has(x))) return { kind: 'Bar', category: 'Bars' };
   if (VENUE_TYPES.some((x) => t.has(x))) return { kind: 'Venue', category: 'Live' };
   return null;
 }
+
+// Cache every Google primaryType/types we fetch, keyed by venue id, so re-running
+// the audit after tuning kindFromGoogle costs ZERO Google credit (--cached / auto).
+const CACHE_PATH = path.join(LIB, 'place-types.json');
+let typeCache = {};
+try { typeCache = JSON.parse(readFileSync(CACHE_PATH, 'utf8')); } catch {}
+const CACHED = process.argv.includes('--cached'); // derive from cache only, no fetching
 
 async function details(placeId) {
   try {
@@ -58,37 +73,43 @@ async function details(placeId) {
 const candidates = db.venues.filter((v) => {
   if (!BAKED_PLACES[v.id]?.placeId) return false;
   if (ALL) return true;
+  if (CLUBS) return v.kind === 'Club'; // verify everything shown as a Club vs Google
   const isClubName = clubRe.test(v.name), isBarName = barRe.test(v.name);
   if (isClubName && v.kind !== 'Club') return true;          // "Club X" not marked Club
   if (!isClubName && isBarName && v.kind === 'Club') return true; // "X Bar/Lounge" marked Club
   return false;
 });
-console.log(`Auditing ${candidates.length} venues${ALL ? ' (--all)' : ' (name/kind mismatches)'}…`);
+console.log(`Auditing ${candidates.length} venues${ALL ? ' (--all)' : CLUBS ? ' (all Clubs)' : ' (name/kind mismatches)'}…`);
 
-// a full (--all) pass is authoritative and regenerates from scratch; a targeted
-// pass merges into the existing map so it stays additive.
+// a full (--all) pass is authoritative and regenerates from scratch; targeted
+// passes (default, --clubs) merge into the existing map so they stay additive.
 let existing = {};
 if (!ALL) { try { const src = readFileSync(path.join(LIB, 'baked-kinds.js'), 'utf8'); const m = src.match(/=\s*(\{[\s\S]*\});/); if (m) existing = JSON.parse(m[1]); } catch {} }
 
 const overrides = { ...existing };
-let changed = 0, checked = 0;
+let changed = 0, checked = 0, fetched = 0;
 for (const v of candidates) {
-  const d = await details(BAKED_PLACES[v.id].placeId);
-  await sleep(140);
+  let pt = typeCache[v.id];
+  if (!pt && !CACHED) {
+    const d = await details(BAKED_PLACES[v.id].placeId);
+    await sleep(140);
+    if (d) { pt = typeCache[v.id] = { primaryType: d.primaryType || null, types: d.types || [] }; fetched++; }
+  }
   checked++;
-  if (!d) continue;
-  const want = kindFromGoogle(d.primaryType, d.types);
+  if (!pt) continue;
+  const want = kindFromGoogle(pt.primaryType, pt.types);
   if (!want) { continue; }
   if (want.kind !== v.kind) {
     overrides[v.id] = { kind: want.kind, category: want.category };
     changed++;
-    console.log(`  ~ ${v.name} · ${v.city}: ${v.kind} -> ${want.kind}  (google: ${d.primaryType})`);
+    console.log(`  ~ ${v.name} · ${v.city}: ${v.kind} -> ${want.kind}  (google: ${pt.primaryType})`);
   } else if (overrides[v.id]) {
     // google now agrees with the base def — drop a stale override
     delete overrides[v.id];
   }
 }
-console.log(`\nChecked ${checked}, corrected ${changed}.`);
+writeFileSync(CACHE_PATH, JSON.stringify(typeCache));
+console.log(`\nChecked ${checked}, corrected ${changed} (fetched ${fetched}, ${Object.keys(typeCache).length} cached).`);
 
 const header = `// baked-kinds.js — venue kind/category overrides verified against Google's
 // primaryType (see scripts/audit-kinds.js). Applied by seed(); keyed by venue id.

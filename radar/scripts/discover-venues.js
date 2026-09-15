@@ -59,11 +59,25 @@ async function photoUrl(name) {
 }
 const PRICE_EUR = { PRICE_LEVEL_FREE: 0, PRICE_LEVEL_INEXPENSIVE: 5, PRICE_LEVEL_MODERATE: 10, PRICE_LEVEL_EXPENSIVE: 18, PRICE_LEVEL_VERY_EXPENSIVE: 30 };
 const NIGHT_TYPES = new Set(['night_club', 'bar', 'pub', 'dance_hall', 'wine_bar']);
+// strip clubs / gentlemen's clubs etc. — this app is dancing, drinks & nightlife
+const ADULT = /gentlemen['’]?s? ?(club|lounge)|gentlemens|ladies and gentlemens|\bstrip ?club\b|stripclub|striptease|strip ?tease|strip show|strip ?(and|&) ?bar|\(\s*strip|club de strip|\btopless\b|\b18\+|go-?go ?(bar|pub|club)|klub ?gogo|exotic danc|\bstrippers?\b|showclub|para adultos|adult ?(club|entertainment|lounge)|\bmen['’]?s club\b|sweet cheeks|rick['’]?s cabaret|\bburlesque\b|\bpeep ?show\b/i;
+const EXTRA_ADULT = new Set(['love cabaret', 'curves cabaret', "danny's cabaret", 'rick’s cabaret', "rick's cabaret"]);
+const isAdult = (p) => (p.primaryType === 'adult_entertainment') || (p.types || []).includes('adult_entertainment') || ADULT.test(p.displayName?.text || '') || EXTRA_ADULT.has((p.displayName?.text || '').trim().toLowerCase());
+const VENUE_TYPES = ['performing_arts_theater', 'concert_hall', 'event_venue', 'live_music_venue', 'amphitheatre', 'auditorium'];
+const BAR_TYPES = ['bar', 'pub', 'bar_and_grill', 'sports_bar', 'cocktail_bar', 'lounge_bar', 'irish_pub', 'pub_bar', 'beer_hall', 'beer_garden', 'brewpub', 'tavern'];
+// primaryType is authoritative — do NOT let the search query decide (searching
+// "night club in X" also returns plenty of bars; trusting the query mislabels them).
+// Only fall back to the query hint when Google gives no useful nightlife type.
 function kindFor(p, isClubQuery) {
-  const t = p.primaryType || (p.types || [])[0] || '';
-  if (t === 'night_club' || isClubQuery) return { kind: 'Club', category: 'Dancing' };
+  const t = p.primaryType || '';
+  if (t === 'night_club') return { kind: 'Club', category: 'Dancing' };
+  if (VENUE_TYPES.includes(t)) return { kind: 'Venue', category: 'Live' };
   if (t === 'wine_bar') return { kind: 'Wine Bar', category: 'Bars' };
-  return { kind: 'Bar', category: 'Bars' };
+  if (BAR_TYPES.includes(t)) return { kind: 'Bar', category: 'Bars' };
+  const set = new Set([t, ...(p.types || [])]);
+  if (set.has('night_club')) return isClubQuery ? { kind: 'Club', category: 'Dancing' } : { kind: 'Bar', category: 'Bars' };
+  if (BAR_TYPES.some((x) => set.has(x))) return { kind: 'Bar', category: 'Bars' };
+  return isClubQuery ? { kind: 'Club', category: 'Dancing' } : { kind: 'Bar', category: 'Bars' };
 }
 
 const newDefs = [], addResolved = {}, addPlaces = {}, addHours = {}, addPhotos = {};
@@ -87,6 +101,7 @@ async function processCity(c) {
       if ((p.userRatingCount || 0) < 25) continue;
       const types = new Set([p.primaryType, ...(p.types || [])]);
       if (![...types].some((t) => NIGHT_TYPES.has(t))) continue;
+      if (isAdult(p)) continue; // no strip / gentlemen's / adult venues
       const nm = norm(p.displayName.text);
       if (!nm || seen.has(nm)) continue;
       if (nm.length >= 4 && [...seen].some((e) => e.length >= 4 && (e.includes(nm) || nm.includes(e)))) continue;

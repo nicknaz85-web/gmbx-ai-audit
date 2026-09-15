@@ -49,8 +49,8 @@ for (const id of need.slice(0, LIMIT)) {
   try {
     const d = await details(b.placeId);
     const reviews = (d.reviews || []).map((r) => ({ rating: r.rating, text: r.text?.text || r.originalText?.text || '' }));
-    const review = summarizeReviews(reviews, d.editorialSummary?.text || null);
     const rating = d.rating ?? b.rating ?? null, ratings = d.userRatingCount ?? b.ratings ?? null;
+    const review = summarizeReviews(reviews, d.editorialSummary?.text || null, rating);
     const nPros = review ? (review.pros?.length || 0) + (review.cons?.length || 0) : 0;
     // entry/cover price from what reviewers say (accurate per venue)
     const ent = extractEntry(reviews, d.editorialSummary?.text || null, v.city, v.category);
