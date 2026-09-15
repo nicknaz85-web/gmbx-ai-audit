@@ -1779,7 +1779,17 @@ function hasNativeGeo() { return !!(window.Capacitor && Capacitor.Plugins && Cap
 function getPosition(opts) {
   if (hasNativeGeo()) {
     const G = Capacitor.Plugins.Geolocation;
-    return Promise.resolve(G.requestPermissions ? G.requestPermissions().catch(() => {}) : null).then(() => G.getCurrentPosition(opts));
+    // Never re-prompt someone who already said yes: only call requestPermissions
+    // when the OS state is still 'prompt'. Some plugin builds re-show the system
+    // dialog on EVERY requestPermissions call — that's what made it ask on each
+    // open. When already granted we go straight to getCurrentPosition (silent).
+    return (async () => {
+      try {
+        const st = await checkGeoPermission();
+        if (st !== 'granted' && G.requestPermissions) await G.requestPermissions().catch(() => {});
+      } catch (e) {}
+      return G.getCurrentPosition(opts);
+    })();
   }
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) return reject(new Error('no-geo'));
@@ -2569,11 +2579,16 @@ function openChat() {
   void ov.offsetHeight;
   ov.classList.add('open');
   if (S.chatMessages && S.chatMessages.length) renderChatMessages(); else renderChatWelcome();
-  // refresh location so the starter suggestions match where you are right now
+  // refresh location so the starter suggestions match where you are right now —
+  // but ONLY if location was already granted; opening chat must never pop the
+  // permission prompt (we ask once, on first app open, and never again).
   if (!S.chatMessages || !S.chatMessages.length) {
-    getPosition({ enableHighAccuracy: true, timeout: 6000, maximumAge: 300000 })
-      .then((p) => { S.userLoc = { lat: p.coords.latitude, lng: p.coords.longitude }; S._userIsGps = true; if (chatIsOpen() && (!S.chatMessages || !S.chatMessages.length)) renderChatWelcome(); })
-      .catch(() => {});
+    checkGeoPermission().then((st) => {
+      if (st !== 'granted') return;
+      getPosition({ enableHighAccuracy: true, timeout: 6000, maximumAge: 300000 })
+        .then((p) => { S.userLoc = { lat: p.coords.latitude, lng: p.coords.longitude }; S._userIsGps = true; if (chatIsOpen() && (!S.chatMessages || !S.chatMessages.length)) renderChatWelcome(); })
+        .catch(() => {});
+    }).catch(() => {});
   }
   // don't auto-focus the input on open — that pops the keyboard and hides the
   // recommended questions. The keyboard appears only when you tap the text box.
