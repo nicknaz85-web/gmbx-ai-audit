@@ -137,6 +137,11 @@ function tokenKey(token) {
   return null;
 }
 
+// Google Sign-In: the OAuth **Web** client ID. The app requests an ID token for
+// this client and we verify the token's `aud` matches it. Override via env in prod.
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
+  || '121909268987-mubkcjll1mfsf6usgk16g743cdfq5cvt.apps.googleusercontent.com';
+
 // Whitelist the profile fields we persist against an account (no secrets here).
 function sanitizeProfile(p) {
   if (!p || typeof p !== 'object') return {};
@@ -770,6 +775,36 @@ async function api(req, res, url) {
     const u = db.authUsers[key];
     if (!u || !u.hash) return send(res, 404, { error: 'No account found for this email.' });
     if (!verifyPassword(String(body.password || ''), u.salt, u.hash)) return send(res, 401, { error: 'Incorrect password.' });
+    return send(res, 200, { ok: true, user: { id: u.id, email: u.email }, token: makeToken(key), profile: u.profile || null });
+  }
+
+  // POST /api/auth/google { idToken } — sign in / up with Google. Verifies the
+  // Google ID token server-side (zero-dep: one call to Google's tokeninfo), then
+  // upserts the account keyed by email — exactly like the email flow, so profile
+  // save / restore / delete all keep working unchanged.
+  if (method === 'POST' && route === 'auth/google') {
+    const body = await readBody(req);
+    const idToken = String(body.idToken || body.credential || '').trim();
+    if (!idToken) return send(res, 400, { error: 'Missing Google sign-in token.' });
+    let info;
+    try {
+      const r = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken));
+      if (!r.ok) return send(res, 401, { error: 'Google sign-in failed — please try again.' });
+      info = await r.json();
+    } catch (e) { return send(res, 502, { error: "Couldn't reach Google — check your connection and try again." }); }
+    // the token must have been minted for OUR app, and the email must be verified
+    if (info.aud !== GOOGLE_CLIENT_ID) return send(res, 401, { error: 'This Google sign-in is not for Clubbit.' });
+    if (info.email_verified !== 'true' && info.email_verified !== true) return send(res, 401, { error: 'Your Google email is not verified.' });
+    const email = String(info.email || '').trim();
+    if (!validEmail(email)) return send(res, 401, { error: 'Google did not return a usable email.' });
+    const key = emailKey(email);
+    let u = db.authUsers[key];
+    if (!u) {
+      u = db.authUsers[key] = { id: 'clubbit_' + crypto.randomBytes(8).toString('hex'), email, verified: true, google: true, createdAt: now(), profile: null };
+    } else {
+      u.verified = true; u.google = true; // link Google to an existing account for this email
+    }
+    saveSnapshotSoon();
     return send(res, 200, { ok: true, user: { id: u.id, email: u.email }, token: makeToken(key), profile: u.profile || null });
   }
 

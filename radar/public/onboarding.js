@@ -14,9 +14,10 @@
   const PROFILE_KEY = 'clubbit_profile';
   const DONE_KEY = 'clubbit_onboarding_complete';
   const TOKEN_KEY = 'clubbit_token';
-  // Paste your Google OAuth Web Client ID here to enable real Google sign-in.
-  // The page's origin must be added to the client's "Authorized JavaScript origins".
-  const GOOGLE_CLIENT_ID = '';
+  // Google OAuth **Web** client id. In the packaged app, sign-in goes through the
+  // native Capacitor GoogleAuth plugin (configured with this id in strings.xml /
+  // capacitor.config); the constant is kept for any future web fallback.
+  const GOOGLE_CLIENT_ID = '121909268987-mubkcjll1mfsf6usgk16g743cdfq5cvt.apps.googleusercontent.com';
 
   // ---- persistent draft ----
   const draft = load() || { data: {}, screen: 'welcome' };
@@ -191,34 +192,49 @@
     showAuthStep('authEmail', '#emailInput');
   }));
 
-  // ---- real Google sign-in (Google Identity Services token flow) ----
-  let _gClient = null;
-  function googleSignIn() {
-    if (!GOOGLE_CLIENT_ID) { toast('Google sign-in isn\'t set up yet — use email'); showAuthStep('authEmail', '#emailInput'); return; }
-    if (!(window.google && google.accounts && google.accounts.oauth2)) { toast('Google didn\'t load — check your connection'); return; }
-    if (!_gClient) {
-      _gClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: 'openid email profile',
-        callback: async (resp) => {
-          if (!resp || resp.error || !resp.access_token) { toast('Google sign-in cancelled'); return; }
-          try {
-            const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + resp.access_token } }).then((r) => r.json());
-            D.authProvider = 'google';
-            D.email = info.email || '';
-            D.id = info.sub || D.id || ('clubbit_' + Date.now().toString(36));
-            if (info.given_name) D.firstName = info.given_name;
-            if (info.picture) { D.googlePhoto = info.picture; if (!D.profilePhoto) D.profilePhoto = info.picture; }
-            persist();
-            if (D.firstName) { nameInput.value = D.firstName; $('#nameGo').disabled = false; }
-            if (D.profilePhoto) preview.innerHTML = `<img src="${D.profilePhoto}" alt="Your photo" />`;
-            toast('Signed in with Google ✓');
-            go('name');
-          } catch (e) { toast('Could not read your Google profile'); }
-        },
-      });
+  // ---- real Google sign-in ----
+  // In the packaged app this uses the NATIVE Capacitor GoogleAuth plugin: it returns
+  // a Google ID token, which we send to /api/auth/google. The server verifies it and
+  // creates/links the account, handing back our own session token + saved profile —
+  // so a Google user is a first-class account (profile save/restore/delete all work).
+  async function googleSignIn() {
+    const GA = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.GoogleAuth;
+    if (!GA) { // web build (no native plugin) — fall back to the email flow
+      toast('Open the Clubbit app to use Google — signing in with email here');
+      showAuthStep('authEmail', '#emailInput');
+      return;
     }
-    _gClient.requestAccessToken();
+    let gi;
+    try {
+      try { if (GA.initialize) GA.initialize({ clientId: GOOGLE_CLIENT_ID, scopes: ['profile', 'email'], grantOfflineAccess: false }); } catch (e) {}
+      gi = await GA.signIn();
+    } catch (e) { toast('Google sign-in cancelled'); return; }
+    const idToken = gi && gi.authentication && gi.authentication.idToken;
+    if (!idToken) { toast('Google sign-in didn\'t complete — try again'); return; }
+    const { ok, data } = await post('/api/auth/google', { idToken });
+    if (!ok) { toast((data && data.error) || 'Google sign-in failed — try again'); return; }
+    // carry Google's name/photo into onboarding for brand-new users
+    if (gi.givenName && !D.firstName) D.firstName = gi.givenName;
+    if (gi.imageUrl && !D.profilePhoto) { D.googlePhoto = gi.imageUrl; D.profilePhoto = gi.imageUrl; }
+    finishGoogleAuth(data);
+  }
+
+  // Handle a successful /api/auth/google response exactly like an email sign-in:
+  // restore a finished account & skip onboarding, else prefill and continue.
+  function finishGoogleAuth(data) {
+    D.authProvider = 'google';
+    D.email = (data.user && data.user.email) || D.email || '';
+    D.id = (data.user && data.user.id) || D.id || ('clubbit_' + Date.now().toString(36));
+    saveToken(data.token); persist();
+    const p = data.profile;
+    if (p && (p.onboardingComplete || (p.firstName && p.dateOfBirth))) {
+      restoreServerProfile(p); toast('Welcome back ✓'); setTimeout(() => location.replace('/'), 300); return;
+    }
+    if (p) mergeServerProfile(p);
+    try { if (localStorage.getItem(DONE_KEY)) { toast('Welcome back ✓'); location.replace('/'); return; } } catch {}
+    if (D.firstName) { nameInput.value = D.firstName; const ng = $('#nameGo'); if (ng) ng.disabled = false; }
+    if (D.profilePhoto && typeof preview !== 'undefined' && preview) preview.innerHTML = `<img src="${D.profilePhoto}" alt="Your photo" />`;
+    toast('Signed in with Google ✓'); prefill(); go('name');
   }
 
   // step 1 → send a verification code (or route returning users to sign in)

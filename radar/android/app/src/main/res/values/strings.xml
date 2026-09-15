@@ -4,4 +4,6 @@
     <string name="title_activity_main">Clubbit</string>
     <string name="package_name">com.clubbit.app</string>
     <string name="custom_url_scheme">com.clubbit.app</string>
+    <!-- Google Sign-In: the OAuth WEB client id (server client id) -->
+    <string name="server_client_id">121909268987-mubkcjll1mfsf6usgk16g743cdfq5cvt.apps.googleusercontent.com</string>
 </resources>
