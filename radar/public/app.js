@@ -1743,22 +1743,32 @@ async function bootLocation() {
   const saved = loadLoc();
   if (saved) {
     if (saved.skip) return; // remembered "browse the map"
-    if (saved.mode === 'gps') { S.userLoc = { lat: saved.userLat, lng: saved.userLng }; S._userIsGps = true; S._flyTarget = { lat: saved.lat, lng: saved.lng }; }
-    else { S.userLoc = { lat: saved.lat, lng: saved.lng }; }
-    S.locLabel = saved.label; S._rememberFly = true;
+    if (saved.mode === 'gps') { S.userLoc = { lat: saved.userLat, lng: saved.userLng }; S._userIsGps = true; S._flyTarget = { lat: saved.lat, lng: saved.lng }; S.locLabel = saved.label; S._rememberFly = true; return; }
+    if (saved.mode === 'gps-allowed') { S._userIsGps = true; silentGps(); return; } // allowed before, no fix cached yet
+    S.userLoc = { lat: saved.lat, lng: saved.lng }; S.locLabel = saved.label; S._rememberFly = true;
     return;
   }
-  // no remembered choice — if permission is already granted, use it without a prompt
-  let granted = false;
-  try { granted = (await checkGeoPermission()) === 'granted'; } catch (e) {}
-  if (granted) {
-    try {
-      const p = await getPosition({ enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 });
-      applyGps({ lat: p.coords.latitude, lng: p.coords.longitude });
-      return;
-    } catch (e) { /* fall through to the gate */ }
+  // No remembered choice. Decide ONCE from the OS permission — and once decided,
+  // remember it so we never ask again:
+  let state = 'prompt';
+  try { state = await checkGeoPermission(); } catch (e) {}
+  if (state === 'granted') {
+    // already allowed → remember that immediately (so a slow/failed GPS fix can
+    // never bounce us back to the gate) and get a position silently. NEVER gate.
+    saveLoc({ mode: 'gps-allowed', label: 'Near you' });
+    silentGps();
+    return;
   }
-  showGate();
+  if (state === 'denied') { saveLoc({ skip: true }); return; } // OS-denied → browse the map, don't nag
+  showGate(); // genuinely undecided → ask once
+}
+// Get a GPS fix WITHOUT ever prompting or showing the gate; apply it if/when it
+// arrives. Low-accuracy + a generous maxAge makes it fast and reliable (a network
+// fix is fine for "near you"); a failure is harmless — permission stays remembered.
+function silentGps() {
+  getPosition({ enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 })
+    .then((p) => applyGps({ lat: p.coords.latitude, lng: p.coords.longitude }))
+    .catch(() => {});
 }
 function skipGate() { saveLoc({ skip: true }); hideGate(); }
 
@@ -1838,9 +1848,15 @@ function requestLocation() {
     map.flyToLatLng(t.lat, t.lng, z);
     openSheet('near');
     toast('Showing the best spots near you');
-  }).catch((err) => {
+  }).catch(async (err) => {
     allow.disabled = false;
-    setGateStatus(err && err.code === 1 ? 'Location permission was blocked — pick a city below.' : "Couldn't get your location — pick a city below.", true);
+    if (err && err.code === 1) { setGateStatus('Location permission was blocked — pick a city below.', true); return; }
+    // Not a denial — permission is likely granted but the fix is slow (indoors/cold
+    // GPS). Remember the grant so we never gate again, and let them into the app;
+    // silentGps will drop a pin as soon as a position arrives.
+    let granted = false; try { granted = (await checkGeoPermission()) === 'granted'; } catch (e) {}
+    if (granted) { saveLoc({ mode: 'gps-allowed', label: 'Near you' }); S._userIsGps = true; hideGate(); silentGps(); return; }
+    setGateStatus("Couldn't get your location — pick a city below.", true);
   });
 }
 function renderFilters() {
