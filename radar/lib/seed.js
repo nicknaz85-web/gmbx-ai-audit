@@ -91,6 +91,9 @@ const NEIGHBORHOODS = [
   // CORFU
   { id: 'corfu-town',   name: 'Corfu Town',   city: 'Corfu',        center: { lat: 39.6243, lng: 19.9212 }, radius: 280, bestFor: ['Dancing', 'Bars'] },
   { id: 'nafplio-old',  name: 'Old Town',     city: 'Nafplio',      center: { lat: 37.5680, lng: 22.7980 }, radius: 260, bestFor: ['Cocktails', 'Bars'] },
+  // PELOPONNESE — Arcadia / Argolis
+  { id: 'tripoli-areos', name: 'Areos Square', city: 'Tripoli',      center: { lat: 37.5106, lng: 22.3785 }, radius: 320, bestFor: ['Bars', 'Dancing'] },
+  { id: 'argos-agpetrou',name: 'Agiou Petrou', city: 'Argos',        center: { lat: 37.6317, lng: 22.7280 }, radius: 300, bestFor: ['Bars', 'Cocktails'] },
   // PARTY / HOLIDAY RESORTS
   { id: 'albufeira-strip', name: 'The Strip',  city: 'Albufeira',    center: { lat: 37.0890, lng: -8.2510 }, radius: 320, bestFor: ['Dancing', 'Bars'] },
   { id: 'laganas',      name: 'Laganas Strip', city: 'Zakynthos',   center: { lat: 37.7250, lng: 20.8600 }, radius: 360, bestFor: ['Dancing', 'Bars'] },
@@ -3951,6 +3954,16 @@ const VENUE_DEFS = [
   ['Sky Bar Tucson', 'ct-tucson', 'Bars', 'Bar', 180, 0, 16, 5, { mult: 1, trend: 0.6 }, true],
   ['Owls Club', 'ct-tucson', 'Bars', 'Bar', 180, 0, 14, 5, { mult: 1, trend: 0.6 }, true],
   ['The Spot Tavern', 'ct-wlafayette', 'Bars', 'Bar', 180, 0, 13, 5, { mult: 1, trend: 0.6 }, true],
+  // --- discovered from Google Places ---
+  ['Billiard club Argos 8Ball', 'argos-agpetrou', 'Bars', 'Bar', 180, 0, 9, 10, { mult: 1, trend: 0.6 }, true],
+  ['The Brothers', 'argos-agpetrou', 'Bars', 'Bar', 180, 0, 11, 10, { mult: 1, trend: 0.6 }, true],
+  ['Salvanos Café', 'argos-agpetrou', 'Bars', 'Bar', 180, 0, 9, 10, { mult: 1, trend: 0.6 }, true],
+  ['Twain cafe bar', 'argos-agpetrou', 'Bars', 'Bar', 180, 0, 9, 5, { mult: 1, trend: 0.6 }, true],
+  ['The Mansion', 'tripoli-areos', 'Bars', 'Bar', 180, 0, 9, 0, { mult: 1, trend: 0.6 }, true],
+  ['Elephant cocktail & more', 'tripoli-areos', 'Bars', 'Bar', 180, 0, 13, 10, { mult: 1, trend: 0.6 }, true],
+  ['F.C. Tripoli', 'tripoli-areos', 'Bars', 'Bar', 180, 0, 8, 0, { mult: 1, trend: 0.6 }, true],
+  ['Bar \'\'Mobile\'\'', 'tripoli-areos', 'Bars', 'Bar', 180, 0, 10, 10, { mult: 1, trend: 0.6 }, true],
+  ['Touristiko', 'tripoli-areos', 'Bars', 'Bar', 180, 0, 13, 10, { mult: 1, trend: 0.6 }, true],
 ];
 
 function jitter(center, seed, spreadM = 140) {

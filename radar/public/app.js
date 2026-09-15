@@ -370,34 +370,14 @@ class RadarMap {
     this._cityCenterCache = out;
     return out;
   }
-  // Merge city clusters that sit within ~46px on screen into regional bubbles.
-  _mergeClusters(cities) {
-    const pts = [];
-    for (const c of cities) {
-      let x = -9999, y = -9999;
-      try { const p = this.map.project([c.center.lng, c.center.lat]); x = p.x; y = p.y; } catch (e) {}
-      pts.push({ c, x, y });
-    }
-    // biggest city (by TOTAL size, a stable key) leads and names its region, so the
-    // regional bubble doesn't hop to a different city centre as you pan/zoom
-    pts.sort((a, b) => (b.c.total || b.c.n) - (a.c.total || a.c.n));
-    const PIX = 46, groups = [];
-    for (const p of pts) {
-      let g = null;
-      for (const gg of groups) { const dx = gg.x - p.x, dy = gg.y - p.y; if (dx * dx + dy * dy < PIX * PIX) { g = gg; break; } }
-      if (g) { g.n += p.c.n; g.members++; }
-      else groups.push({ id: 'reg_' + p.c.name, name: p.c.name, n: p.c.n, center: p.c.center, x: p.x, y: p.y, members: 1 });
-    }
-    return groups;
-  }
-  // A count "cluster" bubble marker — shows how many venues are in that city/region.
+  // A count "cluster" bubble marker — shows how many venues are in that city.
+  // Tapping it flies into the city (zoom 11.8) so its individual pins appear.
   _clusterFor(w) {
     const el = document.createElement('div');
     el.className = 'cluster';
     el.innerHTML = `<div class="cl-in"><span class="cl-count">${w.n}</span></div>`;
-    el.title = `${w.name}${w.members > 1 ? ' + nearby' : ''} · ${w.n} venue${w.n === 1 ? '' : 's'}`;
-    // a merged region zooms out-to-in a step (fans into its cities); a single city dives in
-    el.addEventListener('click', (ev) => { ev.stopPropagation(); if (this.map) this.map.flyTo({ center: [w.center.lng, w.center.lat], zoom: (w.members > 1 ? Math.min(8.5, this.map.getZoom() + 3) : 11.8), duration: 900 }); });
+    el.title = `${w.name} · ${w.n} venue${w.n === 1 ? '' : 's'}`;
+    el.addEventListener('click', (ev) => { ev.stopPropagation(); if (this.map) this.map.flyTo({ center: [w.center.lng, w.center.lat], zoom: 11.8, duration: 900 }); });
     const m = new maplibregl.Marker({ element: el, anchor: 'center', opacityWhenCovered: '0' }).setLngLat([w.center.lng, w.center.lat]);
     m._el = el; m._lat = w.center.lat; m._lng = w.center.lng; return m;
   }
@@ -424,23 +404,28 @@ class RadarMap {
       const clusterMode = this._clusterMode;
 
       // ---- count bubbles (clusters) ----
+      // ONE bubble per CITY, showing that city's own venue count (e.g. NYC = 10),
+      // anchored at a fixed centre so it stays put. Cities are NEVER merged into
+      // regional mega-bubbles — zooming out keeps per-city counts instead of
+      // combining them into one giant "300". Tap a bubble to dive into that city.
       const wantC = {};
       if (clusterMode) {
         const inView = this._inViewFn();
-        const centers = this._cityCenters();               // fixed per-city anchors
+        const centers = this._cityCenters();               // fixed per-city anchors + totals
         const g = {};
-        for (const v of this.venues) {
+        for (const v of this.venues) {                     // count ALL matching venues per city
           if (!venueMatches(v)) continue;
-          if (!inView(v.coords)) continue;                 // skip off-screen cities
-          if (!this._onFrontHemisphere(v.coords)) continue; // skip the far side of the globe
           const c = v.city || '?';
-          (g[c] || (g[c] = { n: 0, name: c }));
-          g[c].n++;                                        // count in-view; anchor stays fixed
+          g[c] = (g[c] || 0) + 1;                          // stable count, not viewport-dependent
         }
-        const cities = Object.keys(g).map((c) => ({ name: c, n: g[c].n, total: (centers[c] && centers[c].total) || g[c].n, center: centers[c] || { lat: 0, lng: 0 } }));
-        // merge cities within ~46px on screen into one regional bubble, so a world
-        // spin repositions a handful of markers instead of hundreds (smooth).
-        for (const m of this._mergeClusters(cities)) wantC[m.id] = m;
+        for (const c in g) {
+          const ctr = centers[c];
+          if (!ctr) continue;
+          if (!inView(ctr)) continue;                      // city centre off-screen → skip
+          if (!this._onFrontHemisphere(ctr)) continue;     // far side of the globe → skip
+          const id = 'city_' + c;
+          wantC[id] = { id, name: c, n: g[c], center: ctr, members: 1 };
+        }
       }
       for (const id of Object.keys(this._clusterById)) {
         if (!wantC[id]) { this._fadeRemove(this._clusterById[id]); delete this._clusterById[id]; }

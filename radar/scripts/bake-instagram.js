@@ -36,8 +36,11 @@ const byId = Object.fromEntries(db.venues.map((v) => [v.id, v]));
 // handle (fails name-match, e.g. a bare "flash") is RE-resolved but only replaced
 // if we find a better one — so we never lose a correct-but-generic handle.
 for (const id of Object.keys(baked)) { const v = byId[id]; if (!v || isSearch(baked[id])) delete baked[id]; }
-const missing = db.venues.filter((v) => !baked[v.id]);
-const suspect = RECHECK ? db.venues.filter((v) => baked[v.id] && !igUrlValidForVenue(v.name, v.city, baked[v.id])) : [];
+// optional positional city filter: `node bake-instagram.js "Tripoli" "Argos"`
+const onlyCities = process.argv.slice(2).filter((a) => !a.startsWith('--') && !/^\d+$/.test(a));
+const cityOk = (v) => !onlyCities.length || onlyCities.some((c) => c.toLowerCase() === (v.city || '').toLowerCase());
+const missing = db.venues.filter((v) => !baked[v.id] && cityOk(v));
+const suspect = RECHECK ? db.venues.filter((v) => baked[v.id] && cityOk(v) && !igUrlValidForVenue(v.name, v.city, baked[v.id])) : [];
 const targets = [...missing, ...suspect].slice(0, LIMIT);
 console.log(`Venues: ${db.venues.length} | baked: ${Object.keys(baked).length} | missing: ${missing.length} | suspect: ${suspect.length} | this run: ${targets.length}`);
 
