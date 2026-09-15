@@ -189,6 +189,45 @@ function send(res, code, body, headers = {}) {
   res.end(data);
 }
 
+// /api/state is global (no per-user data) and re-scoring 3000+ venues on every
+// request is the app's heaviest work — so we compute it at most a few times a
+// minute and hand every viewer the same cached JSON. Makes the app load fast
+// ("Snapchat quick") and, crucially, keeps it O(1) with thousands of users.
+// invalidateState() is called on any write (report/checkin/pulse) so fresh
+// signals show up right away instead of waiting out the TTL.
+let _stateJSON = null, _stateAt = 0, _stateBuilding = false;
+const STATE_TTL_MS = 12000;
+function invalidateState() { _stateAt = 0; } // mark stale; next request revalidates
+// Build the /api/state JSON once and cache it. Heavy (re-scores every venue), so it
+// runs at most once per TTL and — via stale-while-revalidate below — never on a
+// user's critical path after the first build.
+function buildStateJSON() {
+  const ref = now();
+  const venues = db.venues.map((v) => {
+    const s = venueSnapshot(v, ref);
+    return {
+      id: s.id, name: s.name, neighborhood: s.neighborhood, neighborhoodName: s.neighborhoodName,
+      city: s.city, category: s.category, kind: s.kind, coords: s.coords, verified: s.verified, lgbtq: s.lgbtq,
+      hot: s.hot, radar: s.radar, momentum: s.momentum, vibe: s.vibe, pct: s.pct,
+      fullness: s.fullness, recentSignals: s.recentSignals, entry: s.entry,
+      entryLabel: s.entryLabel, currency: s.currency,
+      source: s.source, special: s.special,
+      open: s.open, hours: s.hours, season: s.season, google: s.google, googlePhoto: s.googlePhoto,
+      expectedPeak: s.expectedPeak, dress: s.dress, instagram: s.instagram, tonight: s.tonight || null,
+      photo: ((s.media || []).find((m) => m.type === 'image') || {}).url || null,
+    };
+  });
+  const areas = db.neighborhoods.map((h) => areaSnapshot(h, ref));
+  const cities = new Set(db.venues.map((v) => v.city));
+  _stateJSON = JSON.stringify({
+    city: cities.size > 1 ? 'Greece' : (db.venues[0]?.city || 'Athens'),
+    generatedAt: ref, serverTime: ref, bounds: mapBounds(),
+    venues, areas, clusters: clusters(ref), feed: radarFeed(24, ref),
+  });
+  _stateAt = Date.now();
+  return _stateJSON;
+}
+
 function parseCookies(req) {
   const out = {};
   (req.headers.cookie || '').split(';').forEach((c) => {
@@ -342,38 +381,20 @@ async function api(req, res, url) {
   const route = seg.slice(1).join('/');
   const method = req.method;
 
-  // GET /api/state — everything the map + overview needs in one call
+  // GET /api/state — everything the map + overview needs in one call.
+  // Stale-while-revalidate: a cached copy is ALWAYS returned instantly (fast, and
+  // O(1) with thousands of users); when it's older than the TTL we rebuild it in
+  // the background so the next request has a fresh one — no user waits on scoring.
   if (method === 'GET' && route === 'state') {
-    const ref = now();
-    const venues = db.venues.map((v) => {
-      const s = venueSnapshot(v, ref);
-      return {
-        id: s.id, name: s.name, neighborhood: s.neighborhood, neighborhoodName: s.neighborhoodName,
-        city: s.city, category: s.category, kind: s.kind, coords: s.coords, verified: s.verified, lgbtq: s.lgbtq,
-        hot: s.hot, radar: s.radar, momentum: s.momentum, vibe: s.vibe, pct: s.pct,
-        fullness: s.fullness, recentSignals: s.recentSignals, entry: s.entry,
-        entryLabel: s.entryLabel, currency: s.currency,
-        source: s.source, special: s.special,
-        open: s.open, hours: s.hours, season: s.season, google: s.google, googlePhoto: s.googlePhoto,
-        expectedPeak: s.expectedPeak, dress: s.dress, instagram: s.instagram, tonight: s.tonight || null,
-        photo: ((s.media || []).find((m) => m.type === 'image') || {}).url || null,
-      };
-    });
-    // (baked data covers ratings/hours; live refresh gated behind PLACES_LIVE to
-    // avoid burning the daily Google quota)
     if (gpEnabled() && process.env.PLACES_LIVE) gpRefreshStale(db.venues, 8).catch(() => {});
-    const areas = db.neighborhoods.map((h) => areaSnapshot(h, ref));
-    const cities = new Set(db.venues.map((v) => v.city));
-    return send(res, 200, {
-      city: cities.size > 1 ? 'Greece' : (db.venues[0]?.city || 'Athens'),
-      generatedAt: ref,
-      serverTime: ref,
-      bounds: mapBounds(),
-      venues,
-      areas,
-      clusters: clusters(ref),
-      feed: radarFeed(24, ref),
-    });
+    if (_stateJSON) {
+      if (Date.now() - _stateAt >= STATE_TTL_MS && !_stateBuilding) {
+        _stateBuilding = true;
+        setImmediate(() => { try { buildStateJSON(); } catch (e) { console.error('state build', e); } finally { _stateBuilding = false; } });
+      }
+      return send(res, 200, _stateJSON);
+    }
+    return send(res, 200, buildStateJSON()); // first ever request — build inline
   }
 
   // POST /api/chat — the Clubbit AI nightlife concierge. Answers venue/neighbourhood/
@@ -519,6 +540,7 @@ async function api(req, res, url) {
       id: randId('ci'), venueId: v.id, uHash: id.uHash, dHash: id.dHash,
       ts: now(), coords, accepted: screen.accepted, weight: screen.weight, reason: screen.reason,
     });
+    invalidateState();
     if (screen.accepted) {
       const u = getUser(id.uHash);
       u.checkins++; u.lastSeen = now();
@@ -536,6 +558,7 @@ async function api(req, res, url) {
     const v = venueById(body.venueId);
     if (!v || !['yes', 'slowing', 'busier'].includes(body.state)) return send(res, 400, { error: 'bad pulse' });
     db.pulses.push({ id: randId('pl'), venueId: v.id, uHash: id.uHash, ts: now(), state: body.state });
+    invalidateState();
     saveSnapshotSoon();
     return send(res, 200, { ok: true, venue: venueSnapshot(v, now()) });
   }
@@ -594,6 +617,7 @@ async function api(req, res, url) {
       note: (typeof body.note === 'string' ? body.note.trim().slice(0, 500) : '') || null,
       confidence, mediaId: saved.entry.id, reporter,
     });
+    invalidateState();
     const badges = refreshBadges(u).map((b) => b.label);
     saveSnapshotSoon();
     const after = venueSnapshot(v, now());
@@ -865,6 +889,9 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
+  // warm the /api/state cache right away so the very first app open is instant,
+  // not stuck behind a cold full re-score
+  setImmediate(() => { try { buildStateJSON(); } catch (e) {} });
   console.log(`\n  🔴 PARTY RADAR running → http://localhost:${PORT}`);
   console.log(process.env.RESEND_API_KEY
     ? `  ✉️  Email: LIVE via Resend (from ${process.env.MAIL_FROM || 'onboarding@resend.dev'})\n`

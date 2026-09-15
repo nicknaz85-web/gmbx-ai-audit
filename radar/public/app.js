@@ -1016,8 +1016,10 @@ function bHash(s) { let h = 5381; s = String(s); for (let i = 0; i < s.length; i
 function venueBlurb(v) {
   const kindWord = { Club: 'nightclub', Bar: 'cocktail bar', Rooftop: 'rooftop bar', 'Wine Bar': 'wine bar', Pub: 'pub', Venue: 'live-music venue' }[v.kind] || (v.category === 'Dancing' ? 'club' : 'bar');
   const g = v.lgbtq ? 'LGBTQ+ ' : '';
-  const music = (v.music && typeof v.music === 'string' && v.music.toLowerCase() !== 'mixed') ? v.music
-    : (v.musicHint && typeof v.musicHint === 'string' ? v.musicHint : null);
+  // Use the DETERMINISTIC typical genre (musicHint) for the description, never the
+  // live report consensus (v.music) — otherwise the blurb changed every time you
+  // reopened a venue as reports aged in and out. Genre is a stable venue identity.
+  const music = (v.musicHint && typeof v.musicHint === 'string' && v.musicHint.toLowerCase() !== 'mixed') ? v.musicHint : null;
   const ch = closeHour24(v);
   const lateNight = ch != null && ch >= 25; // closes 1 AM or later
   const dress = v.dress && v.dress.code ? v.dress.code : null;
@@ -1139,8 +1141,8 @@ function renderVenue(v) {
         <div class="vs">${v.open === false ? 'closed now' : (v.queueEstimated ? 'estimated · varies by night' : 'reported')}</div></div>
       <div class="stat"><div class="k">Entry</div><div class="v">${entryText(v)}</div>
         ${v.special ? `<div class="vs c-busy">${esc(v.special)}</div>` : `<div class="vs">${v.entryEstimated ? 'typical · varies by night' : 'reported'}</div>`}</div>
-      <div class="stat"><div class="k">Music</div><div class="v" style="font-size:15px">${esc(v.music || v.musicHint || 'Mixed')}</div>
-        <div class="vs">${v.music ? (v.musicHint && v.musicHint !== v.music ? 'reported · usually ' + esc(v.musicHint) : 'reported') : 'typical'}</div></div>
+      <div class="stat"><div class="k">Music</div><div class="v" style="font-size:15px">${esc(v.musicHint || v.music || 'Mixed')}</div>
+        <div class="vs">typical genre</div></div>
       <div class="stat"><div class="k">Activity</div><div class="v">${v.recentSignals}</div>
         <div class="vs">recent signals${v.lastReportAgeMin != null ? ` · report ${ago(v.lastReportAgeMin)} ago` : ''}</div></div>
     </div>
