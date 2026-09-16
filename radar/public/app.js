@@ -204,7 +204,7 @@ class RadarMap {
     this.map.on('moveend', () => { this._syncSoon(); if (typeof renderFilters === 'function') renderFilters(); });
     this.map.on('zoomend', () => this._syncSoon());
     // hide far-side markers live while spinning the globe (no back-through flashing)
-    this.map.on('move', () => this._cullBackface());
+    this.map.on('move', () => this._scheduleCull());
     // safety net: only drop to the simple map when WebGL genuinely isn't available.
     // A slow tile/style load must NOT blank the map (that caused light mode to show
     // an empty canvas) — if WebGL works we keep waiting for GL to render.
@@ -412,11 +412,14 @@ class RadarMap {
       if (clusterMode) {
         const inView = this._inViewFn();
         const centers = this._cityCenters();               // fixed per-city anchors + totals
-        const g = {};
-        for (const v of this.venues) {                     // count ALL matching venues per city
-          if (!venueMatches(v)) continue;
-          const c = v.city || '?';
-          g[c] = (g[c] || 0) + 1;                          // stable count, not viewport-dependent
+        // per-city counts only change when the filter/search changes — cache them so
+        // panning/zooming doesn't re-scan all venues on every move.
+        const ckey = (S.filter || 'all') + '|' + (S.query || '');
+        let g = this._cityCountCache;
+        if (!g || this._cityCountKey !== ckey) {
+          g = {};
+          for (const v of this.venues) { if (!venueMatches(v)) continue; const c = v.city || '?'; g[c] = (g[c] || 0) + 1; }
+          this._cityCountCache = g; this._cityCountKey = ckey;
         }
         for (const c in g) {
           const ctr = centers[c];
@@ -425,6 +428,16 @@ class RadarMap {
           if (!this._onFrontHemisphere(ctr)) continue;     // far side of the globe → skip
           const id = 'city_' + c;
           wantC[id] = { id, name: c, n: g[c], center: ctr, members: 1 };
+        }
+        // Keep the zoomed-OUT world/continental view SMOOTH: cap how many bubbles
+        // render at once, keeping the biggest cities (most venues). Zoomed further
+        // in, fewer cities are on screen so the cap rarely bites — but a full globe
+        // shows ~40 bubbles instead of 200+, which is what made spinning it stutter.
+        const cap = z < 3.2 ? 40 : z < 4.5 ? 70 : z < 6 ? 130 : 400;
+        const ids = Object.keys(wantC);
+        if (ids.length > cap) {
+          ids.sort((a, b) => wantC[b].n - wantC[a].n);
+          for (let i = cap; i < ids.length; i++) delete wantC[ids[i]];
         }
       }
       for (const id of Object.keys(this._clusterById)) {
@@ -482,16 +495,33 @@ class RadarMap {
       return cosd > 0.12; // angle < ~83° from the centre → on the visible face
     } catch (e) { return true; }
   }
-  // Cheap per-frame hide of markers on the globe's far side while spinning/panning,
-  // so they never flash through. Runs on 'move'; only does work at globe zoom.
+  // rAF-throttled so many 'move' events in one frame cost a single cull pass.
+  _scheduleCull() {
+    if (this._cullRAF) return;
+    this._cullRAF = requestAnimationFrame(() => { this._cullRAF = null; this._cullBackface(); });
+  }
+  // Hide markers on the globe's far side while spinning/panning so they never flash
+  // through. The camera centre + its trig are computed ONCE (not per marker), which
+  // is what keeps a world full of bubbles smooth to spin.
   _cullBackface() {
     if (!this.map) return;
+    const clusters = this._clusterById || {}, pins = this._markerById || {};
     const globe = this.map.getZoom() < 5.5;
-    const all = Object.values(this._clusterById || {}).concat(Object.values(this._markerById || {}));
-    for (const m of all) {
-      const el = m.getElement(); if (!el) continue;
-      el.style.visibility = (globe && !this._onFrontHemisphere({ lat: m._lat, lng: m._lng })) ? 'hidden' : '';
+    if (!globe) { // flat/zoomed-in: clear any leftover hidden state, nothing to cull
+      for (const id in clusters) { const el = clusters[id].getElement(); if (el && el.style.visibility) el.style.visibility = ''; }
+      for (const id in pins) { const el = pins[id].getElement(); if (el && el.style.visibility) el.style.visibility = ''; }
+      return;
     }
+    const c = this.map.getCenter(), R = Math.PI / 180;
+    const sLat = Math.sin(c.lat * R), cLat = Math.cos(c.lat * R), cLng = c.lng;
+    const cull = (obj) => {
+      for (const id in obj) {
+        const m = obj[id], el = m.getElement(); if (!el) continue;
+        const cosd = sLat * Math.sin(m._lat * R) + cLat * Math.cos(m._lat * R) * Math.cos((m._lng - cLng) * R);
+        el.style.visibility = cosd > 0.12 ? '' : 'hidden';
+      }
+    };
+    cull(clusters); cull(pins);
   }
   _mkInner(root) { return root && root.querySelector('.pin, .cl-in'); }
   _fadeIn(root) {
