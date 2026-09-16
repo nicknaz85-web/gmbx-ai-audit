@@ -186,7 +186,7 @@ class RadarMap {
     let _c0 = [23.727, 37.978], _z0 = 13;
     try {
       const s = (typeof loadLoc === 'function') ? loadLoc() : null;
-      if (s && !s.skip && typeof s.lat === 'number' && typeof s.lng === 'number') { _c0 = [s.lng, s.lat]; _z0 = 12.5; }
+      if (s && !s.skip && typeof s.lat === 'number' && typeof s.lng === 'number') { _c0 = [s.lng, s.lat]; _z0 = 11; }
     } catch (e) {}
     this.map = new maplibregl.Map({
       container: 'map',
@@ -583,7 +583,7 @@ class RadarMap {
     if (S.userLoc && S._rememberFly) {
       S._rememberFly = false;
       const t = S._flyTarget || S.userLoc;
-      this.map.jumpTo({ center: [t.lng, t.lat], zoom: 12.5 }); // instant, no animation
+      this.map.jumpTo({ center: [t.lng, t.lat], zoom: 11 }); // instant, no animation — full-city view
     } else if (!remembered) {
       this.fit(true); // no remembered spot → show the whole scene
     }
@@ -1857,11 +1857,16 @@ function recenterToMe() {
   if (S.userLoc) {
     // fly to the known spot IMMEDIATELY (no waiting on GPS)…
     map.flyToLatLng(S.userLoc.lat, S.userLoc.lng, 14);
-    // …then quietly refresh the fix in the background and nudge if it moved
+    // …then quietly refresh the fix in the background and nudge if it moved — but
+    // ONLY when location is already granted, so the recenter button never triggers
+    // a permission prompt.
     if (S._userIsGps) {
-      getPosition({ enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 }).then((p) => {
-        const loc = { lat: p.coords.latitude, lng: p.coords.longitude };
-        S.userLoc = loc; map.setUserLocation(loc); map.flyToLatLng(loc.lat, loc.lng, 14); updateChrome();
+      checkGeoPermission().then((st) => {
+        if (st !== 'granted') return;
+        getPosition({ enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 }).then((p) => {
+          const loc = { lat: p.coords.latitude, lng: p.coords.longitude };
+          S.userLoc = loc; map.setUserLocation(loc); map.flyToLatLng(loc.lat, loc.lng, 14); updateChrome();
+        }).catch(() => {});
       }).catch(() => {});
     }
   } else {
@@ -2905,6 +2910,9 @@ function initUI() {
 }
 
 initUI();
+// Resolve location RIGHT AWAY (from the saved fix) so the user's pin appears
+// immediately, instead of waiting for the first /api/state fetch to come back.
+if (!S.booted) { S.booted = true; bootLocation(); }
 refresh();
 setInterval(refresh, 20000);
 window.rowClick = rowClick;
