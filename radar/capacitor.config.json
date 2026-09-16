@@ -15,6 +15,9 @@
       "launchAutoHide": true,
       "backgroundColor": "#ffffff",
       "showSpinner": false
+    },
+    "SystemBars": {
+      "insetsHandling": "disable"
     }
   }
 }

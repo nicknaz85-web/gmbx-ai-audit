@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App chrome background shown behind the WebView in the system-bar inset
+         regions under edge-to-edge (matches the app's dark map/header). -->
+    <color name="app_bg">#0F0F16</color>
+</resources>
