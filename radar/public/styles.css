@@ -61,7 +61,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .logo-mark{width:16px;height:16px;border-radius:50% 50% 50% 0;background:var(--primary);transform:rotate(45deg);flex-shrink:0}
 .logo-mascot{height:58px;width:auto;max-width:60vw;object-fit:contain;display:block}
 .logo-fallback{font-size:18px;font-weight:700;color:var(--ink);letter-spacing:.2px}
-.appbar-actions{position:absolute;right:10px;top:var(--sat);bottom:0;margin:auto 0;height:40px;z-index:3;display:flex;align-items:center;gap:4px}
+.appbar-actions{position:absolute;right:10px;top:var(--sat);bottom:0;margin:auto 0;height:40px;transform:translateY(3px);z-index:3;display:flex;align-items:center;gap:4px}
 .ab-ic{position:relative;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink2)}
 .ab-ic:active{background:var(--surface-2)}
 .ab-ic svg{width:23px;height:23px}
@@ -646,9 +646,10 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 }
 .fchip.active { background: var(--primary); }
 
-/* 3 · Motion: springy-but-graceful sheet/card entrance (subtle overshoot,
-   as if it carried momentum up into place). */
-.sheet { transition: transform .42s cubic-bezier(.32,1.28,.42,1); }
+/* 3 · Motion: graceful sheet/card entrance. The sheet slides with a SMOOTH
+   decelerate (no overshoot) — an overshoot lifts its bottom edge and briefly
+   reveals the map behind it ("glitch from behind"). GPU-hinted for smoothness. */
+.sheet { transition: transform .34s cubic-bezier(.22,.61,.36,1); will-change: transform; }
 .venue-card { animation: appleUp .44s cubic-bezier(.32,1.28,.42,1); }
 @keyframes appleUp { from { transform: translateY(14%); opacity: .6; } to { transform: translateY(0); opacity: 1; } }
 .overlay-scrim { animation: fade .28s ease; }
