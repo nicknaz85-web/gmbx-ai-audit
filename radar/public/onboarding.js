@@ -193,29 +193,35 @@
   }));
 
   // ---- real Google sign-in ----
-  // In the packaged app this uses the NATIVE Capacitor GoogleAuth plugin: it returns
-  // a Google ID token, which we send to /api/auth/google. The server verifies it and
+  // In the packaged app this uses the native @capgo SocialLogin plugin: it returns a
+  // Google ID token, which we send to /api/auth/google. The server verifies it and
   // creates/links the account, handing back our own session token + saved profile —
   // so a Google user is a first-class account (profile save/restore/delete all work).
+  let _slReady = false;
   async function googleSignIn() {
-    const GA = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.GoogleAuth;
-    if (!GA) { // web build (no native plugin) — fall back to the email flow
+    const SL = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.SocialLogin;
+    if (!SL) { // web build (no native plugin) — fall back to the email flow
       toast('Open the Clubbit app to use Google — signing in with email here');
       showAuthStep('authEmail', '#emailInput');
       return;
     }
-    let gi;
+    let idToken, prof;
     try {
-      try { if (GA.initialize) GA.initialize({ clientId: GOOGLE_CLIENT_ID, scopes: ['profile', 'email'], grantOfflineAccess: false }); } catch (e) {}
-      gi = await GA.signIn();
+      if (!_slReady) { await SL.initialize({ google: { webClientId: GOOGLE_CLIENT_ID, mode: 'online' } }); _slReady = true; }
+      const res = await SL.login({ provider: 'google', options: { scopes: ['email', 'profile'], forceRefreshToken: false } });
+      const r = (res && res.result) ? res.result : res;
+      idToken = r && (r.idToken || (r.authentication && r.authentication.idToken));
+      prof = r && r.profile;
     } catch (e) { toast('Google sign-in cancelled'); return; }
-    const idToken = gi && gi.authentication && gi.authentication.idToken;
     if (!idToken) { toast('Google sign-in didn\'t complete — try again'); return; }
     const { ok, data } = await post('/api/auth/google', { idToken });
     if (!ok) { toast((data && data.error) || 'Google sign-in failed — try again'); return; }
     // carry Google's name/photo into onboarding for brand-new users
-    if (gi.givenName && !D.firstName) D.firstName = gi.givenName;
-    if (gi.imageUrl && !D.profilePhoto) { D.googlePhoto = gi.imageUrl; D.profilePhoto = gi.imageUrl; }
+    if (prof) {
+      const gname = prof.givenName || (prof.name ? String(prof.name).split(' ')[0] : '');
+      if (gname && !D.firstName) D.firstName = gname;
+      if (prof.imageUrl && !D.profilePhoto) { D.googlePhoto = prof.imageUrl; D.profilePhoto = prof.imageUrl; }
+    }
     finishGoogleAuth(data);
   }
 
