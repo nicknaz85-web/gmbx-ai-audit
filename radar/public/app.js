@@ -181,10 +181,17 @@ class RadarMap {
   _initMap() {
     // keyless OpenFreeMap vector basemap that follows the app theme: "dark" in dark
     // mode, light "positron" in light mode — MapLibre GL renders it.
+    // Open straight on the user's LAST known spot (read synchronously from
+    // localStorage) so the map renders there immediately — no Athens-then-fly wait.
+    let _c0 = [23.727, 37.978], _z0 = 13;
+    try {
+      const s = (typeof loadLoc === 'function') ? loadLoc() : null;
+      if (s && !s.skip && typeof s.lat === 'number' && typeof s.lng === 'number') { _c0 = [s.lng, s.lat]; _z0 = 12.5; }
+    } catch (e) {}
     this.map = new maplibregl.Map({
       container: 'map',
       style: mapStyleFor(currentTheme()),
-      center: [23.727, 37.978], zoom: 13, minZoom: 1, maxZoom: 18,
+      center: _c0, zoom: _z0, minZoom: 1, maxZoom: 18,
       attributionControl: false, dragRotate: false, pitchWithRotate: false,
       renderWorldCopies: true,
     });
@@ -567,12 +574,19 @@ class RadarMap {
     if (this.map && !this._ready) return; // wait for the GL map to load
     if (!this.bounds && this.map) return;
     this._camDone = true;
+    // The map already OPENS at the remembered spot (set in the constructor), so we
+    // never fly on launch. Just drop the user dot, and correct the centre instantly
+    // if a remembered target exists but the map happened to start on the default.
+    const saved = (typeof loadLoc === 'function') ? (() => { try { return loadLoc(); } catch (e) { return null; } })() : null;
+    const remembered = saved && !saved.skip && typeof saved.lat === 'number' && typeof saved.lng === 'number';
+    if (S.userLoc && S._userIsGps) this.setUserLocation(S.userLoc);
     if (S.userLoc && S._rememberFly) {
       S._rememberFly = false;
-      if (S._userIsGps) this.setUserLocation(S.userLoc);
       const t = S._flyTarget || S.userLoc;
-      this.flyToLatLng(t.lat, t.lng, 12.5);
-    } else this.fit(true);
+      this.map.jumpTo({ center: [t.lng, t.lat], zoom: 12.5 }); // instant, no animation
+    } else if (!remembered) {
+      this.fit(true); // no remembered spot → show the whole scene
+    }
   }
   // lat/lng -> screen pixels (via MapLibre, or a linear fallback within the stage)
   proj(coords) {
@@ -1773,7 +1787,7 @@ async function bootLocation() {
   const saved = loadLoc();
   if (saved) {
     if (saved.skip) return; // remembered "browse the map"
-    if (saved.mode === 'gps') { S.userLoc = { lat: saved.userLat, lng: saved.userLng }; S._userIsGps = true; S._flyTarget = { lat: saved.lat, lng: saved.lng }; S.locLabel = saved.label; S._rememberFly = true; return; }
+    if (saved.mode === 'gps') { S.userLoc = { lat: saved.userLat, lng: saved.userLng }; S._userIsGps = true; S._flyTarget = { lat: saved.lat, lng: saved.lng }; S.locLabel = saved.label; S._rememberFly = true; try { if (typeof map !== 'undefined' && map) map.setUserLocation(S.userLoc); } catch (e) {} return; }
     if (saved.mode === 'gps-allowed') { S._userIsGps = true; silentGps(); return; } // allowed before, no fix cached yet
     S.userLoc = { lat: saved.lat, lng: saved.lng }; S.locLabel = saved.label; S._rememberFly = true;
     return;
