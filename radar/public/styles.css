@@ -51,8 +51,9 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 
 /* ============================================================ TOP APP BAR */
 .appbar{position:absolute;top:0;left:0;right:0;z-index:24;overflow:hidden;
-  padding-top:var(--sat);background:var(--card);box-shadow:0 1px 3px rgba(60,64,67,.15)}
-.appbar-scene{display:block;width:100%;height:auto;max-height:84px;object-fit:contain;cursor:pointer}
+  padding-top:var(--sat);min-height:calc(var(--sat) + 64px);display:flex;align-items:center;
+  background:var(--card);box-shadow:0 1px 3px rgba(60,64,67,.15)}
+.appbar-scene{display:block;width:100%;height:auto;max-height:84px;object-fit:contain;cursor:pointer;flex:0 0 auto}
 .avatar{position:absolute;left:12px;top:var(--sat);bottom:0;margin:auto 0;z-index:3;
   width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   font-size:19px;background:var(--avatar-bg);box-shadow:0 0 0 2px var(--primary),0 0 0 4px #fff}
