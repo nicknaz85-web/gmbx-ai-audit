@@ -106,7 +106,7 @@ function ianaFor(city) {
   if (CITY_IANA[city]) return CITY_IANA[city];
   if (EEST_CITIES.has(city)) return 'Europe/Athens';
   if (WEST_CITIES.has(city)) return 'Europe/London';
-  return 'Europe/Berlin'; // default: central-European venues (CET/CEST)
+  return null; // unknown city — the caller estimates the offset from coordinates
 }
 const _offCache = new Map();
 function offsetForZone(zone) {
@@ -127,14 +127,36 @@ function offsetForZone(zone) {
   _offCache.set(key, off);
   return off;
 }
-export function cityTz(city) {
-  const off = offsetForZone(ianaFor(city));
-  if (off != null) return off;
-  // fallback to the static tables if Intl is unavailable
+export function cityTz(city, coords) {
+  const zone = ianaFor(city);
+  if (zone) { const off = offsetForZone(zone); if (off != null) return off; }
+  // static fallback tables (Intl unavailable, or a listed city)
   if (CITY_OFFSET[city] !== undefined) return CITY_OFFSET[city];
   if (EEST_CITIES.has(city)) return 3;
   if (WEST_CITIES.has(city)) return 1;
+  // Unknown city → pick a representative IANA zone from its LONGITUDE and read the
+  // real (DST-correct) offset. Far better than assuming central Europe: a Colombian
+  // or US venue shows its own local time, while European venues still get CET/EET
+  // with DST — so it never falsely flags a nearby city as a different timezone.
+  if (coords && typeof coords.lng === 'number' && isFinite(coords.lng)) {
+    const off = offsetForZone(zoneForLng(coords.lng));
+    if (off != null) return off;
+  }
   return 2;
+}
+// Representative, DST-aware IANA zone for a longitude band (used only when a city
+// isn't in the tables above). Not exact at zone borders, but right to ~1 hour.
+function zoneForLng(lng) {
+  const BANDS = [
+    [-180, -155, 'Pacific/Honolulu'], [-155, -128, 'America/Anchorage'], [-128, -114, 'America/Los_Angeles'],
+    [-114, -101, 'America/Denver'], [-101, -86, 'America/Chicago'], [-86, -67, 'America/New_York'],
+    [-67, -40, 'America/Sao_Paulo'], [-40, -22, 'Atlantic/Cape_Verde'], [-22, -7, 'Atlantic/Reykjavik'],
+    [-7, 7, 'Europe/London'], [7, 22, 'Europe/Berlin'], [22, 40, 'Europe/Athens'], [40, 52, 'Asia/Dubai'],
+    [52, 67, 'Asia/Karachi'], [67, 82, 'Asia/Kolkata'], [82, 100, 'Asia/Bangkok'], [100, 122, 'Asia/Shanghai'],
+    [122, 138, 'Asia/Tokyo'], [138, 160, 'Australia/Sydney'], [160, 180, 'Pacific/Auckland'],
+  ];
+  for (const [a, b, z] of BANDS) if (lng >= a && lng < b) return z;
+  return 'Europe/Berlin';
 }
 
 // Is this fundamentally a late-night club (weekend-led) vs an everyday bar?

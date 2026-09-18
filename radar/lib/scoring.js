@@ -348,8 +348,8 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     // The single-venue detail passes fullEvents so the card can list the whole week.
     tonight: upcomingFor(venue.id, venue.city, ref, !!opts.fullEvents),
     // the venue's own timezone context so the app can label foreign hours as local
-    tzOffset: cityTz(venue.city),
-    localTime: (() => { const ln = new Date(ref + cityTz(venue.city) * 3600 * 1000); let h = ln.getUTCHours(); const m = ln.getUTCMinutes(); return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; })(),
+    tzOffset: cityTz(venue.city, venue.coords),
+    localTime: (() => { const ln = new Date(ref + cityTz(venue.city, venue.coords) * 3600 * 1000); let h = ln.getUTCHours(); const m = ln.getUTCMinutes(); return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; })(),
     season: venue.season ? { label: seasonRange(venue.season) || 'Seasonal', reopen: openState.opensLabel || null, closed: !!openState.seasonalClosed } : null,
     google,
     googlePhoto: place?.googlePhoto || null,
@@ -428,7 +428,7 @@ function nearbyActivity(venue, ref) {
 // hour the venue is closed reads 0%, so the forecast never claims a shut room is
 // filling up. `place` carries the baked Google hours used by resolveOpen.
 function venueForecast(venue, currentEst, ref, place) {
-  const tz = cityTz(venue.city); // peakHour is LOCAL time, so read night-hour in the venue's tz
+  const tz = cityTz(venue.city, venue.coords); // peakHour is LOCAL time, so read night-hour in the venue's tz
   const shape = (ts) => 0.12 + 0.83 * nightCurve(nightHour(ts, tz), venue.peakHour, venue.spread);
   // anchor future hours to the live crowd level ONLY while the venue is open now;
   // if it's closed now, currentEst is 0 and would wrongly drag the curve down, so
@@ -581,7 +581,7 @@ export function areaSnapshot(hood, ref = now()) {
   const surging = snaps.filter((s) => ['surging', 'exploding'].includes(s.momentum.state)).length;
   const heating = snaps.filter((s) => s.momentum.state === 'heating').length;
   // district peak window from its busiest venues' forecasts (labels in local time)
-  const htz = cityTz(hood.city);
+  const htz = cityTz(hood.city, hood.center);
   const peaks = snaps.map((s) => s.forecast.peakInMin).sort((a, b) => a - b);
   const peakStart = fmtHour(nightHour(ref + (peaks[0] ?? 30) * MIN, htz));
   const peakEnd = fmtHour(nightHour(ref + (peaks[peaks.length - 1] ?? 120) * MIN + 60 * MIN, htz));
