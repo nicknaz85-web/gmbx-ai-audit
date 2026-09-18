@@ -205,6 +205,13 @@ class RadarMap {
     this.map.on('idle', ready); // fires after first real render (self-heals a 0-size start)
     this.map.on('error', (e) => console.warn('map error', e && e.error && e.error.message));
     this.map.on('click', (e) => this._tap(e.point.x, e.point.y));
+    // If the user pans/zooms the map themselves (a gesture has an originalEvent;
+    // programmatic camera moves don't), never auto-recenter to their pin afterwards —
+    // leave them where they chose to look.
+    const userGesture = (e) => { if (e && e.originalEvent) this._userMoved = true; };
+    this.map.on('dragstart', userGesture);
+    this.map.on('zoomstart', userGesture);
+    this.map.on('rotatestart', userGesture);
     // Smoothness: don't rebuild markers on every zoom frame — MapLibre repositions
     // the existing pins on the GPU during a gesture (smooth). Only recompute the
     // marker set (cull / cluster-switch / de-overlap) once the gesture settles.
@@ -586,20 +593,27 @@ class RadarMap {
   _initialCamera() {
     if (this._camDone) return;
     if (this.map && !this._ready) return; // wait for the GL map to load
-    if (!this.bounds && this.map) return;
-    this._camDone = true;
-    // The map already OPENS at the remembered spot (set in the constructor), so we
-    // never fly on launch. Just drop the user dot, and correct the centre instantly
-    // if a remembered target exists but the map happened to start on the default.
+    // The user dot and the remembered-centre jump don't need venue data, so they must
+    // NOT wait on `this.bounds` (which only exists after /api/state loads — up to a
+    // cold-start 30s). Waiting caused the map to suddenly jump to the pin long after
+    // launch. Only the whole-scene `fit()` fallback needs bounds; defer just that.
+    if (S.userLoc && S._userIsGps) this.setUserLocation(S.userLoc);
+    // Once the user has panned/zoomed themselves, honour it — don't recenter to the pin.
+    if (this._userMoved) { this._camDone = true; S._rememberFly = false; return; }
     const saved = (typeof loadLoc === 'function') ? (() => { try { return loadLoc(); } catch (e) { return null; } })() : null;
     const remembered = saved && !saved.skip && typeof saved.lat === 'number' && typeof saved.lng === 'number';
-    if (S.userLoc && S._userIsGps) this.setUserLocation(S.userLoc);
     if (S.userLoc && S._rememberFly) {
+      this._camDone = true;
       S._rememberFly = false;
       const t = S._flyTarget || S.userLoc;
       this.map.jumpTo({ center: [t.lng, t.lat], zoom: 11 }); // instant, no animation — full-city view
-    } else if (!remembered) {
-      this.fit(true); // no remembered spot → show the whole scene
+    } else if (remembered) {
+      this._camDone = true; // map already opened on the remembered spot; nothing to do
+    } else {
+      // no remembered spot → show the whole scene, but that needs venue bounds
+      if (!this.bounds && this.map) return; // try again once data arrives
+      this._camDone = true;
+      this.fit(true);
     }
   }
   // lat/lng -> screen pixels (via MapLibre, or a linear fallback within the stage)
@@ -918,7 +932,9 @@ async function openVenue(id) {
     const v = await API.venue(id);
     if (S.activeVenue !== id) return;
     S.activeVenueData = v; // full detail incl. media + full events
-    renderVenue(v);
+    // quiet upgrade — don't replay the entrance animation if the cached card is
+    // already showing (that re-animation is the "it refreshes again" the user saw)
+    renderVenue(v, { noAnim: shown });
   } catch (e) { if (!shown) $('#venueCard').innerHTML = '<div class="empty">Couldn’t load this venue — try again.</div>'; }
 }
 function closeVenue() { $('#venueOverlay').hidden = true; S.activeVenue = null; S.activeVenueData = null; map.selected = null; map.refreshSelection && map.refreshSelection(); }
@@ -1140,7 +1156,11 @@ function venueTagline(v) {
 }
 window.vcMore = (btn) => { const p = btn.previousElementSibling; if (!p) return; const open = p.hasAttribute('hidden'); if (open) p.removeAttribute('hidden'); else p.setAttribute('hidden', ''); btn.textContent = open ? 'Less' : 'More'; };
 
-function renderVenue(v) {
+function renderVenue(v, opts) {
+  // opts.noAnim: the venue is already on screen (this is the quiet upgrade to the
+  // full payload) — render without replaying the entrance animation so it doesn't
+  // look like the card "refreshed".
+  const still = !!(opts && opts.noAnim);
   const band = bandKey(v.radar.score);
   const bc = BAND_COLOR[band];
   const mc = momClass(v.momentum.state);
@@ -1166,7 +1186,7 @@ function renderVenue(v) {
   // shown in the VENUE's local time (so "opens 11 PM Fri" is the club's time)
   const userOff = -new Date().getTimezoneOffset() / 60;
   const tzNote = (v.tzOffset != null && v.hours && Math.round(v.tzOffset) !== Math.round(userOff))
-    ? `<div class="vc-tznote"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Hours shown in the venue's local time<br>It's ${esc(v.localTime || '')} there now</span></div>`
+    ? `<div class="vc-tznote"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>It's ${esc(v.localTime || '')} there</span></div>`
     : '';
   S.cardEvents = v.tonight || null; // full week's list for the events modal
   const eventBlock = v.tonight ? (() => {
@@ -1183,7 +1203,8 @@ function renderVenue(v) {
       : `<a class="vc-event"${ev.url ? ` href="${esc(ev.url)}" target="_blank" rel="noopener"` : ''}>${inner}</a>`;
   })() : '';
 
-  $('#venueCard').innerHTML = `
+  const _card = $('#venueCard'); _card.classList.toggle('vc-still', still);
+  _card.innerHTML = `
   <div class="vc-grip"><span></span></div>
   <button class="vc-close" onclick="closeVenue()">✕</button>
   <div class="vc-hero">
@@ -1724,10 +1745,44 @@ function venueMatches(v) {
   return fuzzyHit(q, hay);
 }
 
+// ---- instant-open cache ---------------------------------------------------
+// The backend can take ~30s to answer the first /api/state (a cold Render dyno),
+// during which the map would sit empty. So we keep a COMPACT copy of the last
+// venues in localStorage and paint them immediately on launch, then quietly swap
+// in fresh data when the network returns. Only the fields the map + list need are
+// stored (no reviews/photos/hours), so it stays small enough to never hit quota.
+const CACHE_KEY = 'clubbit:state:v1';
+const CACHE_MAX_AGE = 12 * 3600 * 1000; // 12h — stale enough is far better than blank
+function cacheState(d) {
+  try {
+    if (!d || !d.venues) return;
+    const venues = d.venues.map((v) => ({
+      id: v.id, name: v.name, neighborhood: v.neighborhood, neighborhoodName: v.neighborhoodName,
+      city: v.city, category: v.category, kind: v.kind, coords: v.coords, verified: v.verified,
+      lgbtq: v.lgbtq, hot: v.hot, radar: v.radar, momentum: v.momentum, vibe: v.vibe, pct: v.pct,
+      open: v.open, photo: v.photo || null,
+    }));
+    const slim = { generatedAt: d.generatedAt, bounds: d.bounds, city: d.city, venues, areas: d.areas, clusters: d.clusters };
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), d: slim }));
+  } catch (e) { /* private mode / quota — just skip caching */ }
+}
+function bootFromCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY); if (!raw) return false;
+    const { t, d } = JSON.parse(raw);
+    if (!d || !d.venues || !d.venues.length || Date.now() - t > CACHE_MAX_AGE) return false;
+    S.data = d; S._cachePaint = true;
+    map.setData(d); // pins + clusters appear instantly; camera can settle now, not in 30s
+    renderFilters();
+    if (S.tab === 'near' || S.tab === 'areas' || S.tab === 'feed') renderSheet();
+    updateChrome();
+    return true;
+  } catch (e) { return false; }
+}
 async function refresh() {
   try {
     const d = await API.state();
-    S.data = d;
+    S.data = d; S._cachePaint = false;
     if (!S.booted) { S.booted = true; bootLocation(); }
     map.setData(d);
     renderFilters();
@@ -1735,6 +1790,7 @@ async function refresh() {
     // the Profile view (its own tab) with the auto-refresh.
     if (S.tab === 'near' || S.tab === 'areas' || S.tab === 'feed') renderSheet();
     updateChrome();
+    cacheState(d);
   } catch (e) { console.error(e); }
 }
 let _rt, _searchFlyT;
@@ -1816,7 +1872,11 @@ function applyGps(loc, opts) {
   if (nearest && nearest.dkm > 60) { t = { lat: nearest.v.coords.lat, lng: nearest.v.coords.lng }; label = 'Nearest scene · ' + cityOf(nearest.v); z = 12; }
   S.locLabel = label;
   saveLoc({ lat: t.lat, lng: t.lng, label, mode: 'gps', userLat: loc.lat, userLng: loc.lng });
-  try { map.flyToLatLng(t.lat, t.lng, z); } catch (e) {}
+  // On the automatic on-load GPS fix, don't yank the camera if the user has already
+  // panned/zoomed while things were loading — just leave them where they're looking.
+  const yank = !((opts && opts.auto) && map && map._userMoved);
+  S._rememberFly = false; // GPS has resolved; the pending remembered jump is moot
+  if (yank) { try { map.flyToLatLng(t.lat, t.lng, z); } catch (e) {} }
   updateChrome();
   if (opts && opts.openSheet) { openSheet('near'); }
 }
@@ -1850,7 +1910,7 @@ async function bootLocation() {
 // fix is fine for "near you"); a failure is harmless — permission stays remembered.
 function silentGps() {
   getPosition({ enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 })
-    .then((p) => applyGps({ lat: p.coords.latitude, lng: p.coords.longitude }))
+    .then((p) => applyGps({ lat: p.coords.latitude, lng: p.coords.longitude }, { auto: true }))
     .catch(() => {});
 }
 function skipGate() { saveLoc({ skip: true }); hideGate(); }
@@ -2952,6 +3012,9 @@ initUI();
 // Resolve location RIGHT AWAY (from the saved fix) so the user's pin appears
 // immediately, instead of waiting for the first /api/state fetch to come back.
 if (!S.booted) { S.booted = true; bootLocation(); }
+// Paint the last-known venues instantly from cache so the map isn't empty while the
+// (possibly cold) backend answers; refresh() then swaps in the live data.
+bootFromCache();
 refresh();
 setInterval(refresh, 20000);
 window.rowClick = rowClick;

@@ -206,6 +206,14 @@ function invalidateState() { _stateAt = 0; } // mark stale; next request revalid
 // Build the /api/state JSON once and cache it. Heavy (re-scores every venue), so it
 // runs at most once per TTL and — via stale-while-revalidate below — never on a
 // user's critical path after the first build.
+// The /api/state list only needs the rating + placeId (for directions) from Google —
+// the full editorial `review` (pros/cons/summary, ~0.5MB across all venues) and the
+// unused Maps `url` (~0.35MB) belong to the venue-detail payload, not the map load.
+// Trimming them here cuts ~0.9MB off the initial download so venues appear faster.
+function gLite(g) {
+  if (!g || typeof g !== 'object') return g;
+  return { rating: g.rating, ratings: g.ratings, source: g.source, placeId: g.placeId };
+}
 function buildStateJSON() {
   // Live Google refresh (OFF unless GOOGLE_PLACES_KEY *and* PLACES_LIVE are set on
   // the server) runs here — at most once per rebuild (~1/12s), never per request —
@@ -221,7 +229,7 @@ function buildStateJSON() {
       fullness: s.fullness, recentSignals: s.recentSignals, entry: s.entry,
       entryLabel: s.entryLabel, currency: s.currency,
       source: s.source, special: s.special,
-      open: s.open, hours: s.hours, season: s.season, google: s.google, googlePhoto: s.googlePhoto,
+      open: s.open, hours: s.hours, season: s.season, google: gLite(s.google), googlePhoto: s.googlePhoto,
       expectedPeak: s.expectedPeak, dress: s.dress, instagram: s.instagram, tonight: s.tonight || null,
       photo: ((s.media || []).find((m) => m.type === 'image') || {}).url || null,
     };

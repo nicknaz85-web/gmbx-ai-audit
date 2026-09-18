@@ -611,6 +611,9 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .vc-body>*:nth-child(6){animation-delay:.23s}
 .vc-body>*:nth-child(n+7){animation-delay:.26s}
 @media (prefers-reduced-motion:reduce){.vc-body>*,.pr-mascot{animation:none}}
+/* quiet upgrade to full payload: no entrance replay (keep the idle bop for busy/packed) */
+#venueCard.vc-still .vc-body>*{animation:none}
+#venueCard.vc-still .pr-mascot:not(.m-busy):not(.m-packed){animation:none}
 
 /* ---- Instagram button on venue profile ---- */
 .btn-ig{width:100%;color:#fff;border:none;
