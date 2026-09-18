@@ -386,7 +386,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .dec-reasons li{font-size:13px;color:var(--ink2);display:flex;gap:8px;align-items:center}
 .dec-reasons li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--blue);flex-shrink:0}
 
-.vc-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.vc-actions{display:flex;flex-direction:column;gap:10px;margin-top:18px}
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:500;padding:13px;border-radius:24px;transition:opacity .12s}
 .btn:active{opacity:.85}
 .btn-primary{background:var(--blue);color:#fff}
@@ -570,6 +570,8 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 
 /* ---- About (short tags + More) and "What people say" chips ---- */
 .reviews{margin-top:14px}
+.about-line{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin:8px 0 0}
+.about-lab{font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--muted);flex:none}
 .about-tags{font-size:14px;font-weight:600;color:var(--ink);letter-spacing:.1px}
 .about-full{font-size:13.5px;color:var(--muted-foreground);line-height:1.5;margin:8px 0 0}
 .about-more{background:none;border:none;color:var(--primary);font-weight:600;font-size:12.5px;padding:6px 0 2px;cursor:pointer}
@@ -592,9 +594,10 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 
 /* CTA hierarchy: Instagram outlined + Save small, in one row under the primary */
 .vc-actrow{display:flex;gap:10px;margin-top:10px}
-.btn-ig-out{flex:1;background:transparent;border:1.5px solid color-mix(in oklab,#cc2366 55%,var(--line));color:var(--ink)}
+.vc-actrow>*{flex:1 1 0;min-width:0}
+.btn-ig-out{background:transparent;border:1.5px solid color-mix(in oklab,#cc2366 55%,var(--line));color:var(--ink)}
 .btn-ig-out svg{margin-right:4px;color:#cc2366}
-.btn-save2{flex:none;padding:0 16px;background:var(--card);border:1px solid var(--line);color:var(--ink)}
+.btn-save2{background:var(--card);border:1px solid var(--line);color:var(--ink)}
 .btn-save2.on{background:color-mix(in oklab,var(--primary) 12%,transparent);border-color:var(--primary);color:var(--primary);font-weight:600}
 
 /* Duolingo-smooth open: sections rise + fade in a gentle stagger */
