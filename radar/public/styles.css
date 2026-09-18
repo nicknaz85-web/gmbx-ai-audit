@@ -364,24 +364,26 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .owner-note{margin-top:14px;font-size:12px;color:var(--amber-d);background:#feefc3;border-radius:10px;padding:10px 12px}
 
 /* ===== Clubbit Forecast — bars + peak + recommendation as ONE component ===== */
-.forecast{margin-top:18px;border:1px solid color-mix(in oklab,var(--primary) 16%,var(--line));border-radius:16px;
+.forecast{margin-top:18px;border:1px solid color-mix(in oklab,var(--primary) 9%,var(--line));border-radius:16px;
   padding:13px 14px 15px;background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 7%,var(--card)),var(--card))}
 .forecast .section-h{margin:2px 2px 2px}
-.fc-bars{display:flex;align-items:flex-end;justify-content:center;gap:6px;height:96px;padding:12px 2px 0}
-.fc-col{flex:1 1 0;min-width:0;max-width:54px;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
-.fc-bar{width:100%;max-width:28px;min-height:6px;border-radius:9px 9px 4px 4px;transform-origin:bottom;
+/* few bars centre as a deliberate cluster; many bars fill the width — the per-column
+   max-width caps how wide 2–3 bars can spread so they never look sparse or stretched */
+.fc-bars{display:flex;align-items:flex-end;justify-content:center;gap:9px;height:96px;padding:12px 2px 0}
+.fc-col{flex:1 1 0;min-width:0;max-width:68px;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.fc-bar{width:100%;max-width:30px;min-height:6px;border-radius:9px 9px 4px 4px;transform-origin:bottom;
   background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 48%,transparent),color-mix(in oklab,var(--primary) 20%,transparent));
   animation:fcGrow .5s cubic-bezier(.2,.85,.3,1) both;animation-delay:calc(var(--i,0)*45ms)}
-.fc-pct{font-family:var(--mono);font-size:10px;color:var(--muted);font-weight:600;transition:color .3s}
-.fc-lab{font-size:9.5px;color:var(--faint);white-space:nowrap;font-weight:600}
+.fc-pct{font-family:var(--mono);font-size:10px;color:var(--ink2);font-weight:600;transition:color .3s}
+.fc-lab{font-size:9.5px;color:var(--muted);white-space:nowrap;font-weight:600}
 /* current hour — solid Clubbit purple */
 .fc-col.now .fc-bar{background:linear-gradient(180deg,var(--primary),color-mix(in oklab,var(--primary) 74%,#000))}
-.fc-col.now .fc-pct{color:color-mix(in oklab,var(--primary) 62%,var(--ink))}
-.fc-col.now .fc-lab{color:color-mix(in oklab,var(--primary) 58%,var(--ink));font-weight:800}
-/* peak hour — brighter with a soft lavender glow, still part of the same chart */
-.fc-col.peak .fc-bar{background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 88%,#fff 8%),color-mix(in oklab,var(--primary) 58%,transparent));
-  box-shadow:0 0 15px color-mix(in oklab,var(--primary) 42%,transparent),0 0 0 1px color-mix(in oklab,var(--primary) 34%,transparent)}
-.fc-col.peak .fc-pct{color:color-mix(in oklab,var(--primary) 58%,var(--ink));font-weight:700}
+.fc-col.now .fc-pct{color:color-mix(in oklab,var(--primary) 68%,var(--ink))}
+.fc-col.now .fc-lab{color:color-mix(in oklab,var(--primary) 62%,var(--ink));font-weight:800}
+/* peak hour — a touch brighter with a soft, premium lavender glow (not neon) */
+.fc-col.peak .fc-bar{background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 78%,#fff 4%),color-mix(in oklab,var(--primary) 50%,transparent));
+  box-shadow:0 0 9px color-mix(in oklab,var(--primary) 28%,transparent),0 0 0 1px color-mix(in oklab,var(--primary) 22%,transparent)}
+.fc-col.peak .fc-pct{color:color-mix(in oklab,var(--primary) 60%,var(--ink));font-weight:700}
 @keyframes fcGrow{from{transform:scaleY(.02);opacity:.35}to{transform:scaleY(1);opacity:1}}
 
 /* Expected peak — premium warm-gold highlight, reads as part of the forecast */
@@ -393,19 +395,19 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .peak-flag svg{color:var(--accent);flex:none;filter:drop-shadow(0 0 4px color-mix(in oklab,var(--accent) 45%,transparent))}
 .peak-flag b{color:color-mix(in oklab,var(--accent) 88%,var(--ink));font-weight:800;margin-left:2px}
 
-/* Recommendation — Clubbit tints, never traffic-light bright */
-.decision{margin-top:13px;border-radius:13px;padding:14px 15px}
+/* Recommendation — Clubbit tints, never traffic-light bright; tighter than before */
+.decision{margin-top:13px;border-radius:13px;padding:11px 14px}
 .decision.go{background:linear-gradient(180deg,color-mix(in oklab,var(--green) 15%,var(--card)),var(--card));border:1px solid color-mix(in oklab,var(--green) 28%,transparent)}
 .decision.wait{background:linear-gradient(180deg,color-mix(in oklab,var(--accent) 15%,var(--card)),var(--card));border:1px solid color-mix(in oklab,var(--accent) 26%,transparent)}
-.decision.your{background:var(--surface-2);border:1px solid var(--line)}
+.decision.your{background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 9%,var(--card)),var(--card));border:1px solid color-mix(in oklab,var(--primary) 19%,transparent)}
 .decision.closed{background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 13%,var(--card)),var(--card));border:1px solid color-mix(in oklab,var(--primary) 26%,transparent)}
-.dec-verdict{font-size:19px;font-weight:800;letter-spacing:.2px;display:flex;align-items:center;gap:9px}
+.dec-verdict{font-size:17px;font-weight:800;letter-spacing:.2px;display:flex;align-items:center;gap:8px}
 .decision.go .dec-verdict{color:color-mix(in oklab,var(--green) 62%,var(--ink))}
 .decision.wait .dec-verdict{color:color-mix(in oklab,var(--accent) 66%,var(--ink))}
-.decision.your .dec-verdict{color:var(--ink2)}
+.decision.your .dec-verdict{color:color-mix(in oklab,var(--primary) 44%,var(--ink))}
 .decision.closed .dec-verdict{color:color-mix(in oklab,var(--primary) 56%,var(--ink))}
-.dec-head{font-size:13px;color:var(--ink2);margin-top:3px}
-.dec-reasons{list-style:none;margin-top:11px;display:flex;flex-direction:column;gap:6px}
+.dec-head{font-size:13px;color:var(--ink2);margin-top:2px}
+.dec-reasons{list-style:none;margin-top:9px;display:flex;flex-direction:column;gap:5px}
 .dec-reasons li{font-size:13px;color:var(--ink2);display:flex;gap:8px;align-items:center}
 .dec-reasons li::before{content:"";width:5px;height:5px;border-radius:50%;background:color-mix(in oklab,var(--primary) 68%,transparent);flex-shrink:0}
 .decision.wait .dec-reasons li::before{background:color-mix(in oklab,var(--accent) 66%,transparent)}

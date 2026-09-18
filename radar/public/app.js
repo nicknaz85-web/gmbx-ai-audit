@@ -1261,7 +1261,7 @@ function renderVenue(v, opts) {
     ${v.dress ? `<div class="dress"><span class="dress-ic">👔</span><div class="dress-txt"><b>Dress code · ${esc(v.dress.code)}</b><div class="dress-tip">${esc(v.dress.tip)}</div></div></div>` : ''}
 
     ${(fcPts.length || dec) ? `<div class="forecast">
-      ${fcPts.length ? `<div class="section-h"><h3>Forecast</h3><span class="count">next 8 hours</span></div>
+      ${fcPts.length ? `<div class="section-h"><h3>Forecast</h3><span class="count">next ${fcPts.length} hour${fcPts.length === 1 ? '' : 's'}</span></div>
       <div class="fc-bars">
         ${fcPts.map((p, i) => `<div class="fc-col${p.mins === 0 ? ' now' : ''}${p.peak ? ' peak' : ''}" style="--i:${i}">
           <div class="fc-pct">${p.pct}%</div>

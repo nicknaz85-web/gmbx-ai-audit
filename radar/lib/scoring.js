@@ -319,8 +319,13 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
       decision.reasons = [`Open ${seasonRange(venue.season) || 'seasonally'} — reopens ${openState.opensLabel}`];
     } else {
       decision.headline = `Closed now · opens ${openState.opensLabel}`;
-      decision.reasons = [`opens around ${openState.opensLabel}`]
-        .concat(google?.rating ? [`★ ${google.rating} on Google`] : []);
+      // The opening time is already in the headline — don't repeat it as a bullet.
+      // Fill the reason space with genuinely useful facts we already have instead.
+      const cr = [];
+      if (openState.nextCloseLabel) cr.push(`Open till ${openState.nextCloseLabel}`);
+      if ((venue.price || 0) > 0) cr.push(`${entryRangeLabel(venue, consensus)} entry`);
+      if (google?.rating) cr.push(`★ ${google.rating} on Google`);
+      decision.reasons = cr.length ? cr : [`opens ${openState.opensLabel}`];
     }
   }
 
