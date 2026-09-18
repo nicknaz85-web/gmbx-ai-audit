@@ -1213,10 +1213,10 @@ function renderVenue(v) {
   </div>
 
   <div class="vc-body">
-    ${!closed ? `<button class="report-cta" onclick="startReport('${v.id}')">
+    <button class="report-cta" onclick="startReport('${v.id}')">
       <span class="rc-ic">⚡</span>
-      <span class="rc-txt"><b>I'm here — report the vibe</b><small>show everyone what it's like right now</small></span>
-      <span class="rc-go">›</span></button>` : ''}
+      <span class="rc-txt"><b>I'm here — report the vibe</b><small>${closed ? "let people know if it's actually open" : "show everyone what it's like right now"}</small></span>
+      <span class="rc-go">›</span></button>
     ${v.liveBusyness != null ? `<div class="live-busy"><span class="lb-dot"></span><b>${v.liveBusyness}%</b> ${v.liveSource === 'live' ? 'busy right now' : "typical for now"} · <span class="lb-src">BestTime</span></div>` : ''}
     <div class="stat-grid four">
       <div class="stat"><div class="k">How full</div><div class="v">${v.fullness.est}%</div>
