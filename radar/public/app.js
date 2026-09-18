@@ -1167,11 +1167,14 @@ function renderVenue(v, opts) {
   // decision + forecast are only in the full payload (not the cached state snapshot);
   // render those sections only when present so an instant cached card doesn't crash.
   const dec = v.decision || null;
-  const decClass = dec ? (dec.verdict === 'GO NOW' ? 'go' : dec.verdict === 'WAIT' ? 'wait' : 'your') : 'your';
+  const decClass = dec ? (dec.verdict === 'GO NOW' ? 'go' : dec.verdict === 'WAIT' ? 'wait' : dec.verdict === 'CLOSED' ? 'closed' : 'your') : 'your';
   const momPct = Math.min(50, Math.abs(v.momentum.M) * 1.6);
   const momDir = v.momentum.M >= 0;
   const fc = (v.forecast && v.forecast.points) || [];
-  const maxPct = Math.max(...fc.map(p => p.pct), 60);
+  // only the ACTUAL open session comes back now (no closed hours) — defend against any
+  // stale closed points, and let the tallest visible bar set the scale.
+  const fcPts = fc.filter((p) => p.open !== false);
+  const maxPct = Math.max(...fcPts.map(p => p.pct), 60);
   const srcLabel = { community: 'COMMUNITY', venue: 'VENUE UPDATE', estimate: 'ESTIMATE', live: 'LIVE', besttime: 'FOOT TRAFFIC', closed: 'CLOSED' }[v.source] || 'ESTIMATE';
   const closed = v.open === false;
   const gRating = v.google && v.google.rating
@@ -1256,21 +1259,20 @@ function renderVenue(v, opts) {
 
     ${v.dress ? `<div class="dress"><span class="dress-ic">👔</span><div class="dress-txt"><b>Dress code · ${esc(v.dress.code)}</b><div class="dress-tip">${esc(v.dress.tip)}</div></div></div>` : ''}
 
-    ${fc.length ? `<div class="forecast">
-      <div class="section-h"><h3>Forecast</h3><span class="count">next 8 hours</span></div>
+    ${(fcPts.length || dec) ? `<div class="forecast">
+      ${fcPts.length ? `<div class="section-h"><h3>Forecast</h3><span class="count">next 8 hours</span></div>
       <div class="fc-bars">
-        ${fc.map(p => `<div class="fc-col">
-          <div class="fc-pct">${p.open === false ? '·' : p.pct + '%'}</div>
-          <div class="fc-bar ${p.mins === 0 ? 'now' : ''}${p.open === false ? ' closed' : ''}" style="height:${p.open === false ? 6 : Math.max(8, p.pct / maxPct * 100)}%"></div>
+        ${fcPts.map((p, i) => `<div class="fc-col${p.mins === 0 ? ' now' : ''}${p.peak ? ' peak' : ''}" style="--i:${i}">
+          <div class="fc-pct">${p.pct}%</div>
+          <div class="fc-bar" style="height:${Math.max(6, Math.round(p.pct / maxPct * 100))}%"></div>
           <div class="fc-lab">${esc(p.label)}</div></div>`).join('')}
       </div>
-      ${v.expectedPeak ? `<div class="peak-flag">★ Expected peak <b style="margin-left:4px">${esc(v.expectedPeak)}</b></div>` : ''}
-    </div>` : ''}
-
-    ${dec ? `<div class="decision ${decClass}">
-      <div class="dec-verdict">${(dec.verdict === 'GO NOW' ? '✓ ' : dec.verdict === 'WAIT' ? '◷ ' : dec.verdict === 'CLOSED' ? '🌙 ' : '') + titleCase(dec.verdict)}</div>
-      <div class="dec-head">${esc(dec.headline)}</div>
-      <ul class="dec-reasons">${(dec.reasons || []).map(r => `<li>${esc(r)}</li>`).join('')}</ul>
+      ${v.expectedPeak ? `<div class="peak-flag"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M12 2.6l2.9 5.87 6.48.94-4.69 4.57 1.11 6.45L12 17.9l-5.79 3.05 1.1-6.45L2.63 9.94l6.48-.94z"/></svg>Expected peak <b>${esc(v.expectedPeak)}</b></div>` : ''}` : ''}
+      ${dec ? `<div class="decision ${decClass}">
+        <div class="dec-verdict">${(dec.verdict === 'GO NOW' ? '✓ ' : dec.verdict === 'WAIT' ? '◷ ' : dec.verdict === 'CLOSED' ? '🌙 ' : '') + titleCase(dec.verdict)}</div>
+        <div class="dec-head">${esc(dec.headline)}</div>
+        <ul class="dec-reasons">${(dec.reasons || []).map(r => `<li>${esc(r)}</li>`).join('')}</ul>
+      </div>` : ''}
     </div>` : ''}
 
     ${v._checkedIn ? `<div class="pulse-row"><span class="pq">Still popping?</span>

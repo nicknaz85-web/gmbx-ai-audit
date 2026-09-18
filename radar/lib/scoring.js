@@ -435,15 +435,35 @@ function venueForecast(venue, currentEst, ref, place) {
   // forecast the pure historical pattern instead.
   const openNow = resolveOpen(venue, ref, place).open;
   const offset = openNow ? (currentEst / 100 - shape(ref)) : 0;
-  // compact axis label ("11p", "3a", "12a") so 9 columns fit on a phone
+  // compact axis label ("11p", "3a", "12a") so the columns fit on a phone
   const shortHour = (ts) => { const h = ((Math.floor(nightHour(ts, tz)) % 24) + 24) % 24; return (h % 12 || 12) + (h < 12 ? 'a' : 'p'); };
-  const points = [0, 60, 120, 180, 240, 300, 360, 420, 480].map((mins) => {
-    const ts = ref + mins * MIN;
-    const open = resolveOpen(venue, ts, place).open;
-    const fade = Math.exp(-mins / 120); // live anchor fades over ~2h
-    const frac = open ? clamp(shape(ts) + offset * fade) : 0; // closed hours are empty
-    return { mins, label: mins === 0 ? 'Now' : shortHour(ts), pct: round(frac * 100), open };
-  });
+  const HOUR = 60 * MIN;
+  const isOpenAt = (ts) => resolveOpen(venue, ts, place).open;
+  // The forecast only ever covers the venue's ACTUAL open session — never the hours
+  // it's shut. Open now → start at "Now" and run to closing. Closed → jump forward to
+  // the next opening and show that whole nightlife session. Cross-midnight sessions
+  // are one continuous run because we work in absolute timestamps, so 5am is correctly
+  // treated as after 10pm, not before it.
+  let startTs = null;
+  if (openNow) startTs = ref;
+  else for (let t = ref; t <= ref + 36 * HOUR; t += 10 * MIN) { if (isOpenAt(t)) { startTs = t; break; } }
+  // when this session closes: the first shut moment at/after the start (null = never
+  // closes within range, i.e. a 24h venue or unknown hours → just show the next 8h).
+  let closeTs = null;
+  if (startTs != null) for (let t = startTs + 10 * MIN; t <= startTs + 16 * HOUR; t += 10 * MIN) { if (!isOpenAt(t)) { closeTs = t; break; } }
+  // up to the next 8 hourly points from the start, never past closing, never padded
+  // with fake bars. A closed venue whose session we can't locate falls back gracefully
+  // to a plain next-8-hours read so the UI never breaks.
+  const points = [];
+  const base = startTs != null ? startTs : ref;
+  for (let k = 0; k < 8; k++) {
+    const ts = base + k * HOUR;
+    if (closeTs != null && ts > closeTs + 5 * MIN) break; // include the closing hour, stop after
+    const mins = Math.round((ts - ref) / MIN);
+    const isNow = openNow && k === 0;                     // "Now" only when actually open now
+    const fade = Math.exp(-Math.max(0, mins) / 120);      // live anchor fades over ~2h (unchanged)
+    points.push({ mins: isNow ? 0 : mins, label: isNow ? 'Now' : shortHour(ts), pct: round(clamp(shape(ts) + offset * fade) * 100), open: true, ts });
+  }
   // expected peak = the busiest OPEN moment of the coming night. Search further
   // than the 8h chart (up to 16h) so an afternoon check still reports tonight's
   // real peak (~2am) rather than a time capped at the window's edge.
@@ -468,6 +488,16 @@ function venueForecast(venue, currentEst, ref, place) {
     const closesSoon = !resolveOpen(venue, after, place).open;      // shut within 30 min
     if (stillRising && closesSoon) bestTs = null;
   }
+  // Flag the ONE visible bar that holds the peak — but only when the real peak falls
+  // inside the hours we're actually showing (within half an hour of a bar). If the
+  // peak is outside the window we never fake-highlight a bar; the Expected Peak label
+  // still reports the true time.
+  if (bestTs != null) {
+    let bi = -1, bd = 31 * MIN;
+    for (let i = 0; i < points.length; i++) { const dd = Math.abs(points[i].ts - bestTs); if (dd < bd) { bd = dd; bi = i; } }
+    if (bi >= 0) points[bi].peak = true;
+  }
+  points.forEach((p) => { delete p.ts; }); // internal only — don't ship it
   return {
     points,
     peakLabel: bestTs == null ? null : fmtHour(nightHour(bestTs, tz)),
