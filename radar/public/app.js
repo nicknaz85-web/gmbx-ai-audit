@@ -1263,9 +1263,10 @@ function renderVenue(v, opts) {
     ${(fcPts.length || dec) ? `<div class="forecast">
       ${fcPts.length ? `<div class="section-h"><h3>Forecast</h3><span class="count">next ${fcPts.length} hour${fcPts.length === 1 ? '' : 's'}</span></div>
       <div class="fc-bars">
-        ${fcPts.map((p, i) => { const h = Math.max(3, Math.min(100, p.pct)); return `<div class="fc-col${p.mins === 0 ? ' now' : ''}${p.peak ? ' peak' : ''}" style="--i:${i}">
+        ${(() => { const closedStart = fcPts.length > 0 && fcPts[0].mins !== 0; // no "Now" bar → first bar is the opening hour
+          return fcPts.map((p, i) => { const h = Math.max(3, Math.min(100, p.pct)); return `<div class="fc-col${p.mins === 0 ? ' now' : ''}${p.peak ? ' peak' : ''}" style="--i:${i}">
           <div class="fc-track"><div class="fc-bar" style="height:${h}%"></div><span class="fc-pct" style="bottom:calc(${h}% + 5px)">${p.pct}%</span></div>
-          <div class="fc-lab">${esc(p.label)}</div></div>`; }).join('')}
+          <div class="fc-lab">${esc(p.label)}</div>${(closedStart && i === 0) ? `<span class="fc-opens">opens</span>` : ''}</div>`; }).join(''); })()}
       </div>
       ${v.expectedPeak ? `<div class="peak-flag"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M12 2.6l2.9 5.87 6.48.94-4.69 4.57 1.11 6.45L12 17.9l-5.79 3.05 1.1-6.45L2.63 9.94l6.48-.94z"/></svg>Expected peak <b>${esc(v.expectedPeak)}</b></div>` : ''}` : ''}
       ${dec ? `<div class="decision ${decClass}">

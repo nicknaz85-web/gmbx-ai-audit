@@ -369,8 +369,12 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .forecast .section-h{margin:2px 2px 2px}
 /* few bars centre as a deliberate cluster; many bars fill the width — the per-column
    max-width caps how wide 2–3 bars can spread so they never look sparse or stretched */
-.fc-bars{display:flex;align-items:flex-end;justify-content:center;gap:9px;padding:20px 2px 0}
-.fc-col{flex:1 1 0;min-width:0;max-width:68px;display:flex;flex-direction:column;align-items:center;gap:7px}
+.fc-bars{display:flex;align-items:flex-end;justify-content:center;gap:9px;padding:20px 2px 13px}
+.fc-col{flex:1 1 0;min-width:0;max-width:68px;display:flex;flex-direction:column;align-items:center;gap:7px;position:relative}
+/* very subtle "opens" hint under the first bar when the venue is closed now */
+.fc-opens{position:absolute;top:100%;left:-4px;right:-4px;margin-top:2px;text-align:center;
+  font-size:8px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap;
+  color:color-mix(in oklab,var(--primary) 52%,var(--ink))}
 /* fixed-height track: the bar's height:% resolves against THIS (nothing else competes),
    so a 100% bar is exactly twice a 50% bar and heights always match their labels */
 .fc-track{width:100%;max-width:30px;height:78px;display:flex;align-items:flex-end;position:relative}
@@ -391,7 +395,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 @keyframes fcGrow{from{transform:scaleY(.02);opacity:.35}to{transform:scaleY(1);opacity:1}}
 
 /* Expected peak — premium warm-gold highlight, reads as part of the forecast */
-.peak-flag{display:inline-flex;align-items:center;gap:7px;margin-top:13px;font-size:12.5px;font-weight:600;
+.peak-flag{display:inline-flex;align-items:center;gap:7px;margin-top:8px;font-size:12.5px;font-weight:600;
   color:color-mix(in oklab,var(--accent) 74%,var(--ink));
   background:linear-gradient(180deg,color-mix(in oklab,var(--accent) 22%,var(--card)),color-mix(in oklab,var(--accent) 12%,var(--card)));
   border:1px solid color-mix(in oklab,var(--accent) 34%,transparent);padding:7px 13px;border-radius:22px;
@@ -400,7 +404,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .peak-flag b{color:color-mix(in oklab,var(--accent) 88%,var(--ink));font-weight:800;margin-left:2px}
 
 /* Recommendation — Clubbit tints, never traffic-light bright; tighter than before */
-.decision{margin-top:13px;border-radius:13px;padding:11px 14px}
+.decision{margin-top:12px;border-radius:13px;padding:10px 14px}
 .decision.go{background:linear-gradient(180deg,color-mix(in oklab,var(--green) 15%,var(--card)),var(--card));border:1px solid color-mix(in oklab,var(--green) 28%,transparent)}
 .decision.wait{background:linear-gradient(180deg,color-mix(in oklab,var(--accent) 15%,var(--card)),var(--card));border:1px solid color-mix(in oklab,var(--accent) 26%,transparent)}
 .decision.your{background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 9%,var(--card)),var(--card));border:1px solid color-mix(in oklab,var(--primary) 19%,transparent)}
@@ -411,7 +415,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .decision.your .dec-verdict{color:color-mix(in oklab,var(--primary) 44%,var(--ink))}
 .decision.closed .dec-verdict{color:color-mix(in oklab,var(--primary) 56%,var(--ink))}
 .dec-head{font-size:13px;color:var(--ink2);margin-top:2px}
-.dec-reasons{list-style:none;margin-top:9px;display:flex;flex-direction:column;gap:5px}
+.dec-reasons{list-style:none;margin-top:7px;display:flex;flex-direction:column;gap:4px}
 .dec-reasons li{font-size:13px;color:var(--ink2);display:flex;gap:8px;align-items:center}
 .dec-reasons li::before{content:"";width:5px;height:5px;border-radius:50%;background:color-mix(in oklab,var(--primary) 68%,transparent);flex-shrink:0}
 .decision.wait .dec-reasons li::before{background:color-mix(in oklab,var(--accent) 66%,transparent)}
@@ -607,10 +611,16 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .about-full{font-size:13.5px;color:var(--muted-foreground);line-height:1.5;margin:8px 0 0}
 .about-more{background:none;border:none;color:var(--primary);font-weight:600;font-size:12.5px;padding:6px 0 2px;cursor:pointer}
 .rev-people{font-size:12px;font-weight:700;letter-spacing:.3px;color:var(--ink);text-transform:uppercase;margin:14px 0 8px;opacity:.75}
-.rev-chips{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 8px}
-.rev-chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:500;padding:6px 11px;border-radius:999px;line-height:1.1}
-.rev-chip.pro{background:color-mix(in oklab,var(--green,#16a34a) 15%,var(--surface-3));color:var(--green-d,#15803d)}
-.rev-chip.con{background:color-mix(in oklab,var(--amber,#f59e0b) 16%,var(--surface-3));color:var(--amber-d,#b45309)}
+.rev-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+/* fixed height + centred content so every chip matches; long labels grow wide, not tall.
+   Text colour mixes toward --ink (which flips per theme) so it stays high-contrast in
+   both dark and light without going neon. */
+.rev-chip{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 11px;font-size:12.5px;font-weight:600;
+  border-radius:999px;line-height:1;white-space:nowrap;border:1px solid transparent}
+.rev-chip.pro{background:color-mix(in oklab,var(--green) 14%,var(--card));color:color-mix(in oklab,var(--green) 66%,var(--ink));
+  border-color:color-mix(in oklab,var(--green) 24%,transparent)}
+.rev-chip.con{background:color-mix(in oklab,var(--amber) 12%,var(--card));color:color-mix(in oklab,var(--amber) 70%,var(--ink));
+  border-color:color-mix(in oklab,var(--amber) 26%,transparent)}
 .rev-src{font-size:11px;color:var(--muted-foreground);opacity:.7;margin-top:2px}
 
 /* ---- "⚡ I'm here — report the vibe" — the key loop, near the top ---- */
