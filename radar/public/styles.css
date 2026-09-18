@@ -369,12 +369,16 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .forecast .section-h{margin:2px 2px 2px}
 /* few bars centre as a deliberate cluster; many bars fill the width — the per-column
    max-width caps how wide 2–3 bars can spread so they never look sparse or stretched */
-.fc-bars{display:flex;align-items:flex-end;justify-content:center;gap:9px;height:96px;padding:12px 2px 0}
-.fc-col{flex:1 1 0;min-width:0;max-width:68px;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
-.fc-bar{width:100%;max-width:30px;min-height:6px;border-radius:9px 9px 4px 4px;transform-origin:bottom;
+.fc-bars{display:flex;align-items:flex-end;justify-content:center;gap:9px;padding:20px 2px 0}
+.fc-col{flex:1 1 0;min-width:0;max-width:68px;display:flex;flex-direction:column;align-items:center;gap:7px}
+/* fixed-height track: the bar's height:% resolves against THIS (nothing else competes),
+   so a 100% bar is exactly twice a 50% bar and heights always match their labels */
+.fc-track{width:100%;max-width:30px;height:78px;display:flex;align-items:flex-end;position:relative}
+.fc-bar{width:100%;min-height:4px;border-radius:9px 9px 4px 4px;transform-origin:bottom;
   background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 48%,transparent),color-mix(in oklab,var(--primary) 20%,transparent));
   animation:fcGrow .5s cubic-bezier(.2,.85,.3,1) both;animation-delay:calc(var(--i,0)*45ms)}
-.fc-pct{font-family:var(--mono);font-size:10px;color:var(--ink2);font-weight:600;transition:color .3s}
+/* the % hugs the top of its bar (positioned per-bar inline), never scaled by the bar */
+.fc-pct{position:absolute;left:-7px;right:-7px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink2);font-weight:600;white-space:nowrap;transition:color .3s}
 .fc-lab{font-size:9.5px;color:var(--muted);white-space:nowrap;font-weight:600}
 /* current hour — solid Clubbit purple */
 .fc-col.now .fc-bar{background:linear-gradient(180deg,var(--primary),color-mix(in oklab,var(--primary) 74%,#000))}
