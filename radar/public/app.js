@@ -432,15 +432,26 @@ class RadarMap {
           const ctr = centers[c];
           if (!ctr) continue;
           if (!inView(ctr)) continue;                      // city centre off-screen → skip
-          if (!this._onFrontHemisphere(ctr)) continue;     // far side of the globe → skip
           const id = 'city_' + c;
           wantC[id] = { id, name: c, n: g[c], center: ctr, members: 1 };
         }
-        // Keep the zoomed-OUT world/continental view SMOOTH: cap how many bubbles
-        // render at once, keeping the biggest cities (most venues). Zoomed further
-        // in, fewer cities are on screen so the cap rarely bites — but a full globe
-        // shows ~40 bubbles instead of 200+, which is what made spinning it stutter.
-        const cap = z < 3.2 ? 40 : z < 4.5 ? 70 : z < 6 ? 130 : 400;
+        // FALLBACK: the viewport filter (map.getBounds) can glitch at the
+        // globe↔flat transition (~z5-7) and return nothing, which made the whole
+        // map go empty on zoom-out. If that happens, ignore the viewport and show
+        // cities anyway (the cull still hides the far side) — never a blank map.
+        if (!Object.keys(wantC).length) {
+          for (const c in g) {
+            const ctr = centers[c]; if (!ctr) continue;
+            const id = 'city_' + c;
+            wantC[id] = { id, name: c, n: g[c], center: ctr, members: 1 };
+          }
+        }
+        // Build bubbles for every in-view city (NOT just the front of the globe), so
+        // as you spin, cities on the near side keep showing — the far side is hidden
+        // per-frame by the cull, not dropped here. Cap only to keep it smooth: keep
+        // the biggest cities. Generous so the world never looks empty; the optimized
+        // cull handles the count fine.
+        const cap = z < 4 ? 130 : z < 6 ? 180 : 400;
         const ids = Object.keys(wantC);
         if (ids.length > cap) {
           ids.sort((a, b) => wantC[b].n - wantC[a].n);
@@ -484,6 +495,9 @@ class RadarMap {
         if (!this._labelById[id]) { const lm = this._labelFor(wantA[id]); lm.addTo(this.map); this._labelById[id] = lm; }
       }
       this._labelMarkers = Object.values(this._labelById);
+      // hide any far-side globe markers we just added (the cull otherwise only runs
+      // while moving — a static globe would flash back-side bubbles through it)
+      this._cullBackface();
     } catch (e) { console.warn('marker sync failed', e); }
   }
   // --- Snapchat-style smooth appear/disappear: markers fade in when added and
@@ -525,7 +539,7 @@ class RadarMap {
       for (const id in obj) {
         const m = obj[id], el = m.getElement(); if (!el) continue;
         const cosd = sLat * Math.sin(m._lat * R) + cLat * Math.cos(m._lat * R) * Math.cos((m._lng - cLng) * R);
-        el.style.visibility = cosd > 0.12 ? '' : 'hidden';
+        el.style.visibility = cosd > 0.02 ? '' : 'hidden'; // show ~full near hemisphere
       }
     };
     cull(clusters); cull(pins);
