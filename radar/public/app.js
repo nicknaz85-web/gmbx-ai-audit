@@ -1101,19 +1101,45 @@ function venueBlurb(v) {
 // Description ("what it is") + "what people say" pros/cons distilled from Google reviews.
 function reviewsBlock(v) {
   const g = v.google, r = g && g.review;
-  const desc = (r && r.summary) ? r.summary : venueBlurb(v);
-  const meta = g && g.rating ? `★ ${g.rating}${g.ratings ? ` (${g.ratings})` : ''}` : '';
+  const full = (r && r.summary) ? r.summary : venueBlurb(v);
+  const tags = venueTagline(v);
   const pros = (r && r.pros) || [], cons = (r && r.cons) || [];
   const hasReviews = pros.length || cons.length;
+  const chip = (t, cls) => `<span class="rev-chip ${cls}">${cls === 'pro' ? '✓' : '△'} ${esc(t)}</span>`;
   return `<div class="reviews">
-    <div class="section-h"><h3>About</h3>${meta ? `<span class="count">${esc(meta)}</span>` : ''}</div>
-    <div class="rev-sum">${esc(desc)}</div>
+    <div class="section-h"><h3>About</h3></div>
+    <div class="about-tags">${esc(tags)}</div>
+    <p class="about-full" hidden>${esc(full)}</p>
+    <button class="about-more" onclick="vcMore(this)">More</button>
     ${hasReviews ? `<div class="rev-people">What people say</div>` : ''}
-    ${pros.length ? `<ul class="rev-list rev-pros">${pros.map(p => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}
-    ${cons.length ? `<ul class="rev-list rev-cons">${cons.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
-    ${hasReviews ? `<div class="rev-src">Summarised from Google reviews</div>` : ''}
+    ${pros.length ? `<div class="rev-chips">${pros.map(p => chip(p, 'pro')).join('')}</div>` : ''}
+    ${cons.length ? `<div class="rev-chips cons">${cons.map(c => chip(c, 'con')).join('')}</div>` : ''}
+    ${hasReviews ? `<div class="rev-src">From Google reviews</div>` : ''}
   </div>`;
 }
+
+// Clubbit mascot that matches how alive the venue is — sleeping when dead, chilling
+// with a drink when steady, dancing when busy, going wild when packed.
+function mascotFor(score) {
+  return score >= 80 ? 'packed' : score >= 55 ? 'busy' : score >= 28 ? 'chill' : 'quiet';
+}
+// Show the mascot that matches the user's onboarding gender. The man has full
+// activity poses (sleeping→dancing); woman / non-binary / other use their own
+// mascot for every state (until gendered activity poses exist).
+function mascotSrc(score) {
+  let g = ''; try { g = (myProfile().gender || '').toLowerCase(); } catch (e) {}
+  if (g === 'woman') return '/clubbit-mascot-f.png';
+  if (g && g !== 'man') return '/clubbit-mascot-nb.png'; // non-binary / prefer not to say / other
+  return '/mascot-' + mascotFor(score) + '.png'; // man (or unset) → activity poses
+}
+// A short "what it is" line: type · music · dress — the full description hides behind More.
+function venueTagline(v) {
+  const type = { Club: 'Nightclub', Bar: (v.category === 'Cocktails' ? 'Cocktails' : 'Bar'), Rooftop: 'Rooftop', 'Wine Bar': 'Wine bar', Pub: 'Pub', Venue: 'Live music' }[v.kind] || 'Bar';
+  const music = (v.musicHint && v.musicHint !== 'Mixed') ? v.musicHint : null;
+  const dress = v.dress && v.dress.code ? v.dress.code : null;
+  return [type, music, dress].filter(Boolean).join(' · ');
+}
+window.vcMore = (btn) => { const p = btn.previousElementSibling; if (!p) return; const open = p.hasAttribute('hidden'); if (open) p.removeAttribute('hidden'); else p.setAttribute('hidden', ''); btn.textContent = open ? 'Less' : 'More'; };
 
 function renderVenue(v) {
   const band = bandKey(v.radar.score);
@@ -1177,32 +1203,31 @@ function renderVenue(v) {
     ${tzNote}
     ${eventBlock}
 
-    <div class="pr-block">
-      <div class="pr-num" style="color:${bc.core}">${v.radar.score}</div>
-      <div class="pr-right">
-        <div class="pr-label c-${band}">${esc(v.radar.label)}</div>
-        <div class="pr-track"><i style="width:${v.radar.score}%;background:${bc.core}"></i></div>
-        <div class="pr-sub"><span class="lab">Party Radar score</span>
-          <span class="${mc}" style="font-weight:500">${v.momentum.arrow} ${momLabel(v.momentum)}${v.pct != null && v.pct > 0 ? ' +' + v.pct + '%' : ''}</span></div>
+    <div class="pr-hero">
+      <img class="pr-mascot m-${mascotFor(v.radar.score)}" src="${mascotSrc(v.radar.score)}" alt="" />
+      <div class="pr-main">
+        <div class="pr-top"><span class="pr-num" style="color:${bc.core}">${v.radar.score}</span><span class="pr-lab c-${band}">${esc(v.radar.label)}</span></div>
+        <div class="pr-track"><i style="width:${Math.max(4, v.radar.score)}%;background:${bc.core}"></i></div>
+        <div class="pr-sub"><span class="pr-sub-lab">Party Radar</span> · <span class="${mc}">${v.momentum.arrow} ${momLabel(v.momentum)}${v.pct != null && v.pct > 0 ? ' +' + v.pct + '%' : ''}</span></div>
       </div>
     </div>
   </div>
 
   <div class="vc-body">
+    ${!closed ? `<button class="report-cta" onclick="startReport('${v.id}')">
+      <span class="rc-ic">⚡</span>
+      <span class="rc-txt"><b>I'm here — report the vibe</b><small>show everyone what it's like right now</small></span>
+      <span class="rc-go">›</span></button>` : ''}
     ${v.liveBusyness != null ? `<div class="live-busy"><span class="lb-dot"></span><b>${v.liveBusyness}%</b> ${v.liveSource === 'live' ? 'busy right now' : "typical for now"} · <span class="lb-src">BestTime</span></div>` : ''}
-    <div class="stat-grid">
+    <div class="stat-grid four">
       <div class="stat"><div class="k">How full</div><div class="v">${v.fullness.est}%</div>
-        <div class="vs">Est. ${v.fullness.low}–${v.fullness.high}% capacity</div></div>
-      <div class="stat"><div class="k">Momentum</div><div class="v ${mc}">${momDir ? '+' : ''}${v.momentum.M}</div>
-        <div class="mom-meter"><div class="mom-fill" style="${momDir ? 'left:50%' : 'right:50%;left:auto'};width:${momPct}%;background:${momDir ? 'var(--green)' : 'var(--red)'}"></div></div></div>
+        <div class="vs">Est. ${v.fullness.low}–${v.fullness.high}%</div></div>
       <div class="stat"><div class="k">Queue</div><div class="v">${queueText(v.queue || 'none')}</div>
-        <div class="vs">${v.open === false ? 'closed now' : (v.queueEstimated ? 'estimated · varies by night' : 'reported')}</div></div>
+        <div class="vs">${v.open === false ? 'closed now' : (v.queueEstimated ? 'estimated' : 'reported')}</div></div>
       <div class="stat"><div class="k">Entry</div><div class="v">${entryText(v)}</div>
-        ${v.special ? `<div class="vs c-busy">${esc(v.special)}</div>` : `<div class="vs">${v.entryEstimated ? 'typical · varies by night' : 'reported'}</div>`}</div>
+        ${v.special ? `<div class="vs c-busy">${esc(v.special)}</div>` : `<div class="vs">${v.entryEstimated ? 'typical' : 'reported'}</div>`}</div>
       <div class="stat"><div class="k">Music</div><div class="v" style="font-size:15px">${esc(v.musicHint || v.music || 'Mixed')}</div>
         <div class="vs">typical genre</div></div>
-      <div class="stat"><div class="k">Activity</div><div class="v">${v.recentSignals}</div>
-        <div class="vs">recent signals${v.lastReportAgeMin != null ? ` · report ${ago(v.lastReportAgeMin)} ago` : ''}</div></div>
     </div>
 
     ${v.owner ? `<div class="owner-note"><b>Venue update</b> · ${ago(v.owner.ageMin)} ago: status ${esc(v.owner.status)}${v.owner.lastEntry ? ' · last entry ' + esc(v.owner.lastEntry) : ''}</div>` : ''}
@@ -1237,11 +1262,12 @@ function renderVenue(v) {
       <button class="btn btn-primary full" onclick="takeMeThere('${v.id}')">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
         Take me there</button>
-      ${v.instagram ? `<button class="btn btn-ig full" onclick="openInsta('${v.id}')">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>
-        Instagram</button>` : ''}
-      <button class="btn btn-save full${isSaved(v.id) ? ' on' : ''}" onclick="toggleSave('${v.id}')">${isSaved(v.id) ? '★ Saved' : '☆ Save for later'}</button>
-      <button class="btn btn-ghost full" onclick="startReport('${v.id}')">Report the vibe</button>
+      <div class="vc-actrow">
+        ${v.instagram ? `<button class="btn btn-ig-out" onclick="openInsta('${v.id}')">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+          Instagram</button>` : ''}
+        <button class="btn btn-save2${isSaved(v.id) ? ' on' : ''}" onclick="toggleSave('${v.id}')">${isSaved(v.id) ? '★ Saved' : '☆ Save'}</button>
+      </div>
     </div>
 
     ${communityBlock(v)}

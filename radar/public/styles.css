@@ -323,16 +323,22 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .vc-photo{width:60px;height:60px;border-radius:14px;object-fit:cover;flex:none;background:var(--hover);
   box-shadow:0 1px 3px rgba(0,0,0,.12)}
 
-/* Party Radar score block */
-.pr-block{display:flex;align-items:center;gap:16px;margin-top:16px}
-.pr-dial{flex-shrink:0}
-.pr-num{font-family:var(--mono);font-weight:700;font-size:44px;line-height:1}
-.pr-right{flex:1;min-width:0}
-.pr-label{font-size:16px;font-weight:700;letter-spacing:.2px}
-.pr-track{height:8px;border-radius:5px;background:var(--surface-4);margin:8px 0;overflow:hidden}
-.pr-track i{display:block;height:100%;border-radius:5px}
+/* Party Radar score — the hero, with an activity-matched Clubbit mascot */
+.pr-hero{display:flex;align-items:center;gap:14px;margin-top:16px;
+  background:linear-gradient(180deg,var(--surface-3),transparent);border-radius:16px;padding:12px 14px 12px 6px}
+.pr-mascot{width:74px;height:74px;object-fit:contain;flex:none;image-rendering:auto;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.35));animation:mascotIn .5s cubic-bezier(.2,1.3,.35,1) both}
+.pr-mascot.m-busy,.pr-mascot.m-packed{animation:mascotBop .9s ease-in-out .5s infinite}
+@keyframes mascotIn{from{opacity:0;transform:translateY(8px) scale(.7)}to{opacity:1;transform:none}}
+@keyframes mascotBop{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-5px) rotate(2deg)}}
+.pr-main{flex:1;min-width:0}
+.pr-top{display:flex;align-items:baseline;gap:10px}
+.pr-num{font-family:var(--mono);font-weight:700;font-size:42px;line-height:1}
+.pr-lab{font-size:17px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+.pr-track{height:8px;border-radius:5px;background:var(--surface-4);margin:9px 0 7px;overflow:hidden}
+.pr-track i{display:block;height:100%;border-radius:5px;transition:width .5s cubic-bezier(.2,.8,.3,1)}
 .pr-sub{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.pr-sub .lab{font-weight:500;color:var(--ink2)}
+.pr-sub .pr-sub-lab{font-weight:600;color:var(--ink2)}
 
 .src-tag{font-size:10px;font-weight:700;letter-spacing:.3px;padding:2px 8px;border-radius:6px}
 .src-community{background:var(--tint-blue);color:var(--blue)}
@@ -562,15 +568,46 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .media-del:hover{background:#dc2626}
 .media-del:active{transform:scale(.9)}
 
-/* ---- "What people say" — pros & cons from Google reviews ---- */
+/* ---- About (short tags + More) and "What people say" chips ---- */
 .reviews{margin-top:14px}
-.rev-sum{font-size:13.5px;color:var(--muted-foreground);line-height:1.45;margin:2px 0 10px;font-style:italic}
-.rev-people{font-size:12px;font-weight:700;letter-spacing:.3px;color:var(--ink);text-transform:uppercase;margin:2px 0 6px;opacity:.75}
-.rev-list{list-style:none;padding:0;margin:0 0 8px;display:flex;flex-direction:column;gap:5px}
-.rev-list li{position:relative;padding-left:24px;font-size:13.5px;line-height:1.4}
-.rev-pros li::before{content:"✓";position:absolute;left:4px;top:0;color:var(--green,#16a34a);font-weight:700}
-.rev-cons li::before{content:"✕";position:absolute;left:5px;top:0;color:#dc2626;font-weight:700}
+.about-tags{font-size:14px;font-weight:600;color:var(--ink);letter-spacing:.1px}
+.about-full{font-size:13.5px;color:var(--muted-foreground);line-height:1.5;margin:8px 0 0}
+.about-more{background:none;border:none;color:var(--primary);font-weight:600;font-size:12.5px;padding:6px 0 2px;cursor:pointer}
+.rev-people{font-size:12px;font-weight:700;letter-spacing:.3px;color:var(--ink);text-transform:uppercase;margin:14px 0 8px;opacity:.75}
+.rev-chips{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 8px}
+.rev-chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:500;padding:6px 11px;border-radius:999px;line-height:1.1}
+.rev-chip.pro{background:color-mix(in oklab,var(--green,#16a34a) 15%,var(--surface-3));color:var(--green-d,#15803d)}
+.rev-chip.con{background:color-mix(in oklab,var(--amber,#f59e0b) 16%,var(--surface-3));color:var(--amber-d,#b45309)}
 .rev-src{font-size:11px;color:var(--muted-foreground);opacity:.7;margin-top:2px}
+
+/* ---- "⚡ I'm here — report the vibe" — the key loop, near the top ---- */
+.report-cta{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
+  margin:0 0 14px;padding:13px 14px;border-radius:14px;border:1px solid color-mix(in oklab,var(--primary) 35%,transparent);
+  background:linear-gradient(100deg,color-mix(in oklab,var(--primary) 20%,var(--surface-3)),var(--surface-3));color:var(--ink)}
+.report-cta .rc-ic{font-size:22px;flex:none;filter:drop-shadow(0 0 8px color-mix(in oklab,var(--primary) 60%,transparent))}
+.report-cta .rc-txt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.report-cta .rc-txt b{font-size:14.5px;font-weight:700}
+.report-cta .rc-txt small{font-size:11.5px;color:var(--muted)}
+.report-cta .rc-go{font-size:22px;color:var(--primary);flex:none;font-weight:700}
+
+/* CTA hierarchy: Instagram outlined + Save small, in one row under the primary */
+.vc-actrow{display:flex;gap:10px;margin-top:10px}
+.btn-ig-out{flex:1;background:transparent;border:1.5px solid color-mix(in oklab,#cc2366 55%,var(--line));color:var(--ink)}
+.btn-ig-out svg{margin-right:4px;color:#cc2366}
+.btn-save2{flex:none;padding:0 16px;background:var(--card);border:1px solid var(--line);color:var(--ink)}
+.btn-save2.on{background:color-mix(in oklab,var(--primary) 12%,transparent);border-color:var(--primary);color:var(--primary);font-weight:600}
+
+/* Duolingo-smooth open: sections rise + fade in a gentle stagger */
+@keyframes vcRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.vc-body>*{animation:vcRise .42s cubic-bezier(.22,.9,.32,1) both}
+.vc-body>*:nth-child(1){animation-delay:.03s}
+.vc-body>*:nth-child(2){animation-delay:.07s}
+.vc-body>*:nth-child(3){animation-delay:.11s}
+.vc-body>*:nth-child(4){animation-delay:.15s}
+.vc-body>*:nth-child(5){animation-delay:.19s}
+.vc-body>*:nth-child(6){animation-delay:.23s}
+.vc-body>*:nth-child(n+7){animation-delay:.26s}
+@media (prefers-reduced-motion:reduce){.vc-body>*,.pr-mascot{animation:none}}
 
 /* ---- Instagram button on venue profile ---- */
 .btn-ig{width:100%;color:#fff;border:none;
