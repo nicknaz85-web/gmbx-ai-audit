@@ -1172,9 +1172,10 @@ function renderVenue(v, opts) {
   const momDir = v.momentum.M >= 0;
   const fc = (v.forecast && v.forecast.points) || [];
   // only the ACTUAL open session comes back now (no closed hours) — defend against any
-  // stale closed points, and let the tallest visible bar set the scale.
+  // stale closed points. Bars use their TRUE percent as height (not normalised to the
+  // chart's own max) so a bar's size always matches its % and is comparable venue-to-
+  // venue — an 83% bar is always taller than a 65% one.
   const fcPts = fc.filter((p) => p.open !== false);
-  const maxPct = Math.max(...fcPts.map(p => p.pct), 60);
   const srcLabel = { community: 'COMMUNITY', venue: 'VENUE UPDATE', estimate: 'ESTIMATE', live: 'LIVE', besttime: 'FOOT TRAFFIC', closed: 'CLOSED' }[v.source] || 'ESTIMATE';
   const closed = v.open === false;
   const gRating = v.google && v.google.rating
@@ -1264,7 +1265,7 @@ function renderVenue(v, opts) {
       <div class="fc-bars">
         ${fcPts.map((p, i) => `<div class="fc-col${p.mins === 0 ? ' now' : ''}${p.peak ? ' peak' : ''}" style="--i:${i}">
           <div class="fc-pct">${p.pct}%</div>
-          <div class="fc-bar" style="height:${Math.max(6, Math.round(p.pct / maxPct * 100))}%"></div>
+          <div class="fc-bar" style="height:${Math.max(4, Math.min(100, p.pct))}%"></div>
           <div class="fc-lab">${esc(p.label)}</div></div>`).join('')}
       </div>
       ${v.expectedPeak ? `<div class="peak-flag"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M12 2.6l2.9 5.87 6.48.94-4.69 4.57 1.11 6.45L12 17.9l-5.79 3.05 1.1-6.45L2.63 9.94l6.48-.94z"/></svg>Expected peak <b>${esc(v.expectedPeak)}</b></div>` : ''}` : ''}
