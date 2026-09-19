@@ -638,8 +638,11 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .vc-actrow>*{flex:1 1 0;min-width:0}
 .btn-ig-out{background:transparent;border:1.5px solid color-mix(in oklab,#cc2366 55%,var(--line));color:var(--ink)}
 .btn-ig-out svg{margin-right:4px;color:#cc2366}
-.btn-save2{background:var(--card);border:1px solid var(--line);color:var(--ink)}
-.btn-save2.on{background:color-mix(in oklab,var(--primary) 12%,transparent);border-color:var(--primary);color:var(--primary);font-weight:600}
+.btn-save2{background:var(--card);border:1px solid var(--line);color:var(--ink);transition:background .2s ease,border-color .2s ease,color .2s ease}
+.btn-save2.on{background:color-mix(in oklab,var(--primary) 18%,transparent);border-color:var(--primary);color:var(--primary);font-weight:600}
+/* the star is an outline until saved, then fills with the Clubbit purple */
+.bs-star{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;transition:fill .2s ease}
+.btn-save2.on .bs-star{fill:currentColor;stroke:none}
 
 /* Duolingo-smooth open: sections rise + fade in a gentle stagger */
 @keyframes vcRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}

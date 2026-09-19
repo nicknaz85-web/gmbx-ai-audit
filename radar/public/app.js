@@ -1289,7 +1289,7 @@ function renderVenue(v, opts) {
         ${v.instagram ? `<button class="btn btn-ig-out" onclick="openInsta('${v.id}')">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>
           Instagram</button>` : ''}
-        <button class="btn btn-save2${isSaved(v.id) ? ' on' : ''}" onclick="toggleSave('${v.id}')">${isSaved(v.id) ? '★ Saved' : '☆ Save'}</button>
+        <button class="btn btn-save2${isSaved(v.id) ? ' on' : ''}" onclick="toggleSave('${v.id}',this)"><svg class="bs-star" viewBox="0 0 24 24" width="16" height="16" style="vertical-align:-3px;margin-right:5px"><path d="M12 2.6l2.9 5.87 6.48.94-4.69 4.57 1.11 6.45L12 17.9l-5.79 3.05 1.1-6.45L2.63 9.94l6.48-.94z"/></svg><span class="bs-txt">${isSaved(v.id) ? 'Saved' : 'Save'}</span></button>
       </div>
     </div>
 
@@ -1837,14 +1837,13 @@ function loadLoc() { try { const s = localStorage.getItem('pr_loc'); return s ? 
 // saved venues (persisted in this browser)
 function loadSaved() { try { return JSON.parse(localStorage.getItem('pr_saved')) || []; } catch (e) { return []; } }
 function isSaved(id) { return loadSaved().includes(id); }
-function toggleSave(id) {
+function toggleSave(id, btn) {
   let a = loadSaved();
   const now = !a.includes(id);
   a = now ? [id, ...a.filter((x) => x !== id)] : a.filter((x) => x !== id);
   try { localStorage.setItem('pr_saved', JSON.stringify(a)); } catch (e) {}
-  toast(now ? '★ Saved for later' : 'Removed from saved');
-  const b = document.querySelector('#venueCard .btn-save');
-  if (b) { b.classList.toggle('on', now); b.innerHTML = now ? '★ Saved' : '☆ Save for later'; }
+  // toggle the button's filled state in place — no toast popup
+  if (btn) { btn.classList.toggle('on', now); const t = btn.querySelector('.bs-txt'); if (t) t.textContent = now ? 'Saved' : 'Save'; }
   if (S.tab === 'saved') renderSheet();
 }
 window.toggleSave = toggleSave;
