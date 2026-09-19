@@ -605,7 +605,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 
 /* ---- About (short tags + More) and "What people say" chips ---- */
 .reviews{margin-top:14px}
-.about-line{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin:8px 0 0}
+.about-line{display:flex;flex-direction:column;gap:3px;margin:8px 0 0}
 .about-lab{font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--muted);flex:none}
 .about-tags{font-size:14px;font-weight:600;color:var(--ink);letter-spacing:.1px}
 .about-full{font-size:13.5px;color:var(--muted-foreground);line-height:1.5;margin:8px 0 0}

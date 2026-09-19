@@ -1123,7 +1123,7 @@ function reviewsBlock(v) {
   const hasReviews = pros.length || cons.length;
   const chip = (t, cls) => `<span class="rev-chip ${cls}">${cls === 'pro' ? '✓' : '△'} ${esc(t)}</span>`;
   return `<div class="reviews">
-    <div class="about-line"><span class="about-lab">About</span><span class="about-tags">${esc(tags)}</span></div>
+    <div class="about-line"><span class="about-lab">About:</span><span class="about-tags">${esc(tags)}</span></div>
     <p class="about-full" hidden>${esc(full)}</p>
     <button class="about-more" onclick="vcMore(this)">More</button>
     ${hasReviews ? `<div class="rev-people">What people say</div>` : ''}
