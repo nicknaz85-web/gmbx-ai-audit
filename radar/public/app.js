@@ -1407,7 +1407,7 @@ function renderReport() {
   const step = REPORT_STEPS[R.step];
   const sel = R.answers[step.key];
   const inner = $('#reportInner');
-  const hint = step.type === 'media' ? "A photo or video is required. It's added to the venue's page"
+  const hint = step.type === 'media' ? "Show what it's like right now"
     : step.type === 'note' ? 'Optional. A few words about the venue or the night (max 500)'
     : step.optional ? 'Optional. Tap to add, or skip' : 'tap your answer';
   // localise the entry-price chips to the venue's currency (€10 → 1000 din, etc.)
@@ -1464,15 +1464,28 @@ function renderReport() {
 
 function mediaStepHtml() {
   const m = R.media;
-  const preview = !m ? '' : (m.type === 'video'
-    ? `<video class="media-preview" src="${m.dataUrl}" muted playsinline autoplay loop></video>`
-    : `<img class="media-preview" src="${m.dataUrl}" alt="preview" />`);
+  const camSvg = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
+  if (m) {
+    const preview = m.type === 'video'
+      ? `<video class="media-preview" src="${m.dataUrl}" muted playsinline autoplay loop></video>`
+      : `<img class="media-preview" src="${m.dataUrl}" alt="preview" />`;
+    return `<div class="rep-media">
+      <input type="file" id="mediaInput" accept="image/*,video/*" style="display:none" />
+      <div class="media-drop has">${preview}<span class="md-check" aria-hidden="true">✓</span><span class="md-added">Added</span></div>
+      <button class="media-retake" id="mediaRetake">Choose a different one</button>
+    </div>`;
+  }
   return `<div class="rep-media">
     <input type="file" id="mediaInput" accept="image/*,video/*" style="display:none" />
-    <button class="media-drop ${m ? 'has' : ''}" id="mediaDrop">
-      ${preview || `<span class="md-ic">📷</span><span class="md-t">Add a photo or video</span><span class="md-s">Take one now or pick from your gallery</span>`}
-    </button>
-    ${m ? `<button class="media-retake" id="mediaRetake">Choose a different one</button>` : ''}
+    <div class="md-req">Required</div>
+    <div class="media-drop">
+      <span class="md-ic">${camSvg}</span>
+      <span class="md-t">Add a photo or video</span>
+      <div class="md-actions">
+        <button class="md-act primary" id="mediaTake"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Take photo/video</button>
+        <button class="md-act" id="mediaGallery"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>Choose from gallery</button>
+      </div>
+    </div>
   </div>`;
 }
 const REPORT_GEO_RADIUS_M = 300; // must be within ~300m of the venue to attach media
@@ -1500,18 +1513,23 @@ async function ensureAtVenue() {
 function wireMediaStep() {
   const inp = $('#mediaInput'); if (!inp) return;
   inp.onchange = onMediaPick;
-  const openPicker = async () => {
-    toast('Checking you’re at the venue…', 1000);
-    const chk = await ensureAtVenue();
-    if (!chk.ok) {
-      if (chk.noGps) { toast('Turn on location so we can confirm you’re at the venue — report photos have to be taken there', 4000); }
-      else { const away = chk.dist >= 1000 ? (chk.dist / 1000).toFixed(1) + ' km' : Math.round(chk.dist) + ' m'; toast(`You need to be at ${chk.venue.name} to add a photo — you’re about ${away} away`, 4000); }
-      return;
+  // capture=true → open the camera; false → let the OS gallery/file picker choose
+  const openPicker = async (capture) => {
+    if (REPORT_REQUIRE_AT_VENUE) {
+      toast('Checking you’re at the venue…', 1000);
+      const chk = await ensureAtVenue();
+      if (!chk.ok) {
+        if (chk.noGps) { toast('Turn on location so we can confirm you’re at the venue — report photos have to be taken there', 4000); }
+        else { const away = chk.dist >= 1000 ? (chk.dist / 1000).toFixed(1) + ' km' : Math.round(chk.dist) + ' m'; toast(`You need to be at ${chk.venue.name} to add a photo — you’re about ${away} away`, 4000); }
+        return;
+      }
     }
+    if (capture) inp.setAttribute('capture', 'environment'); else inp.removeAttribute('capture');
     inp.click();
   };
-  const drop = $('#mediaDrop'); if (drop) drop.onclick = openPicker;
-  const rt = $('#mediaRetake'); if (rt) rt.onclick = openPicker;
+  const take = $('#mediaTake'); if (take) take.onclick = () => openPicker(true);
+  const gal = $('#mediaGallery'); if (gal) gal.onclick = () => openPicker(false);
+  const rt = $('#mediaRetake'); if (rt) rt.onclick = () => openPicker(false);
 }
 async function onMediaPick(e) {
   const f = e.target.files && e.target.files[0]; if (!f) return;
