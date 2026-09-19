@@ -639,7 +639,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .btn-ig-out{background:transparent;border:1.5px solid color-mix(in oklab,#cc2366 55%,var(--line));color:var(--ink)}
 .btn-ig-out svg{margin-right:4px;color:#cc2366}
 .btn-save2{background:var(--card);border:1px solid var(--line);color:var(--ink);transition:background .2s ease,border-color .2s ease,color .2s ease}
-.btn-save2.on{background:color-mix(in oklab,var(--primary) 18%,transparent);border-color:var(--primary);color:var(--primary);font-weight:600}
+.btn-save2.on{background:color-mix(in oklab,var(--primary) 9%,transparent);border-color:color-mix(in oklab,var(--primary) 55%,var(--line));color:color-mix(in oklab,var(--primary) 78%,var(--ink));font-weight:600}
 /* the star is an outline until saved, then fills with the Clubbit purple */
 .bs-star{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;transition:fill .2s ease}
 .btn-save2.on .bs-star{fill:currentColor;stroke:none}

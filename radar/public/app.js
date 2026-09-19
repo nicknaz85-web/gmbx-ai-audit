@@ -1213,7 +1213,6 @@ function renderVenue(v, opts) {
   <button class="vc-close" onclick="closeVenue()">✕</button>
   <div class="vc-hero">
     <div class="vc-eyebrow">
-      ${closed ? '' /* the status pill already says "Closed" — don't repeat it here */ : `<span class="src-tag src-${v.source}">${srcLabel}</span>`}
       <span>${esc(v.neighborhoodName)} · ${esc(v.kind)}</span>
       ${seasonTag}
     </div>
@@ -1232,7 +1231,7 @@ function renderVenue(v, opts) {
       <div class="pr-main">
         <div class="pr-top"><span class="pr-num" style="color:${closed ? 'var(--muted)' : bc.core}">${v.radar.score}</span>${closed ? '' : `<span class="pr-lab c-${band}">${esc(v.radar.label)}</span>`}</div>
         <div class="pr-track"><i style="width:${Math.max(closed ? 0 : 4, v.radar.score)}%;background:${closed ? 'var(--muted)' : bc.core}"></i></div>
-        <div class="pr-sub"><span class="pr-sub-lab">Party Radar</span></div>
+        <div class="pr-sub"><span class="pr-sub-lab">Party Radar</span>${closed ? ' · No live activity' : ''}</div>
       </div>
     </div>
   </div>
@@ -1244,8 +1243,8 @@ function renderVenue(v, opts) {
       <span class="rc-go">›</span></button>
     ${v.liveBusyness != null ? `<div class="live-busy"><span class="lb-dot"></span><b>${v.liveBusyness}%</b> ${v.liveSource === 'live' ? 'busy right now' : "typical for now"} · <span class="lb-src">BestTime</span></div>` : ''}
     <div class="stat-grid four">
-      <div class="stat"><div class="k">How full</div><div class="v">${v.fullness.est}%</div>
-        <div class="vs">Est. ${v.fullness.low}–${v.fullness.high}%</div></div>
+      <div class="stat"><div class="k">How full</div><div class="v">${closed ? '—' : v.fullness.est + '%'}</div>
+        <div class="vs">${closed ? 'Unavailable' : 'Est. ' + v.fullness.low + '–' + v.fullness.high + '%'}</div></div>
       <div class="stat"><div class="k">Queue</div><div class="v">${closed ? '—' : queueText(v.queue || 'none')}</div>
         <div class="vs">${closed ? 'unavailable' : (v.queueEstimated ? 'estimated' : 'reported')}</div></div>
       <div class="stat"><div class="k">Entry</div><div class="v">${entryText(v)}</div>
