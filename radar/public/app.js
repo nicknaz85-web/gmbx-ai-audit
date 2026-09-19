@@ -1183,7 +1183,7 @@ function renderVenue(v, opts) {
   const openChip = v.hours
     ? `<span class="open-chip ${closed ? 'shut' : 'now'}">${closed
         ? (v.season && v.season.closed ? 'Closed for the season · reopens ' + (v.season.reopen || v.hours.opensLabel)
-           : 'Closed · opens ' + v.hours.opensLabel + (v.hours.nextCloseLabel ? ' · till ' + v.hours.nextCloseLabel : ''))
+           : 'Closed · opens ' + v.hours.opensLabel) // closing time lives in the Forecast card, not here
         : 'Open now · till ' + v.hours.closesLabel}</span>` : '';
   const seasonTag = v.season ? `<span class="season-tag">☀️ ${esc(v.season.label)}</span>` : '';
   // when the venue is in a different timezone than you, make clear its hours are
@@ -1213,7 +1213,7 @@ function renderVenue(v, opts) {
   <button class="vc-close" onclick="closeVenue()">✕</button>
   <div class="vc-hero">
     <div class="vc-eyebrow">
-      <span class="src-tag src-${v.source}">${srcLabel}</span>
+      ${closed ? '' /* the status pill already says "Closed" — don't repeat it here */ : `<span class="src-tag src-${v.source}">${srcLabel}</span>`}
       <span>${esc(v.neighborhoodName)} · ${esc(v.kind)}</span>
       ${seasonTag}
     </div>
@@ -1227,12 +1227,12 @@ function renderVenue(v, opts) {
     ${tzNote}
     ${eventBlock}
 
-    <div class="pr-hero">
+    <div class="pr-hero${closed ? ' closed' : ''}">
       <img class="pr-mascot m-${mascotFor(v.radar.score)}" src="${mascotSrc(v.radar.score)}" alt="" />
       <div class="pr-main">
-        <div class="pr-top"><span class="pr-num" style="color:${bc.core}">${v.radar.score}</span><span class="pr-lab c-${band}">${esc(v.radar.label)}</span></div>
-        <div class="pr-track"><i style="width:${Math.max(4, v.radar.score)}%;background:${bc.core}"></i></div>
-        <div class="pr-sub"><span class="pr-sub-lab">Party Radar</span> · <span class="${mc}">${v.momentum.arrow} ${momLabel(v.momentum)}${v.pct != null && v.pct > 0 ? ' +' + v.pct + '%' : ''}</span></div>
+        <div class="pr-top"><span class="pr-num" style="color:${closed ? 'var(--muted)' : bc.core}">${v.radar.score}</span>${closed ? '' : `<span class="pr-lab c-${band}">${esc(v.radar.label)}</span>`}</div>
+        <div class="pr-track"><i style="width:${Math.max(closed ? 0 : 4, v.radar.score)}%;background:${closed ? 'var(--muted)' : bc.core}"></i></div>
+        <div class="pr-sub"><span class="pr-sub-lab">Party Radar</span></div>
       </div>
     </div>
   </div>
@@ -1246,8 +1246,8 @@ function renderVenue(v, opts) {
     <div class="stat-grid four">
       <div class="stat"><div class="k">How full</div><div class="v">${v.fullness.est}%</div>
         <div class="vs">Est. ${v.fullness.low}–${v.fullness.high}%</div></div>
-      <div class="stat"><div class="k">Queue</div><div class="v">${queueText(v.queue || 'none')}</div>
-        <div class="vs">${v.open === false ? 'closed now' : (v.queueEstimated ? 'estimated' : 'reported')}</div></div>
+      <div class="stat"><div class="k">Queue</div><div class="v">${closed ? '—' : queueText(v.queue || 'none')}</div>
+        <div class="vs">${closed ? 'unavailable' : (v.queueEstimated ? 'estimated' : 'reported')}</div></div>
       <div class="stat"><div class="k">Entry</div><div class="v">${entryText(v)}</div>
         ${v.special ? `<div class="vs c-busy">${esc(v.special)}</div>` : `<div class="vs">${v.entryEstimated ? 'typical' : 'reported'}</div>`}</div>
       <div class="stat"><div class="k">Music</div><div class="v" style="font-size:15px">${esc(v.musicHint || v.music || 'Mixed')}</div>

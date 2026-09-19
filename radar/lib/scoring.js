@@ -308,10 +308,11 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
 
   const nearby = nearbyActivity(venue, ref);
   const forecast = venueForecast(venue, fullnessEst, ref, place);
-  const radar = partyRadarScore({ hot, M, nearby, consensus, owner, expFrac, freshestSignalMin });
+  const radar = partyRadarScore({ hot, M, nearby, consensus, owner, expFrac, freshestSignalMin, fullnessEst });
   const decision = shouldIGo({ venue, fullnessEst, M, momentum, consensus, owner, forecast, ref });
 
   if (closed) {
+    radar.score = 0; // a closed venue reads 0 on the Party Radar (no live activity)
     radar.label = 'CLOSED';
     decision.verdict = 'CLOSED';
     if (openState.seasonalClosed) {
@@ -522,21 +523,22 @@ function entryRangeLabel(venue, consensus) {
   const mid = Math.round((base + rep) / 2);
   return formatMoney(mid, venue.city);
 }
-function partyRadarScore({ hot, M, nearby, consensus, owner, expFrac, freshestSignalMin }) {
-  const momentumNorm = clamp(50 + M * 1.6, 0, 100);
-  const recency = 100 * decayWeight(
-    Number.isFinite(freshestSignalMin) ? freshestSignalMin : (consensus ? consensus.lastAgeMin : owner ? 25 : 60)
-  );
-  const reportConf = consensus ? consensus.confidence * 100 : 50;
-  const eventImpact = owner?.specials ? 68 : 42;
-  const historical = expFrac * 100;
-  const nearbyScore = nearby.score || 0;
-  const W = { hot: 0.32, momentum: 0.16, nearby: 0.12, recency: 0.1, conf: 0.1, event: 0.06, hist: 0.14 };
-  const score = round(
-    W.hot * hot + W.momentum * momentumNorm + W.nearby * nearbyScore +
-    W.recency * recency + W.conf * reportConf + W.event * eventImpact + W.hist * historical
-  );
-  return { score, label: radarLabel(score), bar: barString(score), components: { hot, momentumNorm: round(momentumNorm), nearby: round(nearbyScore), recency: round(recency), reportConf: round(reportConf), eventImpact, historical: round(historical) } };
+function partyRadarScore({ hot, M, nearby, consensus, owner, expFrac, freshestSignalMin, fullnessEst = 0 }) {
+  // Party Radar should read like the forecast — "how busy is it right now" — so it is
+  // ANCHORED to the live fullness/hotness of the room, then nudged a little by
+  // momentum, a buzzing nearby cluster, an event and a very fresh signal. Previously a
+  // broad 7-factor composite with neutral 50-midpoints diluted a 72%-full room down to
+  // ~42; anchoring to busyness keeps the number honest (72% full → ~70).
+  const busy = 0.8 * fullnessEst + 0.2 * hot;           // how full/alive it is now
+  const momNudge = clamp((M / 36) * 9, -9, 9);          // ±~9 for strong up/down momentum
+  const clusterNudge = ((nearby.score || 0) / 100) * 5; // up to +5 in a hot area
+  const eventNudge = owner?.specials ? 4 : 0;           // a live event/special lifts it
+  const freshBonus = Number.isFinite(freshestSignalMin) && freshestSignalMin <= 20 ? 2 : 0;
+  const score = round(clamp(busy + momNudge + clusterNudge + eventNudge + freshBonus, 0, 100));
+  return {
+    score, label: radarLabel(score), bar: barString(score),
+    components: { hot, fullnessEst, momentumNorm: round(clamp(50 + M * 1.6, 0, 100)), nearby: round(nearby.score || 0) },
+  };
 }
 
 // Bands calibrated to the composite's real dynamic range: even a peak-night top

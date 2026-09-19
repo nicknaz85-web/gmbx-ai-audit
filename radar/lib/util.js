@@ -137,7 +137,11 @@ export function fmtClock(ts, tzOffsetHours = 3) {
 export function fmtHour(hourFloat) {
   let hf = ((hourFloat % 24) + 24) % 24;
   let h = Math.floor(hf);
-  const m = Math.round((hf - h) * 60);
+  let m = Math.round((hf - h) * 60);
+  // A closing time stored as :59 (or a rounding artifact landing at :60) is an
+  // exclusive-end/"until 7am" quirk — snap it up to the clean hour so we show
+  // "7:00 AM", never an awkward "6:59 AM" or an invalid "6:60 AM".
+  if (m >= 59) { m = 0; h = (h + 1) % 24; }
   const ap = h >= 12 ? 'PM' : 'AM';
   const hh = h % 12 || 12;
   return `${hh}:${String(m).padStart(2, '0')} ${ap}`;
