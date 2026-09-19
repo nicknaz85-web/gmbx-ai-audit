@@ -1484,7 +1484,6 @@ function mediaStepHtml() {
       <div class="md-actions">
         <button class="md-act primary" id="mediaPhoto"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Take a photo</button>
         <button class="md-act" id="mediaVideo"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Record a video</button>
-        <button class="md-act" id="mediaGallery"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>Choose from gallery</button>
       </div>
     </div>
   </div>`;
@@ -1533,8 +1532,9 @@ function wireMediaStep() {
   };
   const photo = $('#mediaPhoto'); if (photo) photo.onclick = () => openPicker('image/*', true);
   const video = $('#mediaVideo'); if (video) video.onclick = () => openPicker('video/*', true);
-  const gal = $('#mediaGallery'); if (gal) gal.onclick = () => openPicker('image/*,video/*', false);
-  const rt = $('#mediaRetake'); if (rt) rt.onclick = () => openPicker('image/*,video/*', false);
+  // "Choose a different one" clears the current media and returns to the two capture
+  // buttons so the user can retake either a photo or a video
+  const rt = $('#mediaRetake'); if (rt) rt.onclick = () => { R.media = null; delete R.answers.media; renderReport(); };
 }
 async function onMediaPick(e) {
   const f = e.target.files && e.target.files[0]; if (!f) return;
