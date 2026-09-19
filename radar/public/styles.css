@@ -439,20 +439,20 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 /* ============================================================ REPORT FLOW */
 .report{align-items:stretch;background:var(--card)}
 .report-inner{position:relative;width:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;height:100%;
-  padding:calc(var(--sat) + 18px) 20px calc(var(--sab) + 18px)}
+  padding:calc(var(--sat) + 18px) 20px calc(var(--sab) + 46px)}
 .rep-head{display:flex;align-items:center;justify-content:space-between}
 .rep-venue{font-size:13px;color:var(--muted)}.rep-venue b{color:var(--ink);font-weight:500}
 .rep-head-r{display:flex;align-items:center;gap:13px}
 .rep-count{font-size:12px;color:var(--muted);font-family:var(--mono)}
 .rep-x{width:34px;height:34px;border-radius:50%;background:var(--surface-2);color:var(--ink2);font-size:16px}
-.rep-progress{display:flex;gap:6px;margin:14px 0 8px}
+.rep-progress{display:flex;gap:6px;margin:14px 0 6px}
 .rep-progress i{flex:1;height:3px;border-radius:3px;background:color-mix(in oklab,var(--surface-4) 70%,transparent);transition:background .25s ease}
 .rep-progress i.on{background:var(--blue)}
 .rep-progress i.cur{box-shadow:0 0 7px color-mix(in oklab,var(--primary) 55%,transparent)}
 /* question + cards sit in the upper area (moved up, not glued to the progress bar);
    Next stays pinned at the bottom */
-.rep-q{font-size:23px;font-weight:600;text-align:center;margin:24px 0 4px;color:var(--ink);letter-spacing:-.01em}
-.rep-hint{text-align:center;font-size:13px;color:var(--muted);margin-bottom:14px}
+.rep-q{font-size:23px;font-weight:600;text-align:center;margin:2px 0 4px;color:var(--ink);letter-spacing:-.01em}
+.rep-hint{text-align:center;font-size:13px;color:var(--muted);margin-bottom:10px}
 .rep-opts{display:flex;flex-direction:column;gap:9px;margin-bottom:auto}
 /* report: photo/video capture step */
 .rep-media{display:flex;flex-direction:column;gap:12px;align-items:center;margin-bottom:auto}
@@ -537,8 +537,8 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
    selected card; Dead is grey/asleep, Chill a clear violet so the two don't look alike. */
 .rep-opt.v-dead{background:radial-gradient(140px 74px at 40px 50%,color-mix(in oklab,var(--muted) 7%,transparent),transparent 70%),var(--surface-3)}
 .rep-opt.v-dead .rvm{filter:drop-shadow(0 3px 6px rgba(0,0,0,.5)) saturate(.75);opacity:.85}
-.rep-opt.v-chill{background:radial-gradient(155px 86px at 42px 50%,color-mix(in oklab,var(--primary) 16%,transparent),transparent 72%),var(--surface-3)}
-.rep-opt.v-chill .rvm{filter:drop-shadow(0 3px 8px color-mix(in oklab,var(--primary) 38%,transparent))}
+.rep-opt.v-chill{background:radial-gradient(158px 88px at 42px 50%,color-mix(in oklab,#8b5cf6 20%,transparent),transparent 72%),var(--surface-3)}
+.rep-opt.v-chill .rvm{filter:drop-shadow(0 3px 8px color-mix(in oklab,#8b5cf6 42%,transparent))}
 .rep-opt.v-popping{background:radial-gradient(170px 94px at 44px 50%,color-mix(in oklab,#c026d3 14%,transparent),transparent 74%),var(--surface-3)}
 .rep-opt.v-popping .rvm{filter:drop-shadow(0 3px 9px color-mix(in oklab,#c026d3 38%,transparent))}
 .rep-opt.v-packed{background:radial-gradient(185px 104px at 46px 50%,color-mix(in oklab,#e11d8f 17%,transparent),transparent 76%),var(--surface-3);border-color:color-mix(in oklab,#e11d8f 16%,var(--line2))}
@@ -561,7 +561,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .rep-next{flex:1;font-weight:600;font-size:15px;padding:14px;border-radius:24px;background:var(--primary);color:#fff;
   transition:background .2s ease,box-shadow .2s ease,opacity .2s ease}
 .rep-next:not(:disabled){box-shadow:0 4px 12px color-mix(in oklab,var(--primary) 22%,transparent)}
-.rep-next:disabled{background:var(--surface-4);color:var(--gray);box-shadow:none}
+.rep-next:disabled{background:var(--surface-4);color:color-mix(in oklab,var(--ink) 42%,transparent);box-shadow:none}
 .rep-done{text-align:center;margin:auto 0}
 .rep-done .big{font-size:56px;margin-bottom:10px}
 .rep-done h2{font-size:21px;font-weight:500;color:var(--ink)}
