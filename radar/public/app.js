@@ -1405,6 +1405,7 @@ function renderReport() {
   $('#reportOverlay').classList.remove('vibe');
   const venue = S.data.venues.find(v => v.id === R.venueId);
   const step = REPORT_STEPS[R.step];
+  $('#reportOverlay').classList.toggle('mstep', step.type === 'media'); // media-step spacing tweaks
   const sel = R.answers[step.key];
   const inner = $('#reportInner');
   const hint = step.type === 'media' ? "Show what it's like right now"
