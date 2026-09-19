@@ -1464,10 +1464,9 @@ function renderReport() {
 
 function mediaStepHtml() {
   const m = R.media;
-  const camSvg = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
   if (m) {
     const preview = m.type === 'video'
-      ? `<video class="media-preview" src="${m.dataUrl}" muted playsinline autoplay loop></video>`
+      ? `<video class="media-preview" src="${m.dataUrl}" muted playsinline autoplay loop></video><span class="md-play" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>`
       : `<img class="media-preview" src="${m.dataUrl}" alt="preview" />`;
     return `<div class="rep-media">
       <input type="file" id="mediaInput" accept="image/*,video/*" style="display:none" />
@@ -1479,7 +1478,7 @@ function mediaStepHtml() {
     <input type="file" id="mediaInput" accept="image/*,video/*" style="display:none" />
     <div class="md-req">Required</div>
     <div class="media-drop">
-      <span class="md-ic">${camSvg}</span>
+      <span class="md-cam"><img src="/report-camera.png" alt="" onerror="this.parentNode.style.display='none'" /></span>
       <span class="md-t">Add a photo or video</span>
       <div class="md-actions">
         <button class="md-act primary" id="mediaPhoto"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Take a photo</button>
