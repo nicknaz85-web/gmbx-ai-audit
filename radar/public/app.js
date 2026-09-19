@@ -1475,9 +1475,13 @@ function mediaStepHtml() {
   </div>`;
 }
 const REPORT_GEO_RADIUS_M = 300; // must be within ~300m of the venue to attach media
+// Flip to true to require the reporter to be physically at the venue before adding a
+// photo/video. Off for now so the report flow can be walked through from anywhere.
+const REPORT_REQUIRE_AT_VENUE = false;
 // Confirm the reporter is physically at the venue before letting them take or upload
 // a photo/video — a vibe report has to come from the actual spot, not staged elsewhere.
 async function ensureAtVenue() {
+  if (!REPORT_REQUIRE_AT_VENUE) return { ok: true }; // location check disabled
   const venue = S.data && S.data.venues.find((v) => v.id === R.venueId);
   if (!venue || !venue.coords) return { ok: true };
   // if the device genuinely can't read location, don't lock people out of reporting
