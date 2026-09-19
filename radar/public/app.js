@@ -1374,8 +1374,10 @@ async function sendPulse(id, state) {
    ============================================================ */
 const REPORT_STEPS = [
   { key: 'vibe', q: 'How is it?', required: true, grid: false, opts: [
-    { v: 'dead', e: '😴', l: 'Dead' }, { v: 'chill', e: '🙂', l: 'Chill' },
-    { v: 'popping', e: '🔥', l: 'Popping' }, { v: 'packed', e: '🤯', l: 'Packed' }] },
+    { v: 'dead', m: '/mascot-quiet.png', l: 'Dead', s: 'Almost empty' },
+    { v: 'chill', m: '/mascot-chill.png', l: 'Chill', s: 'Relaxed crowd' },
+    { v: 'popping', m: '/mascot-busy.png', l: 'Popping', s: 'Busy and lively' },
+    { v: 'packed', m: '/mascot-packed.png', l: 'Packed', s: 'Very crowded' }] },
   { key: 'media', q: 'Add a photo or video', type: 'media', required: true },
   { key: 'queue', q: 'Queue?', grid: true, opts: [
     { v: 'none', l: 'None' }, { v: '<10', l: 'Under 10 min' }, { v: '10-20', l: '10–20 min' },
@@ -1425,19 +1427,18 @@ function renderReport() {
         <div class="rep-notecount"><span id="noteCount">${noteVal.length}</span>/500</div>
       </div>`
     : `<div class="${step.grid ? 'rep-grid' : 'rep-opts'}">
-      ${opts.map(o => `<button class="rep-opt ${step.grid ? 'sm' : ''}${(o.v === 'other' || o.wide) ? ' wide' : ''} ${sel === o.v ? 'sel' : ''}" onclick="pickReport('${step.key}', ${typeof o.v === 'number' ? o.v : `'${o.v}'`})">
-        ${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`).join('')}
+      ${opts.map(o => { const val = typeof o.v === 'number' ? o.v : `'${o.v}'`; const on = sel === o.v ? ' sel' : '';
+        // vibe options render as branded mascot cards (mascot · label · helper · check)
+        if (o.m) return `<button class="rep-opt vibe${on}" onclick="pickReport('${step.key}', ${val})"><img class="rvm" src="${o.m}" alt="" onerror="this.style.visibility='hidden'" /><span class="rv-txt"><b>${o.l}</b>${o.s ? `<small>${esc(o.s)}</small>` : ''}</span><span class="rv-check">✓</span></button>`;
+        return `<button class="rep-opt ${step.grid ? 'sm' : ''}${(o.v === 'other' || o.wide) ? ' wide' : ''}${on}" onclick="pickReport('${step.key}', ${val})">${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`;
+      }).join('')}
     </div>${otherInput}`;
   inner.innerHTML = `
     <div class="rep-head">
       <div class="rep-venue">Reporting · <b>${esc(venue.name)}</b></div>
-      <button class="rep-x" onclick="closeReport()">✕</button>
+      <div class="rep-head-r"><span class="rep-count">${R.step + 1} of ${REPORT_STEPS.length}</span><button class="rep-x" onclick="closeReport()">✕</button></div>
     </div>
-    <div class="rep-progress">${REPORT_STEPS.map((_, i) => `<i class="${i <= R.step ? 'on' : ''}"></i>`).join('')}</div>
-    ${step.type !== 'media' ? `<div class="rep-mascots" aria-hidden="true">
-      <img src="/clubbit-mascot.png" alt="" onerror="this.style.display='none'" />
-      <img class="f" src="/clubbit-mascot-f.png" alt="" onerror="this.style.display='none'" />
-    </div>` : ''}
+    <div class="rep-progress">${REPORT_STEPS.map((_, i) => `<i class="${i < R.step ? 'on' : i === R.step ? 'on cur' : ''}"></i>`).join('')}</div>
     <div class="rep-q">${step.q}</div>
     <div class="rep-hint">${hint}</div>
     ${mid}
