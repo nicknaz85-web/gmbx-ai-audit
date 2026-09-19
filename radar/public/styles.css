@@ -451,9 +451,9 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .rep-progress i.cur{box-shadow:0 0 7px color-mix(in oklab,var(--primary) 55%,transparent)}
 /* question + cards sit in the upper area (moved up, not glued to the progress bar);
    Next stays pinned at the bottom */
-.rep-q{font-size:23px;font-weight:600;text-align:center;margin:2px 0 4px;color:var(--ink);letter-spacing:-.01em}
-.rep-hint{text-align:center;font-size:13px;color:var(--muted);margin-bottom:10px}
-.rep-opts{display:flex;flex-direction:column;gap:9px;margin-bottom:auto}
+.rep-q{font-size:27px;font-weight:700;text-align:center;margin:46px 0 5px;color:var(--ink);letter-spacing:-.015em}
+.rep-hint{text-align:center;font-size:15px;color:var(--muted);margin-bottom:16px}
+.rep-opts{display:flex;flex-direction:column;gap:13px;margin-bottom:auto}
 /* report: photo/video capture step */
 .rep-media{display:flex;flex-direction:column;gap:12px;align-items:center;margin-bottom:auto}
 .media-drop{width:100%;min-height:300px;border:2px dashed var(--line2);border-radius:16px;background:var(--surface-3);

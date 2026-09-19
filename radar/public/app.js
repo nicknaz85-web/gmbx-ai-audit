@@ -1409,7 +1409,7 @@ function renderReport() {
   const inner = $('#reportInner');
   const hint = step.type === 'media' ? "A photo or video is required. It's added to the venue's page"
     : step.type === 'note' ? 'Optional. A few words about the venue or the night (max 500)'
-    : step.optional ? 'Optional. Tap to add, or skip' : 'Tap your answer';
+    : step.optional ? 'Optional. Tap to add, or skip' : 'tap your answer';
   // localise the entry-price chips to the venue's currency (€10 → 1000 din, etc.)
   const opts = (step.opts && step.key === 'entry' && venue) ? step.opts.map((o) =>
     (typeof o.v === 'number' && o.v > 0) ? { ...o, l: fmtCur(o.v, venue.currency) + (o.v >= 20 ? '+' : '') } : o) : step.opts;
