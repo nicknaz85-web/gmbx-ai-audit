@@ -449,8 +449,9 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .rep-progress i{flex:1;height:3px;border-radius:3px;background:color-mix(in oklab,var(--surface-4) 70%,transparent);transition:background .25s ease}
 .rep-progress i.on{background:var(--blue)}
 .rep-progress i.cur{box-shadow:0 0 7px color-mix(in oklab,var(--primary) 55%,transparent)}
-/* the question + cards sit as one centred group, balanced top and bottom */
-.rep-q{font-size:23px;font-weight:600;text-align:center;margin:auto 0 4px;color:var(--ink);letter-spacing:-.01em}
+/* question + cards sit in the upper area (moved up, not glued to the progress bar);
+   Next stays pinned at the bottom */
+.rep-q{font-size:23px;font-weight:600;text-align:center;margin:24px 0 4px;color:var(--ink);letter-spacing:-.01em}
 .rep-hint{text-align:center;font-size:13px;color:var(--muted);margin-bottom:14px}
 .rep-opts{display:flex;flex-direction:column;gap:9px;margin-bottom:auto}
 /* report: photo/video capture step */
@@ -512,36 +513,40 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .media-cell{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);cursor:pointer}
 .rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 .rep-opt{display:flex;align-items:center;justify-content:center;gap:11px;padding:16px;border-radius:14px;
-  background:var(--surface-3);border:1.5px solid var(--line2);font-size:15px;font-weight:500;color:var(--ink);
+  background:var(--surface-3);border:1.5px solid color-mix(in oklab,var(--line2) 62%,transparent);font-size:15px;font-weight:500;color:var(--ink);
   transition:border-color .18s ease,background .18s ease,box-shadow .18s ease}
 .rep-opt .emoji{font-size:26px}
 .rep-opt:active{transform:scale(.99)}
-.rep-opt.sel{border-color:var(--primary);background:color-mix(in oklab,var(--primary) 14%,var(--card));color:var(--ink);
-  box-shadow:0 0 0 1px var(--primary),0 6px 18px color-mix(in oklab,var(--primary) 22%,transparent)}
+/* selected — tinted gradient fill + tight, soft glow (premium, not flashy) */
+.rep-opt.sel{border-color:var(--primary);color:var(--ink);
+  background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 20%,var(--card)),color-mix(in oklab,var(--primary) 11%,var(--card)));
+  box-shadow:0 0 0 1px var(--primary),0 3px 11px color-mix(in oklab,var(--primary) 15%,transparent)}
 .rep-opt.sm{padding:14px;font-size:13.5px;flex-direction:column;gap:6px}
 /* vibe step — branded mascot "vibe cards" */
-.rep-opt.vibe{justify-content:flex-start;text-align:left;gap:13px;padding:9px 14px;position:relative;overflow:hidden}
+.rep-opt.vibe{justify-content:flex-start;text-align:left;gap:13px;padding:8px 14px;position:relative;overflow:hidden}
 .rep-opt.vibe .rvm-wrap{flex:none;width:54px;height:54px;display:flex;align-items:center;justify-content:center}
 .rep-opt.vibe .rvm{width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 3px 7px rgba(0,0,0,.45))}
 .rep-opt.vibe .rv-txt{display:flex;flex-direction:column;line-height:1.25;flex:1;min-width:0}
 .rep-opt.vibe .rv-txt b{font-size:16px;font-weight:700;color:var(--ink)}
 .rep-opt.vibe .rv-txt small{font-size:12.5px;color:var(--muted);font-weight:500}
-.rep-opt.vibe .rv-check{flex:none;width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;
-  display:flex;align-items:center;justify-content:center;font-size:12px;opacity:0;transform:scale(.6);transition:opacity .18s ease,transform .18s ease}
+.rep-opt.vibe .rv-check{flex:none;width:20px;height:20px;border-radius:50%;background:var(--primary);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:11px;opacity:0;transform:scale(.6);transition:opacity .18s ease,transform .18s ease}
 .rep-opt.vibe.sel .rv-check{opacity:1;transform:scale(1)}
-/* per-vibe personality: a subtle aura behind the mascot + a matching mascot glow,
-   building in energy Dead → Chill → Popping → Packed (kept tasteful, not loud) */
-.rep-opt.v-dead{background:radial-gradient(150px 80px at 40px 50%,color-mix(in oklab,var(--muted) 10%,transparent),transparent 70%),var(--surface-3)}
-.rep-opt.v-dead .rvm{filter:drop-shadow(0 3px 7px rgba(0,0,0,.5)) saturate(.85);opacity:.9}
-.rep-opt.v-chill{background:radial-gradient(160px 90px at 42px 50%,color-mix(in oklab,var(--primary) 15%,transparent),transparent 72%),var(--surface-3)}
-.rep-opt.v-chill .rvm{filter:drop-shadow(0 3px 8px color-mix(in oklab,var(--primary) 42%,transparent))}
-.rep-opt.v-popping{background:radial-gradient(180px 100px at 44px 50%,color-mix(in oklab,#c026d3 18%,transparent),transparent 74%),var(--surface-3)}
-.rep-opt.v-popping .rvm{filter:drop-shadow(0 3px 9px color-mix(in oklab,#c026d3 45%,transparent))}
-.rep-opt.v-packed{background:radial-gradient(200px 120px at 46px 50%,color-mix(in oklab,#e11d8f 22%,transparent),transparent 76%),var(--surface-3);border-color:color-mix(in oklab,#e11d8f 24%,var(--line2))}
-.rep-opt.v-packed .rvm{filter:drop-shadow(0 3px 11px color-mix(in oklab,#e11d8f 55%,transparent))}
-/* selected wins over the per-vibe aura (higher specificity), with a brighter mascot glow */
-.rep-opt.vibe.sel{background:color-mix(in oklab,var(--primary) 15%,var(--card));border-color:var(--primary)}
-.rep-opt.vibe.sel .rvm{filter:drop-shadow(0 0 12px color-mix(in oklab,var(--primary) 60%,transparent)) drop-shadow(0 3px 7px rgba(0,0,0,.4))}
+/* per-vibe personality: a subtle aura behind the mascot + matching mascot glow, building
+   Dead → Chill → Popping → Packed. Unselected stays gentle so it never competes with the
+   selected card; Dead is grey/asleep, Chill a clear violet so the two don't look alike. */
+.rep-opt.v-dead{background:radial-gradient(140px 74px at 40px 50%,color-mix(in oklab,var(--muted) 7%,transparent),transparent 70%),var(--surface-3)}
+.rep-opt.v-dead .rvm{filter:drop-shadow(0 3px 6px rgba(0,0,0,.5)) saturate(.75);opacity:.85}
+.rep-opt.v-chill{background:radial-gradient(155px 86px at 42px 50%,color-mix(in oklab,var(--primary) 16%,transparent),transparent 72%),var(--surface-3)}
+.rep-opt.v-chill .rvm{filter:drop-shadow(0 3px 8px color-mix(in oklab,var(--primary) 38%,transparent))}
+.rep-opt.v-popping{background:radial-gradient(170px 94px at 44px 50%,color-mix(in oklab,#c026d3 14%,transparent),transparent 74%),var(--surface-3)}
+.rep-opt.v-popping .rvm{filter:drop-shadow(0 3px 9px color-mix(in oklab,#c026d3 38%,transparent))}
+.rep-opt.v-packed{background:radial-gradient(185px 104px at 46px 50%,color-mix(in oklab,#e11d8f 17%,transparent),transparent 76%),var(--surface-3);border-color:color-mix(in oklab,#e11d8f 16%,var(--line2))}
+.rep-opt.v-packed .rvm{filter:drop-shadow(0 3px 10px color-mix(in oklab,#e11d8f 46%,transparent))}
+/* selected wins over the per-vibe aura (higher specificity): same tinted gradient + a
+   slightly brighter, tight mascot glow */
+.rep-opt.vibe.sel{background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 20%,var(--card)),color-mix(in oklab,var(--primary) 11%,var(--card)));border-color:var(--primary)}
+.rep-opt.vibe.sel .rvm{filter:drop-shadow(0 0 9px color-mix(in oklab,var(--primary) 50%,transparent)) drop-shadow(0 3px 6px rgba(0,0,0,.4))}
 /* subtle idle motion — energy rises with the vibe; Dead stays still (asleep) */
 @media (prefers-reduced-motion:no-preference){
   .rep-opt.v-chill .rvm{animation:rvmSway 3.2s ease-in-out infinite}
@@ -555,7 +560,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .rep-skip{flex:0 0 auto;padding:14px 20px;border-radius:24px;background:var(--surface-2);color:var(--ink2);font-weight:500}
 .rep-next{flex:1;font-weight:600;font-size:15px;padding:14px;border-radius:24px;background:var(--primary);color:#fff;
   transition:background .2s ease,box-shadow .2s ease,opacity .2s ease}
-.rep-next:not(:disabled){box-shadow:0 6px 18px color-mix(in oklab,var(--primary) 32%,transparent)}
+.rep-next:not(:disabled){box-shadow:0 4px 12px color-mix(in oklab,var(--primary) 22%,transparent)}
 .rep-next:disabled{background:var(--surface-4);color:var(--gray);box-shadow:none}
 .rep-done{text-align:center;margin:auto 0}
 .rep-done .big{font-size:56px;margin-bottom:10px}
