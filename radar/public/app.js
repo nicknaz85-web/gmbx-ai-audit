@@ -1229,9 +1229,9 @@ function renderVenue(v, opts) {
     <div class="pr-hero${closed ? ' closed' : ''}">
       <img class="pr-mascot m-${mascotFor(v.radar.score)}" src="${mascotSrc(v.radar.score)}" alt="" />
       <div class="pr-main">
-        <div class="pr-top"><span class="pr-num" style="color:${closed ? 'var(--muted)' : bc.core}">${v.radar.score}</span>${closed ? '' : `<span class="pr-lab c-${band}">${esc(v.radar.label)}</span>`}</div>
+        <div class="pr-top"><span class="pr-num" style="color:${closed ? 'var(--muted)' : bc.core}">${v.radar.score}</span>${closed ? `<span class="pr-lab" style="color:var(--muted)">Closed</span>` : `<span class="pr-lab c-${band}">${esc(v.radar.label)}</span>`}</div>
         <div class="pr-track"><i style="width:${Math.max(closed ? 0 : 4, v.radar.score)}%;background:${closed ? 'var(--muted)' : bc.core}"></i></div>
-        <div class="pr-sub"><span class="pr-sub-lab">Party Radar</span>${closed ? ' · No live activity' : ''}</div>
+        <div class="pr-sub"><span class="pr-sub-lab">Party Radar</span></div>
       </div>
     </div>
   </div>
