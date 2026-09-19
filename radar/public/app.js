@@ -1548,10 +1548,7 @@ function compressImage(file) {
 }
 function pickReport(key, val) {
   R.answers[key] = val;
-  const step = REPORT_STEPS[R.step];
-  renderReport();
-  // auto-advance on the primary required single-choice question for speed
-  if (key === 'vibe') setTimeout(() => nextReport(), 180);
+  renderReport(); // just select — the user taps Next to move on
 }
 function prevReport() { if (R.step > 0) { R.step--; renderReport(); } }
 function nextReport(skip) {
