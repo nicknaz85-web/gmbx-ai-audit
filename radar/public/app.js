@@ -1429,7 +1429,7 @@ function renderReport() {
     : `<div class="${step.grid ? 'rep-grid' : 'rep-opts'}">
       ${opts.map(o => { const val = typeof o.v === 'number' ? o.v : `'${o.v}'`; const on = sel === o.v ? ' sel' : '';
         // vibe options render as branded mascot cards (mascot · label · helper · check)
-        if (o.m) return `<button class="rep-opt vibe${on}" onclick="pickReport('${step.key}', ${val})"><img class="rvm" src="${o.m}" alt="" onerror="this.style.visibility='hidden'" /><span class="rv-txt"><b>${o.l}</b>${o.s ? `<small>${esc(o.s)}</small>` : ''}</span><span class="rv-check">✓</span></button>`;
+        if (o.m) return `<button class="rep-opt vibe v-${o.v}${on}" onclick="pickReport('${step.key}', ${val})"><span class="rvm-wrap"><img class="rvm" src="${o.m}" alt="" onerror="this.style.visibility='hidden'" /></span><span class="rv-txt"><b>${o.l}</b>${o.s ? `<small>${esc(o.s)}</small>` : ''}</span><span class="rv-check">✓</span></button>`;
         return `<button class="rep-opt ${step.grid ? 'sm' : ''}${(o.v === 'other' || o.wide) ? ' wide' : ''}${on}" onclick="pickReport('${step.key}', ${val})">${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`;
       }).join('')}
     </div>${otherInput}`;
