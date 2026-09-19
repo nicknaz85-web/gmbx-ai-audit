@@ -1229,9 +1229,9 @@ function renderVenue(v, opts) {
     <div class="pr-hero${closed ? ' closed' : ''}">
       <img class="pr-mascot m-${mascotFor(v.radar.score)}" src="${mascotSrc(v.radar.score)}" alt="" />
       <div class="pr-main">
-        <div class="pr-top"><span class="pr-num" style="color:${closed ? 'var(--muted)' : bc.core}">${v.radar.score}</span>${closed ? `<span class="pr-lab" style="color:var(--muted)">Closed</span>` : `<span class="pr-lab c-${band}">${esc(v.radar.label)}</span>`}</div>
+        <div class="pr-top"><span class="pr-num" style="color:${closed ? 'var(--muted)' : bc.core}">${v.radar.score}</span>${closed ? '' : `<span class="pr-lab c-${band}">${esc(v.radar.label)}</span>`}</div>
         <div class="pr-track"><i style="width:${Math.max(closed ? 0 : 4, v.radar.score)}%;background:${closed ? 'var(--muted)' : bc.core}"></i></div>
-        <div class="pr-sub"><span class="pr-sub-lab">Party Radar</span></div>
+        <div class="pr-sub"><span class="pr-sub-lab">Party Radar</span>${closed ? ' · No live activity' : ''}</div>
       </div>
     </div>
   </div>
@@ -1239,18 +1239,18 @@ function renderVenue(v, opts) {
   <div class="vc-body">
     <button class="report-cta" onclick="startReport('${v.id}')">
       <span class="rc-ic">⚡</span>
-      <span class="rc-txt"><b>I'm here — report the vibe</b><small>${closed ? "let people know if it's actually open" : "show everyone what it's like right now"}</small></span>
+      <span class="rc-txt"><b>I'm here — report the vibe</b><small>${closed ? "Let people know if it's actually open" : "Show everyone what it's like right now"}</small></span>
       <span class="rc-go">›</span></button>
     ${v.liveBusyness != null ? `<div class="live-busy"><span class="lb-dot"></span><b>${v.liveBusyness}%</b> ${v.liveSource === 'live' ? 'busy right now' : "typical for now"} · <span class="lb-src">BestTime</span></div>` : ''}
     <div class="stat-grid four">
       <div class="stat"><div class="k">How full</div><div class="v">${closed ? '—' : v.fullness.est + '%'}</div>
         <div class="vs">${closed ? 'Unavailable' : 'Est. ' + v.fullness.low + '–' + v.fullness.high + '%'}</div></div>
       <div class="stat"><div class="k">Queue</div><div class="v">${closed ? '—' : queueText(v.queue || 'none')}</div>
-        <div class="vs">${closed ? 'unavailable' : (v.queueEstimated ? 'estimated' : 'reported')}</div></div>
+        <div class="vs">${closed ? 'Unavailable' : (v.queueEstimated ? 'Estimated' : 'Reported')}</div></div>
       <div class="stat"><div class="k">Entry</div><div class="v">${entryText(v)}</div>
-        ${v.special ? `<div class="vs c-busy">${esc(v.special)}</div>` : `<div class="vs">${v.entryEstimated ? 'typical' : 'reported'}</div>`}</div>
+        ${v.special ? `<div class="vs c-busy">${esc(v.special)}</div>` : `<div class="vs">${v.entryEstimated ? 'Typical' : 'Reported'}</div>`}</div>
       <div class="stat"><div class="k">Music</div><div class="v" style="font-size:15px">${esc(v.musicHint || v.music || 'Mixed')}</div>
-        <div class="vs">typical genre</div></div>
+        <div class="vs">Typical genre</div></div>
     </div>
 
     ${v.owner ? `<div class="owner-note"><b>Venue update</b> · ${ago(v.owner.ageMin)} ago: status ${esc(v.owner.status)}${v.owner.lastEntry ? ' · last entry ' + esc(v.owner.lastEntry) : ''}</div>` : ''}
