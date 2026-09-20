@@ -1473,9 +1473,9 @@ function renderReport() {
     <div class="rep-q">${step.q}</div>
     <div class="rep-hint">${hint}</div>
     ${mid}
+    ${step.optional ? `<div class="rep-skiprow"><button class="rep-skiplink" onclick="nextReport(true)">Skip</button></div>` : ''}
     <div class="rep-nav">
       ${R.step > 0 ? `<button class="rep-skip" onclick="prevReport()">Back</button>` : ''}
-      ${step.optional ? `<button class="rep-skiplink" onclick="nextReport(true)">Skip</button>` : ''}
       <button class="rep-next" ${(!step.optional && sel == null) ? 'disabled' : ''} onclick="nextReport()">
         ${R.step === REPORT_STEPS.length - 1 ? 'Submit' : 'Next'}</button>
     </div>`;
