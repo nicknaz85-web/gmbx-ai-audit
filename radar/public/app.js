@@ -1410,7 +1410,7 @@ function renderReport() {
   const inner = $('#reportInner');
   const hint = step.type === 'media' ? "Show what it's like right now"
     : step.type === 'note' ? 'Optional. A few words about the venue or the night (max 500)'
-    : step.optional ? 'Optional. Tap to add, or skip' : 'tap your answer';
+    : step.optional ? 'Optional. Tap to add, or skip' : 'Tap your answer';
   // localise the entry-price chips to the venue's currency (€10 → 1000 din, etc.)
   const opts = (step.opts && step.key === 'entry' && venue) ? step.opts.map((o) =>
     (typeof o.v === 'number' && o.v > 0) ? { ...o, l: fmtCur(o.v, venue.currency) + (o.v >= 20 ? '+' : '') } : o) : step.opts;
@@ -1428,10 +1428,12 @@ function renderReport() {
         <div class="rep-notecount"><span id="noteCount">${noteVal.length}</span>/500</div>
       </div>`
     : `<div class="${step.grid ? 'rep-grid' : 'rep-opts'}">
-      ${opts.map(o => { const val = typeof o.v === 'number' ? o.v : `'${o.v}'`; const on = sel === o.v ? ' sel' : '';
+      ${opts.map((o, i) => { const val = typeof o.v === 'number' ? o.v : `'${o.v}'`; const on = sel === o.v ? ' sel' : '';
         // vibe options render as branded mascot cards (mascot · label · helper · check)
         if (o.m) return `<button class="rep-opt vibe v-${o.v}${on}" onclick="pickReport('${step.key}', ${val})"><span class="rvm-wrap"><img class="rvm" src="${o.m}" alt="" onerror="this.style.visibility='hidden'" /></span><span class="rv-txt"><b>${o.l}</b>${o.s ? `<small>${esc(o.s)}</small>` : ''}</span><span class="rv-check">✓</span></button>`;
-        return `<button class="rep-opt ${step.grid ? 'sm' : ''}${(o.v === 'other' || o.wide) ? ' wide' : ''}${on}" onclick="pickReport('${step.key}', ${val})">${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`;
+        // queue step: a subtle intensity ramp (calm → busiest) via a per-option class
+        const q = step.key === 'queue' ? ` q${i}` : '';
+        return `<button class="rep-opt ${step.grid ? 'sm' : ''}${q}${(o.v === 'other' || o.wide) ? ' wide' : ''}${on}" onclick="pickReport('${step.key}', ${val})">${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`;
       }).join('')}
     </div>${otherInput}`;
   inner.innerHTML = `
