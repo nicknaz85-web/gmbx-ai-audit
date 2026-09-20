@@ -1379,9 +1379,9 @@ const REPORT_STEPS = [
     { v: 'popping', m: '/mascot-busy.png', l: 'Popping', s: 'Busy and lively' },
     { v: 'packed', m: '/mascot-packed.png', l: 'Packed', s: 'Very crowded' }] },
   { key: 'media', q: 'Add a photo or video', type: 'media', required: true },
-  { key: 'queue', q: 'Queue?', grid: true, opts: [
+  { key: 'queue', q: 'Queue?', grid: false, opts: [
     { v: 'none', l: 'None' }, { v: '<10', l: 'Under 10 min' }, { v: '10-20', l: '10–20 min' },
-    { v: '20-30', l: '20–30 min' }, { v: '30+', l: '30+ min', wide: true }] },
+    { v: '20-30', l: '20–30 min' }, { v: '30+', l: '30+ min' }] },
   { key: 'entry', q: 'Entry?', grid: true, opts: [
     { v: 0, l: 'Free' }, { v: 5, l: '€5' }, { v: 10, l: '€10' }, { v: 15, l: '€15' },
     { v: 20, l: '€20+' }, { v: 'guestlist', l: 'Guest list' }, { v: 'other', l: 'Other' }] },
