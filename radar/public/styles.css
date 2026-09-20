@@ -561,16 +561,19 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .rep-opt.q1{background:linear-gradient(0deg,color-mix(in oklab,#8b5cf6 6%,var(--surface-3)),color-mix(in oklab,#8b5cf6 6%,var(--surface-3)))}
 .rep-opt.q2{background:linear-gradient(0deg,color-mix(in oklab,var(--primary) 7%,var(--surface-3)),color-mix(in oklab,var(--primary) 7%,var(--surface-3)))}
 .rep-opt.q3{background:linear-gradient(0deg,color-mix(in oklab,#c026d3 4%,var(--surface-3)),color-mix(in oklab,#c026d3 4%,var(--surface-3)))}
-.rep-opt.q4{background:linear-gradient(0deg,color-mix(in oklab,#e11d8f 3%,var(--surface-3)),color-mix(in oklab,#e11d8f 3%,var(--surface-3)));border-color:color-mix(in oklab,#e11d8f 4%,var(--line2))}
+.rep-opt.q4{background:linear-gradient(0deg,color-mix(in oklab,#e11d8f 2%,var(--surface-3)),color-mix(in oklab,#e11d8f 2%,var(--surface-3)));border-color:color-mix(in oklab,#e11d8f 3%,var(--line2))}
 /* dots + label read as one group on the left; the indicator column is a fixed
    width so labels line up whether it's dots, a star or a dash */
 .rep-opt.q-opt{justify-content:flex-start;gap:13px;padding-left:20px}
 .rep-opt .q-ic{display:flex;align-items:center;flex:none;min-width:46px;color:var(--muted)}
 /* entry: guest list = subtle gold/purple accent; other = neutral */
-.rep-opt.e-guest{background:linear-gradient(0deg,color-mix(in oklab,var(--accent) 6%,var(--surface-3)),color-mix(in oklab,var(--accent) 6%,var(--surface-3)));border-color:color-mix(in oklab,var(--accent) 12%,var(--line2))}
+.rep-opt.e-guest{background:linear-gradient(0deg,color-mix(in oklab,var(--accent) 4%,var(--surface-3)),color-mix(in oklab,var(--accent) 4%,var(--surface-3)));border-color:color-mix(in oklab,var(--accent) 9%,var(--line2))}
 .rep-opt.e-guest .q-ic{color:color-mix(in oklab,var(--accent) 78%,#fff)}
 .rep-opt.e-other{background:var(--surface-3)}
 .rep-opt.e-other .q-ic{color:color-mix(in oklab,var(--muted) 60%,transparent)}
+/* entry has 7 options → slightly more compact cards + gaps (queue/vibe unaffected) */
+.report.estep .rep-opt.q-opt{padding-top:13px;padding-bottom:13px}
+.report.estep .rep-opts{gap:11px}
 /* clearer progression: brighter active dots, dimmer inactive dots */
 .q-dots circle.off{fill:color-mix(in oklab,var(--muted) 16%,transparent)}
 /* None reads clearly as zero queue — its (all-inactive) dots are extra dim */

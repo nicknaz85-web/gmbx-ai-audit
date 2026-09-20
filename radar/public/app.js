@@ -1430,6 +1430,7 @@ function renderReport() {
   const step = REPORT_STEPS[R.step];
   $('#reportOverlay').classList.toggle('mstep', step.type === 'media'); // media-step spacing tweaks
   $('#reportOverlay').classList.toggle('qstep', step.key === 'queue');   // queue-step spacing tweaks
+  $('#reportOverlay').classList.toggle('estep', step.key === 'entry');   // entry has 7 options → a bit more compact
   const sel = R.answers[step.key];
   const inner = $('#reportInner');
   const hint = step.type === 'media' ? "Show what it's like right now"
