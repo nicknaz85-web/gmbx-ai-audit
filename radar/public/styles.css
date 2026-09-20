@@ -624,6 +624,9 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 @keyframes rvmBop{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-4px) rotate(2deg)}}
 .rep-nav{display:flex;gap:11px;margin-top:16px}
 .rep-skip{flex:0 0 auto;padding:14px 20px;border-radius:24px;background:var(--surface-2);color:var(--ink2);font-weight:500}
+/* Skip = subtle text-style action, must not compete with the purple Next */
+.rep-skiplink{flex:0 0 auto;padding:14px 6px;background:none;color:var(--muted);font-weight:500;font-size:14px}
+.rep-skiplink:active{color:var(--ink2)}
 .rep-next{flex:1;font-weight:600;font-size:15px;padding:14px;border-radius:24px;background:var(--primary);color:#fff;
   transition:background .2s ease,box-shadow .2s ease,opacity .2s ease}
 .rep-next:not(:disabled){box-shadow:0 4px 12px color-mix(in oklab,var(--primary) 22%,transparent)}

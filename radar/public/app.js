@@ -1385,8 +1385,10 @@ const REPORT_STEPS = [
   { key: 'entry', q: 'Entry?', grid: false, opts: [
     { v: 0, l: 'Free' }, { v: 5, l: '€5' }, { v: 10, l: '€10' }, { v: 15, l: '€15' },
     { v: 20, l: '€20+' }, { v: 'guestlist', l: 'Guest list' }, { v: 'other', l: 'Other' }] },
-  { key: 'mix', q: 'Crowd mix?', grid: true, optional: true, opts: [
-    { v: 'more_women', l: 'More women' }, { v: 'even', l: 'Even mix' }, { v: 'more_men', l: 'More men' }] },
+  { key: 'mix', q: 'Crowd mix?', grid: false, optional: true, opts: [
+    { v: 'more_women', l: 'More women', m: '/clubbit-mascot-f.png', s: 'Mostly women' },
+    { v: 'even', l: 'Even mix', m: '/mascot-pair.png', s: 'Balanced crowd' },
+    { v: 'more_men', l: 'More men', m: '/clubbit-mascot.png', s: 'Mostly men' }] },
   { key: 'music', q: 'Music right now?', grid: true, optional: true, opts: [
     { v: 'House', l: 'House' }, { v: 'Techno', l: 'Techno' }, { v: 'Hip-Hop', l: 'Hip-hop' },
     { v: 'R&B', l: 'R&B' }, { v: 'Afrobeats', l: 'Afrobeats' }, { v: 'Commercial', l: 'Commercial' },
@@ -1472,7 +1474,8 @@ function renderReport() {
     <div class="rep-hint">${hint}</div>
     ${mid}
     <div class="rep-nav">
-      ${step.optional || R.step > 0 ? `<button class="rep-skip" onclick="${step.optional ? 'nextReport(true)' : 'prevReport()'}">${step.optional ? 'Skip' : 'Back'}</button>` : ''}
+      ${R.step > 0 ? `<button class="rep-skip" onclick="prevReport()">Back</button>` : ''}
+      ${step.optional ? `<button class="rep-skiplink" onclick="nextReport(true)">Skip</button>` : ''}
       <button class="rep-next" ${(!step.optional && sel == null) ? 'disabled' : ''} onclick="nextReport()">
         ${R.step === REPORT_STEPS.length - 1 ? 'Submit' : 'Next'}</button>
     </div>`;
