@@ -1476,13 +1476,13 @@ function renderReport() {
     ${step.optional ? `<div class="rep-skiprow"><button class="rep-skiplink" onclick="nextReport(true)">Skip</button></div>` : ''}
     <div class="rep-nav">
       ${R.step > 0 ? `<button class="rep-skip" onclick="prevReport()">Back</button>` : ''}
-      <button class="rep-next" ${(!step.optional && sel == null) ? 'disabled' : ''} onclick="nextReport()">
+      <button class="rep-next" ${sel == null ? 'disabled' : ''} onclick="nextReport()">
         ${R.step === REPORT_STEPS.length - 1 ? 'Submit' : 'Next'}</button>
     </div>`;
   if (step.type === 'media') wireMediaStep();
   if (step.type === 'note') {
     const ta = $('#repNote');
-    if (ta) { ta.oninput = () => { R.answers.note = ta.value; const c = $('#noteCount'); if (c) c.textContent = ta.value.length; }; }
+    if (ta) { ta.oninput = () => { R.answers.note = ta.value; const c = $('#noteCount'); if (c) c.textContent = ta.value.length; const nx = $('#reportInner .rep-next'); if (nx) nx.disabled = ta.value.trim().length === 0; }; }
   }
   const other = $('#repOther');
   if (other) {
