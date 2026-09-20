@@ -550,19 +550,25 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   box-shadow:0 0 0 1px var(--primary),0 3px 11px color-mix(in oklab,var(--primary) 15%,transparent)}
 .rep-opt.sm{padding:14px;font-size:13.5px;flex-direction:column;gap:6px}
 /* small checkmark on a selected option (grid chips + full-width queue) */
-.rep-opt.sel:not(.vibe)::after{content:"✓";position:absolute;top:9px;right:12px;font-size:12px;font-weight:800;color:var(--primary)}
+/* selected checkmark: same purple circle badge as the vibe cards, vertically
+   centred on the right with consistent padding — identical on every slide */
+.rep-opt.sel:not(.vibe)::after{content:"✓";position:absolute;top:50%;right:14px;transform:translateY(-50%);
+  width:20px;height:20px;border-radius:50%;background:var(--primary);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;line-height:1}
 /* queue step: the DOTS carry the intensity, so card backgrounds stay very faint and
    nearly uniform (just a whisper of hue) — no card should look preselected */
 .rep-opt.q0{background:var(--surface-3)}
 .rep-opt.q1{background:linear-gradient(0deg,color-mix(in oklab,#8b5cf6 6%,var(--surface-3)),color-mix(in oklab,#8b5cf6 6%,var(--surface-3)))}
 .rep-opt.q2{background:linear-gradient(0deg,color-mix(in oklab,var(--primary) 7%,var(--surface-3)),color-mix(in oklab,var(--primary) 7%,var(--surface-3)))}
 .rep-opt.q3{background:linear-gradient(0deg,color-mix(in oklab,#c026d3 4%,var(--surface-3)),color-mix(in oklab,#c026d3 4%,var(--surface-3)))}
-.rep-opt.q4{background:linear-gradient(0deg,color-mix(in oklab,#e11d8f 4%,var(--surface-3)),color-mix(in oklab,#e11d8f 4%,var(--surface-3)));border-color:color-mix(in oklab,#e11d8f 5%,var(--line2))}
+.rep-opt.q4{background:linear-gradient(0deg,color-mix(in oklab,#e11d8f 3%,var(--surface-3)),color-mix(in oklab,#e11d8f 3%,var(--surface-3)));border-color:color-mix(in oklab,#e11d8f 4%,var(--line2))}
 /* dots + label read as one group on the left */
 .rep-opt.q-opt{justify-content:flex-start;gap:13px;padding-left:20px}
 .rep-opt .q-ic{display:flex;align-items:center;flex:none}
 /* clearer progression: brighter active dots, dimmer inactive dots */
 .q-dots circle.off{fill:color-mix(in oklab,var(--muted) 16%,transparent)}
+/* None reads clearly as zero queue — its (all-inactive) dots are extra dim */
+.rep-opt.q0 .q-dots circle.off{fill:color-mix(in oklab,var(--muted) 10%,transparent)}
 .q-dots circle.on{fill:color-mix(in oklab,var(--primary) 90%,#fff)}
 .rep-opt.q1 .q-dots circle.on{fill:color-mix(in oklab,#8b5cf6 90%,#fff)}
 .rep-opt.q2 .q-dots circle.on{fill:color-mix(in oklab,var(--primary) 90%,#fff)}
