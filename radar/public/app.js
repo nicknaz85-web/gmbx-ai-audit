@@ -1460,7 +1460,8 @@ function renderReport() {
         const ind = reportIndicator(step, o, i);
         return `<button class="rep-opt ${step.grid ? 'sm' : ''}${ind.cls}${(o.v === 'other' || o.wide) ? ' wide' : ''}${on}" onclick="pickReport('${step.key}', ${val})">${ind.html}${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`;
       }).join('')}
-    </div>${otherInput}`;
+      ${otherInput}
+    </div>`;
   inner.innerHTML = `
     <div class="rep-head">
       <div class="rep-venue">Reporting · <b>${esc(venue.name)}</b></div>

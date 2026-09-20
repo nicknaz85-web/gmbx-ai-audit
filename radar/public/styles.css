@@ -565,7 +565,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 /* dots + label read as one group on the left; the indicator column is a fixed
    width so labels line up whether it's dots, a star or a dash */
 .rep-opt.q-opt{justify-content:flex-start;gap:13px;padding-left:20px}
-.rep-opt .q-ic{display:flex;align-items:center;flex:none;min-width:46px;color:var(--muted)}
+.rep-opt .q-ic{display:flex;align-items:center;justify-content:center;flex:none;min-width:46px;color:var(--muted)}
 /* entry: guest list = subtle gold/purple accent; other = neutral */
 .rep-opt.e-guest{background:linear-gradient(0deg,color-mix(in oklab,var(--accent) 4%,var(--surface-3)),color-mix(in oklab,var(--accent) 4%,var(--surface-3)));border-color:color-mix(in oklab,var(--accent) 9%,var(--line2))}
 .rep-opt.e-guest .q-ic{color:color-mix(in oklab,var(--accent) 78%,#fff)}
@@ -1043,7 +1043,8 @@ body.msheet-open .msheet,body.msheet-open .msheet-scrim{pointer-events:auto}
 .rep-done .rd-duo .rd-mascot-f{width:116px;max-width:34vw;transform:scaleX(-1);margin-left:-6px}
 
 /* report: "Other" custom input (entry price / music genre) */
-.rep-other{margin-top:12px}
+.rep-other{margin-top:10px}
+.rep-grid .rep-other{grid-column:1 / -1}
 .rep-other input{width:100%;height:52px;border:1.5px solid var(--line2);border-radius:14px;background:var(--surface-3);
   padding:0 16px;font-size:16px;color:var(--ink);font-family:inherit}
 .rep-other input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(124,58,237,.15)}
