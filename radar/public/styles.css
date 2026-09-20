@@ -557,10 +557,17 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .rep-opt.q1{background:radial-gradient(72% 135% at 50% 50%,color-mix(in oklab,#8b5cf6 13%,transparent),transparent 74%),var(--surface-3)}
 .rep-opt.q2{background:radial-gradient(74% 140% at 50% 50%,color-mix(in oklab,var(--primary) 15%,transparent),transparent 74%),var(--surface-3)}
 .rep-opt.q3{background:radial-gradient(76% 145% at 50% 50%,color-mix(in oklab,#c026d3 14%,transparent),transparent 76%),var(--surface-3)}
-.rep-opt.q4{background:radial-gradient(80% 150% at 50% 50%,color-mix(in oklab,#e11d8f 16%,transparent),transparent 78%),var(--surface-3);border-color:color-mix(in oklab,#e11d8f 16%,var(--line2))}
+.rep-opt.q4{background:radial-gradient(80% 150% at 50% 50%,color-mix(in oklab,#e11d8f 11%,transparent),transparent 78%),var(--surface-3);border-color:color-mix(in oklab,#e11d8f 9%,var(--line2))}
+/* left-aligned queue "people in line" dot cue */
+.rep-opt .q-ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);display:flex;align-items:center}
+.q-dots circle.off{fill:color-mix(in oklab,var(--muted) 34%,transparent)}
+.q-dots circle.on{fill:color-mix(in oklab,var(--primary) 72%,var(--ink))}
+.rep-opt.q4 .q-dots circle.on{fill:color-mix(in oklab,#e11d8f 70%,var(--ink))}
 /* selected wins over the per-option aura */
 .rep-opt.sel:not(.vibe){border-color:var(--primary);
   background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 20%,var(--card)),color-mix(in oklab,var(--primary) 11%,var(--card)))}
+/* queue step: lift Back/Next a little (default report-inner padding is +46px) */
+.report.qstep .report-inner{padding-bottom:calc(var(--sab) + 72px)}
 /* vibe step — branded mascot "vibe cards" */
 .rep-opt.vibe{justify-content:flex-start;text-align:left;gap:13px;padding:8px 14px;position:relative;overflow:hidden}
 .rep-opt.vibe .rvm-wrap{flex:none;width:54px;height:54px;display:flex;align-items:center;justify-content:center}
