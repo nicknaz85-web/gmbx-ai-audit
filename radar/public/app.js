@@ -1382,7 +1382,7 @@ const REPORT_STEPS = [
   { key: 'queue', q: 'Queue?', grid: false, opts: [
     { v: 'none', l: 'None' }, { v: '<10', l: 'Under 10 min' }, { v: '10-20', l: '10–20 min' },
     { v: '20-30', l: '20–30 min' }, { v: '30+', l: '30+ min' }] },
-  { key: 'entry', q: 'Entry?', grid: true, opts: [
+  { key: 'entry', q: 'Entry?', grid: false, opts: [
     { v: 0, l: 'Free' }, { v: 5, l: '€5' }, { v: 10, l: '€10' }, { v: 15, l: '€15' },
     { v: 20, l: '€20+' }, { v: 'guestlist', l: 'Guest list' }, { v: 'other', l: 'Other' }] },
   { key: 'mix', q: 'Crowd mix?', grid: true, optional: true, opts: [
@@ -1407,6 +1407,22 @@ function queueDots(n) {
   let s = '<span class="q-ic"><svg class="q-dots" viewBox="0 0 58 12" width="46" height="10" aria-hidden="true">';
   for (let i = 0; i < 4; i++) s += `<circle cx="${6 + i * 15}" cy="6" r="4" class="${i < n ? 'on' : 'off'}"/>`;
   return s + '</svg></span>';
+}
+// Left-side indicator for the stacked answer steps (queue + entry): a 4-dot
+// intensity ramp for levels, a star for guest list, a neutral dash for "other".
+// Returns { cls, html } — cls reuses the queue q0–q4 classes so the colour ramp,
+// card tint and dot colours are shared across both steps.
+const REP_STAR_SVG = '<span class="q-ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M12 2.6l2.9 5.87 6.48.94-4.69 4.57 1.11 6.45L12 17.9l-5.79 3.05 1.1-6.45L2.63 9.94l6.48-.94z"/></svg></span>';
+const REP_DASH_SVG = '<span class="q-ic"><svg viewBox="0 0 24 12" width="20" height="10" aria-hidden="true"><rect x="4" y="5" width="16" height="2.4" rx="1.2" fill="currentColor"/></svg></span>';
+function reportIndicator(step, o, i) {
+  if (step.key === 'queue') return { cls: ' q-opt q' + i, html: queueDots(i) };
+  if (step.key === 'entry') {
+    const tier = { 0: 0, 5: 1, 10: 2, 15: 3, 20: 4 }[o.v];
+    if (tier != null) return { cls: ' q-opt q' + tier, html: queueDots(tier) };
+    if (o.v === 'guestlist') return { cls: ' q-opt e-guest', html: REP_STAR_SVG };
+    return { cls: ' q-opt e-other', html: REP_DASH_SVG }; // Other
+  }
+  return { cls: '', html: '' };
 }
 function renderReport() {
   $('#reportOverlay').classList.remove('vibe');
@@ -1439,11 +1455,9 @@ function renderReport() {
       ${opts.map((o, i) => { const val = typeof o.v === 'number' ? o.v : `'${o.v}'`; const on = sel === o.v ? ' sel' : '';
         // vibe options render as branded mascot cards (mascot · label · helper · check)
         if (o.m) return `<button class="rep-opt vibe v-${o.v}${on}" onclick="pickReport('${step.key}', ${val})"><span class="rvm-wrap"><img class="rvm" src="${o.m}" alt="" onerror="this.style.visibility='hidden'" /></span><span class="rv-txt"><b>${o.l}</b>${o.s ? `<small>${esc(o.s)}</small>` : ''}</span><span class="rv-check">✓</span></button>`;
-        // queue step: a subtle intensity ramp (calm → busiest) via a per-option class,
-        // plus a small "people in line" dot cue on the left that grows None → 30+
-        const q = step.key === 'queue' ? ` q-opt q${i}` : '';
-        const qic = step.key === 'queue' ? queueDots(i) : '';
-        return `<button class="rep-opt ${step.grid ? 'sm' : ''}${q}${(o.v === 'other' || o.wide) ? ' wide' : ''}${on}" onclick="pickReport('${step.key}', ${val})">${qic}${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`;
+        // queue + entry: full-width cards with a left intensity/level indicator
+        const ind = reportIndicator(step, o, i);
+        return `<button class="rep-opt ${step.grid ? 'sm' : ''}${ind.cls}${(o.v === 'other' || o.wide) ? ' wide' : ''}${on}" onclick="pickReport('${step.key}', ${val})">${ind.html}${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`;
       }).join('')}
     </div>${otherInput}`;
   inner.innerHTML = `
