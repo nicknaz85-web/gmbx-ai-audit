@@ -1404,8 +1404,8 @@ function closeReport() { $('#reportOverlay').hidden = true; }
 // small "people in line" cue for the queue step — n dots filled (0–4), growing with
 // the wait; a subtle Clubbit motif instead of an emoji
 function queueDots(n) {
-  let s = '<span class="q-ic"><svg class="q-dots" viewBox="0 0 44 10" width="34" height="8" aria-hidden="true">';
-  for (let i = 0; i < 4; i++) s += `<circle cx="${5 + i * 11}" cy="5" r="3.1" class="${i < n ? 'on' : 'off'}"/>`;
+  let s = '<span class="q-ic"><svg class="q-dots" viewBox="0 0 58 12" width="46" height="10" aria-hidden="true">';
+  for (let i = 0; i < 4; i++) s += `<circle cx="${6 + i * 15}" cy="6" r="4" class="${i < n ? 'on' : 'off'}"/>`;
   return s + '</svg></span>';
 }
 function renderReport() {
@@ -1441,7 +1441,7 @@ function renderReport() {
         if (o.m) return `<button class="rep-opt vibe v-${o.v}${on}" onclick="pickReport('${step.key}', ${val})"><span class="rvm-wrap"><img class="rvm" src="${o.m}" alt="" onerror="this.style.visibility='hidden'" /></span><span class="rv-txt"><b>${o.l}</b>${o.s ? `<small>${esc(o.s)}</small>` : ''}</span><span class="rv-check">✓</span></button>`;
         // queue step: a subtle intensity ramp (calm → busiest) via a per-option class,
         // plus a small "people in line" dot cue on the left that grows None → 30+
-        const q = step.key === 'queue' ? ` q${i}` : '';
+        const q = step.key === 'queue' ? ` q-opt q${i}` : '';
         const qic = step.key === 'queue' ? queueDots(i) : '';
         return `<button class="rep-opt ${step.grid ? 'sm' : ''}${q}${(o.v === 'other' || o.wide) ? ' wide' : ''}${on}" onclick="pickReport('${step.key}', ${val})">${qic}${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`;
       }).join('')}
@@ -1553,7 +1553,6 @@ async function onMediaPick(e) {
   if (f.type.startsWith('image/')) {
     const dataUrl = await compressImage(f);
     if (!dataUrl) return toast('Could not read that image');
-    toast('Checking photo…', 1200);
     if (await isInappropriate(dataUrl)) { toast('Please post a photo of the venue — explicit or personal photos aren’t allowed', 3200); return; }
     R.media = { type: 'image', dataUrl };
   } else if (f.type.startsWith('video/')) {
