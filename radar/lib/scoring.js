@@ -454,7 +454,7 @@ function venueForecast(venue, currentEst, ref, place) {
   // treated as after 10pm, not before it.
   let startTs = null;
   if (openNow) startTs = ref;
-  else for (let t = ref; t <= ref + 36 * HOUR; t += 10 * MIN) { if (isOpenAt(t)) { startTs = t; break; } }
+  else for (let t = ref; t <= ref + 7 * 24 * HOUR; t += 10 * MIN) { if (isOpenAt(t)) { startTs = t; break; } } // find the next opening (up to a week out, e.g. weekend-only venues)
   // when this session closes: the first shut moment at/after the start (null = never
   // closes within range, i.e. a 24h venue or unknown hours → just show the next 8h).
   let closeTs = null;
@@ -463,9 +463,11 @@ function venueForecast(venue, currentEst, ref, place) {
   // with fake bars. A closed venue whose session we can't locate falls back gracefully
   // to a plain next-8-hours read so the UI never breaks.
   const points = [];
-  const base = startTs != null ? startTs : ref;
-  for (let k = 0; k < 8; k++) {
-    const ts = base + k * HOUR;
+  // Only ever build bars for a real open session — never the hours a venue is shut.
+  // If we can't locate an opening at all (unknown/no schedule) we emit no bars rather
+  // than padding the chart with closed-hour placeholders.
+  if (startTs != null) for (let k = 0; k < 8; k++) {
+    const ts = startTs + k * HOUR;
     if (closeTs != null && ts > closeTs + 5 * MIN) break; // include the closing hour, stop after
     const mins = Math.round((ts - ref) / MIN);
     const isNow = openNow && k === 0;                     // "Now" only when actually open now
@@ -505,6 +507,9 @@ function venueForecast(venue, currentEst, ref, place) {
     for (let i = 0; i < points.length; i++) { const dd = Math.abs(points[i].ts - bestTs); if (dd < bd) { bd = dd; bi = i; } }
     if (bi >= 0) points[bi].peak = true;
   }
+  // when closed now, the first bar IS the next opening hour — flag it so the UI can
+  // show a small "OPENS" label under it (and no label once the venue is actually open)
+  if (!openNow && startTs != null && points.length) points[0].opens = true;
   points.forEach((p) => { delete p.ts; }); // internal only — don't ship it
   return {
     points,
