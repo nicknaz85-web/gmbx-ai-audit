@@ -662,13 +662,21 @@ class RadarMap {
     this.zoomed = true; const zr = document.getElementById('zoomReset'); if (zr) zr.hidden = false;
   }
   _tap(px, py) {
+    // Only hit-test the pins actually ON the map (they already honour the active
+    // filter + stacking). Scanning every venue used to open a nearby CLOSED /
+    // filtered-out venue whose pin wasn't even shown when you tapped near a pin.
     let best = null, bestD = 30;
-    for (const v of this.venues) {
-      const s = this.proj(v.coords);
+    for (const m of (this._markers || [])) {
+      let s; try { s = this.proj({ lat: m._lat, lng: m._lng }); } catch (e) { continue; }
       const d = Math.hypot(s.x - px, s.y - py);
-      if (d < bestD) { bestD = d; best = v; }
+      if (d < bestD) { bestD = d; best = m; }
     }
-    if (best) { openVenue(best.id); return; }
+    if (best) {
+      const el = best._el; // a stacked pin opens its picker; otherwise open the venue
+      if (el && el._stackCount > 1 && el._stackMembers && el._stackMembers.length > 1) showPinStack(el._stackMembers);
+      else openVenue(best._vid);
+      return;
+    }
     for (const a of this.areas) { // tapping a neighbourhood opens its area sheet
       const s = this.proj(a.center);
       if (Math.hypot(s.x - px, s.y - py) < 46) { openArea(a.id); return; }
