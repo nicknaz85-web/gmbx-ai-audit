@@ -586,6 +586,29 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 /* selected wins over the per-option aura */
 .rep-opt.sel:not(.vibe){border-color:var(--primary);
   background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 20%,var(--card)),color-mix(in oklab,var(--primary) 11%,var(--card)))}
+/* music step — same 2-col card system as the rest of the flow, with a subtle
+   per-genre colour identity: a small glowing dot on the left + a whisper of that
+   hue in the card. Left-aligned so the shared right-centred checkmark reads clean.
+   Selected always wins with the standard purple fill (rules below use :not(.sel)). */
+.rep-grid.music .rep-opt{flex-direction:row;justify-content:flex-start;text-align:left;gap:10px;padding:14px 32px 14px 13px}
+.rep-grid.music .rep-opt > span:last-child{font-size:14px;font-weight:600;color:var(--ink)}
+.m-dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--muted)}
+.rep-grid.music .rep-opt.m-house:not(.sel){background:color-mix(in oklab,#7c5cff 9%,var(--surface-3));border-color:color-mix(in oklab,#7c5cff 16%,var(--line2))}
+.rep-grid.music .rep-opt.m-techno:not(.sel){background:color-mix(in oklab,#6d8bff 9%,var(--surface-3));border-color:color-mix(in oklab,#6d8bff 16%,var(--line2))}
+.rep-grid.music .rep-opt.m-hiphop:not(.sel){background:color-mix(in oklab,#9b5de5 9%,var(--surface-3));border-color:color-mix(in oklab,#9b5de5 16%,var(--line2))}
+.rep-grid.music .rep-opt.m-rnb:not(.sel){background:color-mix(in oklab,#c264d8 9%,var(--surface-3));border-color:color-mix(in oklab,#c264d8 16%,var(--line2))}
+.rep-grid.music .rep-opt.m-afro:not(.sel){background:color-mix(in oklab,#e08b4a 8%,var(--surface-3));border-color:color-mix(in oklab,#e08b4a 15%,var(--line2))}
+.rep-grid.music .rep-opt.m-comm:not(.sel){background:color-mix(in oklab,var(--primary) 9%,var(--surface-3));border-color:color-mix(in oklab,var(--primary) 16%,var(--line2))}
+.rep-grid.music .rep-opt.m-latin:not(.sel){background:color-mix(in oklab,#e0559b 9%,var(--surface-3));border-color:color-mix(in oklab,#e0559b 16%,var(--line2))}
+.rep-grid.music .rep-opt.m-other:not(.sel){background:var(--surface-3);border-color:color-mix(in oklab,var(--line2) 62%,transparent)}
+.m-house .m-dot{background:#7c5cff;box-shadow:0 0 8px color-mix(in oklab,#7c5cff 60%,transparent)}
+.m-techno .m-dot{background:#6d8bff;box-shadow:0 0 8px color-mix(in oklab,#6d8bff 60%,transparent)}
+.m-hiphop .m-dot{background:#9b5de5;box-shadow:0 0 8px color-mix(in oklab,#9b5de5 60%,transparent)}
+.m-rnb .m-dot{background:#c264d8;box-shadow:0 0 8px color-mix(in oklab,#c264d8 60%,transparent)}
+.m-afro .m-dot{background:#e08b4a;box-shadow:0 0 8px color-mix(in oklab,#e08b4a 60%,transparent)}
+.m-comm .m-dot{background:var(--primary);box-shadow:0 0 8px color-mix(in oklab,var(--primary) 60%,transparent)}
+.m-latin .m-dot{background:#e0559b;box-shadow:0 0 8px color-mix(in oklab,#e0559b 60%,transparent)}
+.m-other .m-dot{background:var(--muted)}
 /* queue step: lift Back/Next a little (default report-inner padding is +46px) */
 .report.qstep .report-inner{padding-bottom:calc(var(--sab) + 72px)}
 /* vibe step — branded mascot "vibe cards" */

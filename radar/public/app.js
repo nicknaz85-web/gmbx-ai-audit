@@ -1390,9 +1390,9 @@ const REPORT_STEPS = [
     { v: 'even', l: 'Even mix', m: '/mascot-pair.png', s: 'Balanced crowd' },
     { v: 'more_men', l: 'More men', m: '/clubbit-mascot.png', s: 'Mostly men' }] },
   { key: 'music', q: 'Music right now?', grid: true, optional: true, opts: [
-    { v: 'House', l: 'House' }, { v: 'Techno', l: 'Techno' }, { v: 'Hip-Hop', l: 'Hip-hop' },
-    { v: 'R&B', l: 'R&B' }, { v: 'Afrobeats', l: 'Afrobeats' }, { v: 'Commercial', l: 'Commercial' },
-    { v: 'Latin', l: 'Latin' }, { v: 'Other', l: 'Other' }] },
+    { v: 'House', l: 'House', c: 'house' }, { v: 'Techno', l: 'Techno', c: 'techno' }, { v: 'Hip-Hop', l: 'Hip-hop', c: 'hiphop' },
+    { v: 'R&B', l: 'R&B', c: 'rnb' }, { v: 'Afrobeats', l: 'Afrobeats', c: 'afro' }, { v: 'Commercial', l: 'Commercial', c: 'comm' },
+    { v: 'Latin', l: 'Latin', c: 'latin' }, { v: 'Other', l: 'Other', c: 'other' }] },
   { key: 'note', q: 'Anything to add?', type: 'note', optional: true },
 ];
 const R = { venueId: null, step: 0, answers: {}, media: null };
@@ -1434,6 +1434,7 @@ function renderReport() {
   $('#reportOverlay').classList.toggle('qstep', step.key === 'queue');   // queue-step spacing tweaks
   $('#reportOverlay').classList.toggle('estep', step.key === 'entry');   // entry has 7 options → a bit more compact
   $('#reportOverlay').classList.toggle('mixstep', step.key === 'mix');   // big mascots → reclaim top space
+  $('#reportOverlay').classList.toggle('musicstep', step.key === 'music'); // 2-col genre cards
   const sel = R.answers[step.key];
   const inner = $('#reportInner');
   const hint = step.type === 'media' ? "Show what it's like right now"
@@ -1455,13 +1456,16 @@ function renderReport() {
         <textarea id="repNote" maxlength="500" placeholder="e.g. great crowd, easy door, live DJ till late…">${esc(noteVal)}</textarea>
         <div class="rep-notecount"><span id="noteCount">${noteVal.length}</span>/500</div>
       </div>`
-    : `<div class="${step.grid ? 'rep-grid' : 'rep-opts'}">
+    : `<div class="${step.grid ? 'rep-grid' : 'rep-opts'}${step.key === 'music' ? ' music' : ''}">
       ${opts.map((o, i) => { const val = typeof o.v === 'number' ? o.v : `'${o.v}'`; const on = sel === o.v ? ' sel' : '';
         // vibe options render as branded mascot cards (mascot · label · helper · check)
         if (o.m) return `<button class="rep-opt vibe v-${o.v}${on}" onclick="pickReport('${step.key}', ${val})"><span class="rvm-wrap"><img class="rvm" src="${o.m}" alt="" onerror="this.style.visibility='hidden'" /></span><span class="rv-txt"><b>${o.l}</b>${o.s ? `<small>${esc(o.s)}</small>` : ''}</span><span class="rv-check">✓</span></button>`;
+        // music: same card system with a subtle per-genre colour dot on the left
+        const gc = (step.key === 'music' && o.c) ? ` m-${o.c}` : '';
+        const sw = (step.key === 'music') ? '<span class="m-dot" aria-hidden="true"></span>' : '';
         // queue + entry: full-width cards with a left intensity/level indicator
         const ind = reportIndicator(step, o, i);
-        return `<button class="rep-opt ${step.grid ? 'sm' : ''}${ind.cls}${(o.v === 'other' || o.wide) ? ' wide' : ''}${on}" onclick="pickReport('${step.key}', ${val})">${ind.html}${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`;
+        return `<button class="rep-opt ${step.grid ? 'sm' : ''}${ind.cls}${gc}${(o.v === 'other' || o.wide) ? ' wide' : ''}${on}" onclick="pickReport('${step.key}', ${val})">${ind.html}${sw}${o.e ? `<span class="emoji">${o.e}</span>` : ''}<span>${o.l}</span></button>`;
       }).join('')}
       ${otherInput}
     </div>`;
