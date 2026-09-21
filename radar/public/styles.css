@@ -372,9 +372,10 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .fc-bars{display:flex;align-items:flex-end;justify-content:center;gap:9px;padding:20px 2px 13px}
 .fc-col{flex:1 1 0;min-width:0;max-width:68px;display:flex;flex-direction:column;align-items:center;gap:7px;position:relative}
 /* very subtle "opens" hint under the first bar when the venue is closed now */
-.fc-opens{position:absolute;top:100%;left:-4px;right:-4px;margin-top:2px;text-align:center;
-  font-size:8px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap;
-  color:color-mix(in oklab,var(--primary) 52%,var(--ink))}
+.fc-opens,.fc-closes{position:absolute;top:100%;left:-4px;right:-4px;margin-top:2px;text-align:center;
+  font-size:8px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap}
+.fc-opens{color:color-mix(in oklab,var(--primary) 52%,var(--ink))}
+.fc-closes{color:color-mix(in oklab,var(--muted) 82%,transparent)}
 /* fixed-height track: the bar's height:% resolves against THIS (nothing else competes),
    so a 100% bar is exactly twice a 50% bar and heights always match their labels */
 .fc-track{width:100%;max-width:30px;height:78px;display:flex;align-items:flex-end;position:relative}

@@ -468,9 +468,10 @@ function venueForecast(venue, currentEst, ref, place) {
   // nightlife session fully; an unusual all-day venue is truncated, not overflowed).
   const MAX = 12;
   const maxPts = closeTs != null ? MAX : 8;
+  let reachedClose = false; // did we actually reach the closing point (vs truncate)?
   if (startTs != null) for (let k = 0; k < maxPts; k++) {
     const ts = startTs + k * HOUR;
-    if (closeTs != null && ts > closeTs + 5 * MIN) break; // past close → stop
+    if (closeTs != null && ts > closeTs + 5 * MIN) { reachedClose = true; break; } // past close → stop
     const mins = Math.round((ts - ref) / MIN);
     const isNow = openNow && k === 0;                     // "Now" only when actually open now
     const fade = Math.exp(-Math.max(0, mins) / 120);      // live anchor fades over ~2h (unchanged)
@@ -484,8 +485,12 @@ function venueForecast(venue, currentEst, ref, place) {
       const mins = Math.round((closeTs - ref) / MIN);
       const fade = Math.exp(-Math.max(0, mins) / 120);
       points.push({ mins, label: shortHour(closeTs), pct: round(clamp(shape(closeTs) + offset * fade) * 100), open: true, ts: closeTs });
+      reachedClose = true;
     }
   }
+  // flag the final bar as the CLOSING point (only when we truly reached the close,
+  // not a truncated/24h fallback) so the UI can show a "CLOSES" label under it
+  if (reachedClose && points.length) points[points.length - 1].closes = true;
   // expected peak = the busiest OPEN moment of the coming night. Search further
   // than the 8h chart (up to 16h) so an afternoon check still reports tonight's
   // real peak (~2am) rather than a time capped at the window's edge.
