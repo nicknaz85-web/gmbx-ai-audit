@@ -624,14 +624,17 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
    state still wins via .rep-opt.vibe.sel. */
 /* fixed mascot column (same for all 3) so every text block starts at the same x
    and card heights stay equal regardless of mascot size */
-.rep-opt.v-more_women .rvm-wrap,.rep-opt.v-even .rvm-wrap,.rep-opt.v-more_men .rvm-wrap{width:100px;height:132px;overflow:visible}
+/* the wrap sets the CARD height (kept moderate); the mascot itself can be larger and
+   overflow it a little, so the characters grow without the card borders getting taller */
+.rep-opt.v-more_women,.rep-opt.v-even,.rep-opt.v-more_men{overflow:visible}
+.rep-opt.v-more_women .rvm-wrap,.rep-opt.v-even .rvm-wrap,.rep-opt.v-more_men .rvm-wrap{width:108px;height:92px;overflow:visible}
 /* bigger single mascots; the man a bit larger still (his asset reads smaller),
    the hugging pair kept smaller so all three feel balanced */
-.rep-opt.v-more_women .rvm{width:auto;height:120px;max-width:100px}
-.rep-opt.v-more_men .rvm{width:auto;height:130px;max-width:100px}
-.rep-opt.v-even .rvm{width:auto;height:78px;max-width:100px}
-/* mix step: reclaim top space so the bigger mascots + nav all fit */
-.report.mixstep .rep-q{margin-top:22px}
+.rep-opt.v-more_women .rvm{width:auto;height:124px;max-width:112px}
+.rep-opt.v-more_men .rvm{width:auto;height:134px;max-width:112px}
+.rep-opt.v-even .rvm{width:auto;height:84px;max-width:112px}
+/* mix step: a little top space reclaimed so everything still fits */
+.report.mixstep .rep-q{margin-top:20px}
 .rep-opt.v-more_women{background:radial-gradient(180px 130% at 52px 50%,color-mix(in oklab,#e879f9 13%,transparent),transparent 74%),var(--surface-3)}
 .rep-opt.v-more_women .rvm{filter:drop-shadow(0 3px 9px color-mix(in oklab,#e879f9 46%,transparent))}
 .rep-opt.v-even{background:radial-gradient(190px 130% at 52px 50%,color-mix(in oklab,var(--primary) 14%,transparent),transparent 74%),var(--surface-3)}
