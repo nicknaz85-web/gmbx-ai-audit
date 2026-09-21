@@ -692,9 +692,9 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .rep-done h2{font-size:24px;font-weight:700;color:var(--ink);margin-top:4px}
 .rep-done p{color:var(--muted);font-size:13px;line-height:1.5}
 .rep-done .rd-sub{margin:10px auto 0;max-width:300px}
-/* confidence: a clean, intentional line — value in Clubbit purple */
-.rd-conf{margin-top:6px;font-size:12.5px;color:var(--muted);letter-spacing:.01em}
-.rd-conf b{color:var(--primary);font-weight:700}
+/* headline camera icon in place of the party emoji */
+.rd-title-cam{height:1.15em;width:auto;vertical-align:-0.22em;margin-left:8px;
+  filter:drop-shadow(0 2px 6px color-mix(in oklab,var(--primary) 40%,transparent))}
 .rep-badge{display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;font-weight:500;color:var(--amber-d);background:#feefc3;padding:8px 15px;border-radius:20px}
 /* contributor progress: a compact reward pill (dark card, soft purple border) */
 .rep-levelnote{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:7px 14px;border-radius:20px;

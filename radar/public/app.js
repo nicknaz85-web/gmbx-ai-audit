@@ -1640,10 +1640,9 @@ async function submitReport() {
   const leveledUp = newLevel.name !== myLevel.name;
   const badge = res.badges && res.badges.length ? res.badges[res.badges.length - 1] : null;
   $('#reportInner').innerHTML = `<div class="rep-done">
-    <div class="rd-mascotwrap"><img class="rd-mascot solo" src="/clubbit-mascot.png" alt="" onerror="this.style.display='none'" /></div>
-    <h2>All good to go 🎉</h2>
-    <p class="rd-sub">Thanks, you're on the radar. Now go enjoy the club!</p>
-    <div class="rd-conf">Confidence: <b>${titleCase(res.confidenceTier || 'medium')}</b></div>
+    <div class="rd-mascotwrap"><img class="rd-mascot solo" src="/mascot-busy.png" alt="" onerror="this.style.display='none'" /></div>
+    <h2>All good to go <img class="rd-title-cam" src="/report-camera.png" alt="" onerror="this.style.display='none'" /></h2>
+    <p class="rd-sub">Thanks, you're on the radar.<br>Now go enjoy the club!</p>
     ${leveledUp
       ? `<div class="rep-badge">${newLevel.emoji} Level up! You're now a <b>${esc(newLevel.name)}</b></div>`
       : `<div class="rep-levelnote">${newLevel.emoji} <b>${esc(newLevel.name)}</b>${newLevel.next ? ` <span class="rl-sep">·</span> <span class="rl-next">${newLevel.next.min - newLevel.count} more to ${esc(newLevel.next.name)}</span>` : ` <span class="rl-sep">·</span> <span class="rl-next">max level</span>`}</div>`}
