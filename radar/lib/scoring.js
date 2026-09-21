@@ -263,10 +263,17 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
   if (consensus) fullnessFrac = clamp(0.5 * clamp(load) + 0.5 * (consensus.vibeNum / 100));
   else if (owner) fullnessFrac = clamp(0.55 * ((OWNER_NUM[owner.status] ?? 55) / 100) + 0.45 * clamp(load));
   else if (bt) fullnessFrac = clamp(0.65 * (bt.busyness / 100) + 0.35 * clamp(load));
-  // no live data → lean on the venue's typical busyness curve for this hour/night
-  // (like "usually busy at this time"), so fullness AND the door-queue estimate
-  // actually reflect the time of night instead of reading near-empty.
-  else fullnessFrac = clamp(0.25 * clamp(load) + 0.75 * expFrac);
+  // no live data → use the SAME crowd curve the Forecast draws (0.12 + 0.83·nightCurve),
+  // so Party Radar and the forecast agree: a peak-hour room reads busy, not "quiet".
+  // (Previously this used expFrac, a different historical model, which read ~22% while
+  // the forecast curve read ~72% at the same hour.)
+  else {
+    const ctz = cityTz(venue.city, venue.coords);
+    const curveNow = 0.12 + 0.83 * nightCurve(nightHour(ref, ctz), venue.peakHour, venue.spread);
+    // the curve IS the estimate (matches the forecast's "Now" bar exactly); real
+    // recent check-in activity only nudges it up, never drags it below the curve.
+    fullnessFrac = clamp(curveNow + 0.25 * clamp(load));
+  }
   // A closed venue is empty — don't claim a shut club is 63% full. An OPEN one is
   // never literally empty (someone's inside / at the door), which also lets a
   // selective club show its standing line even at off-peak open hours.
