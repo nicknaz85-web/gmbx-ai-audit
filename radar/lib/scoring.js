@@ -459,20 +459,32 @@ function venueForecast(venue, currentEst, ref, place) {
   // closes within range, i.e. a 24h venue or unknown hours → just show the next 8h).
   let closeTs = null;
   if (startTs != null) for (let t = startTs + 10 * MIN; t <= startTs + 16 * HOUR; t += 10 * MIN) { if (!isOpenAt(t)) { closeTs = t; break; } }
-  // up to the next 8 hourly points from the start, never past closing, never padded
-  // with fake bars. A closed venue whose session we can't locate falls back gracefully
-  // to a plain next-8-hours read so the UI never breaks.
+  // Bars span the venue's ACTUAL open session — every hourly point from the start
+  // (Now, or the next opening) through to and INCLUDING the closing-time point — the
+  // count is dynamic (11pm→7am is 9 points, 10pm→4am is 7), never a fixed 8-hour box.
+  // A venue with no locatable close (24h/unknown) falls back to a plain next-8h read.
   const points = [];
-  // Only ever build bars for a real open session — never the hours a venue is shut.
-  // If we can't locate an opening at all (unknown/no schedule) we emit no bars rather
-  // than padding the chart with closed-hour placeholders.
-  if (startTs != null) for (let k = 0; k < 8; k++) {
+  // Cap the count so the chart stays readable on a phone (covers every realistic
+  // nightlife session fully; an unusual all-day venue is truncated, not overflowed).
+  const MAX = 12;
+  const maxPts = closeTs != null ? MAX : 8;
+  if (startTs != null) for (let k = 0; k < maxPts; k++) {
     const ts = startTs + k * HOUR;
-    if (closeTs != null && ts > closeTs + 5 * MIN) break; // include the closing hour, stop after
+    if (closeTs != null && ts > closeTs + 5 * MIN) break; // past close → stop
     const mins = Math.round((ts - ref) / MIN);
     const isNow = openNow && k === 0;                     // "Now" only when actually open now
     const fade = Math.exp(-Math.max(0, mins) / 120);      // live anchor fades over ~2h (unchanged)
     points.push({ mins: isNow ? 0 : mins, label: isNow ? 'Now' : shortHour(ts), pct: round(clamp(shape(ts) + offset * fade) * 100), open: true, ts });
+  }
+  // Always show the closing-time point, even when the hourly grid (offset from "Now")
+  // stops short of it — e.g. open now at 1:20 with a 7:00 AM close → …6am, then 7am.
+  if (startTs != null && closeTs != null && points.length && points.length < MAX) {
+    const lastTs = points[points.length - 1].ts;
+    if (closeTs - lastTs > 20 * MIN) {
+      const mins = Math.round((closeTs - ref) / MIN);
+      const fade = Math.exp(-Math.max(0, mins) / 120);
+      points.push({ mins, label: shortHour(closeTs), pct: round(clamp(shape(closeTs) + offset * fade) * 100), open: true, ts: closeTs });
+    }
   }
   // expected peak = the busiest OPEN moment of the coming night. Search further
   // than the 8h chart (up to 16h) so an afternoon check still reports tonight's
