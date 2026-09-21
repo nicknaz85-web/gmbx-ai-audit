@@ -1070,6 +1070,16 @@ function reportClock(ageMin, tzOffset) {
   const h = d.getUTCHours(), m = d.getUTCMinutes();
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 }
+// Forecast header label for a CLOSED venue — the night of its next opening
+// ("Fri night", "Sat night"…), computed in the venue's local timezone. A daytime
+// opening just uses the weekday. `mins` = minutes from now until that opening.
+function openSessionLabel(mins, tzOffset) {
+  const d = new Date(Date.now() + (mins || 0) * 60000 + (tzOffset || 0) * 3600 * 1000);
+  let dow = d.getUTCDay(); const h = d.getUTCHours();
+  if (h < 6) dow = (dow + 6) % 7; // an after-midnight opening belongs to the previous evening
+  const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dow];
+  return (h >= 17 || h < 6) ? `${day} night` : day;
+}
 // Compact summary chips — skipped fields are simply omitted (never shown empty).
 function reportChips(v, r) {
   const chips = [`<span class="lr-chip vibe">${esc(cap(VIBE_WORD[r.vibe] || r.vibe))}</span>`];
@@ -1291,6 +1301,10 @@ function renderVenue(v, opts) {
   // chart's own max) so a bar's size always matches its % and is comparable venue-to-
   // venue — an 83% bar is always taller than a 65% one.
   const fcPts = fc.filter((p) => p.open !== false);
+  // when closed, the first bar is the next opening (mins > 0) → the header reads the
+  // opening night ("Fri night"); when open it's the live "next N hours" window.
+  const fcClosedStart = fcPts.length > 0 && fcPts[0].mins !== 0;
+  const fcCount = fcClosedStart ? openSessionLabel(fcPts[0].mins, v.tzOffset) : `next ${fcPts.length} hour${fcPts.length === 1 ? '' : 's'}`;
   const srcLabel = { community: 'COMMUNITY', venue: 'VENUE UPDATE', estimate: 'ESTIMATE', live: 'LIVE', besttime: 'FOOT TRAFFIC', closed: 'CLOSED' }[v.source] || 'ESTIMATE';
   const closed = v.open === false;
   const gRating = v.google && v.google.rating
@@ -1375,7 +1389,7 @@ function renderVenue(v, opts) {
     ${v.dress ? `<div class="dress"><span class="dress-ic">👔</span><div class="dress-txt"><b>Dress code · ${esc(v.dress.code)}</b><div class="dress-tip">${esc(v.dress.tip)}</div></div></div>` : ''}
 
     ${(fcPts.length || dec) ? `<div class="forecast">
-      ${fcPts.length ? `<div class="section-h"><h3>Forecast</h3><span class="count">next ${fcPts.length} hour${fcPts.length === 1 ? '' : 's'}</span></div>
+      ${fcPts.length ? `<div class="section-h"><h3>Forecast</h3><span class="count">${esc(fcCount)}</span></div>
       <div class="fc-bars">
         ${(() => { const closedStart = fcPts.length > 0 && fcPts[0].mins !== 0; // no "Now" bar → first bar is the opening hour
           return fcPts.map((p, i) => { const h = Math.max(3, Math.min(100, p.pct)); return `<div class="fc-col${p.mins === 0 ? ' now' : ''}${p.peak ? ' peak' : ''}" style="--i:${i}">
