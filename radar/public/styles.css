@@ -547,7 +547,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 /* selected — tinted gradient fill + tight, soft glow (premium, not flashy) */
 .rep-opt.sel{border-color:var(--primary);color:var(--ink);
   background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 20%,var(--card)),color-mix(in oklab,var(--primary) 11%,var(--card)));
-  box-shadow:0 0 0 1px var(--primary),0 3px 11px color-mix(in oklab,var(--primary) 15%,transparent)}
+  box-shadow:0 0 0 1px var(--primary),0 2px 7px color-mix(in oklab,var(--primary) 12%,transparent)}
 .rep-opt.sm{padding:14px;font-size:13.5px;flex-direction:column;gap:6px}
 /* small checkmark on a selected option (grid chips + full-width queue) */
 /* selected checkmark: same purple circle badge as the vibe cards, vertically
@@ -610,7 +610,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .m-latin .m-dot{background:#e0559b;box-shadow:0 0 8px color-mix(in oklab,#e0559b 60%,transparent)}
 .m-other .m-dot{background:var(--muted)}
 /* music grid is short (4 rows) → give Skip room to sit lower, away from the cards */
-.report.musicstep .rep-skiprow{margin-top:22px}
+.report.musicstep .rep-skiprow{margin-top:22px;margin-bottom:0}
 /* queue step: lift Back/Next a little (default report-inner padding is +46px) */
 .report.qstep .report-inner{padding-bottom:calc(var(--sab) + 72px)}
 /* vibe step — branded mascot "vibe cards" */
