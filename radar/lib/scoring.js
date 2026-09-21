@@ -307,7 +307,7 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
   }
 
   const nearby = nearbyActivity(venue, ref);
-  const forecast = venueForecast(venue, fullnessEst, ref, place);
+  const forecast = venueForecast(venue, fullnessEst, ref, place, !!(consensus || owner || bt));
   const radar = partyRadarScore({ hot, M, nearby, consensus, owner, expFrac, freshestSignalMin, fullnessEst });
   const decision = shouldIGo({ venue, fullnessEst, M, momentum, consensus, owner, forecast, ref });
 
@@ -435,14 +435,16 @@ function nearbyActivity(venue, ref) {
 // over ~2h), and — crucially — bounded by the venue's REAL opening hours: any
 // hour the venue is closed reads 0%, so the forecast never claims a shut room is
 // filling up. `place` carries the baked Google hours used by resolveOpen.
-function venueForecast(venue, currentEst, ref, place) {
+function venueForecast(venue, currentEst, ref, place, hasLive) {
   const tz = cityTz(venue.city, venue.coords); // peakHour is LOCAL time, so read night-hour in the venue's tz
   const shape = (ts) => 0.12 + 0.83 * nightCurve(nightHour(ts, tz), venue.peakHour, venue.spread);
-  // anchor future hours to the live crowd level ONLY while the venue is open now;
-  // if it's closed now, currentEst is 0 and would wrongly drag the curve down, so
-  // forecast the pure historical pattern instead.
+  // Anchor the curve to the live crowd level ONLY when there's a genuine live signal
+  // (reports / owner / foot-traffic) AND the venue is open now. Without live data
+  // `currentEst` is just a historical guess from a DIFFERENT model than `shape`, and
+  // anchoring to it dragged every bar down (e.g. a 71% peak-hour reading to ~22%) and
+  // made the peak look like "now". No live signal → follow the venue's own curve.
   const openNow = resolveOpen(venue, ref, place).open;
-  const offset = openNow ? (currentEst / 100 - shape(ref)) : 0;
+  const offset = (openNow && hasLive) ? (currentEst / 100 - shape(ref)) : 0;
   // compact axis label ("11p", "3a", "12a") so the columns fit on a phone
   const shortHour = (ts) => { const h = ((Math.floor(nightHour(ts, tz)) % 24) + 24) % 24; return (h % 12 || 12) + (h < 12 ? 'a' : 'p'); };
   const HOUR = 60 * MIN;
