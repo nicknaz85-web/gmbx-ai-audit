@@ -750,7 +750,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   linear-gradient(180deg, #faf6ff 0%, #fdfbff 46%, #ffffff 100%)}
 .report.vibe .rep-venue{color:var(--muted)}
 /* report: done-screen mascot — bigger, with a soft purple Clubbit aura behind it */
-.rep-done .rd-mascotwrap{position:relative;display:flex;justify-content:center;align-items:flex-end;margin:0 auto 6px;width:max-content;
+.rep-done .rd-mascotwrap{position:relative;display:flex;justify-content:center;align-items:flex-end;margin:0 auto 18px;width:max-content;
   animation:riPop .5s cubic-bezier(.2,.8,.3,1.2) both}
 .rep-done .rd-mascotwrap::before{content:"";position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);
   width:112%;height:104%;border-radius:50%;z-index:0;pointer-events:none;
