@@ -686,8 +686,8 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   transition:background .2s ease,box-shadow .2s ease,opacity .2s ease}
 .rep-next:not(:disabled){box-shadow:0 4px 12px color-mix(in oklab,var(--primary) 22%,transparent)}
 .rep-next:disabled{background:var(--surface-4);color:color-mix(in oklab,var(--ink) 42%,transparent);box-shadow:none}
-/* done screen: sit a little above centre so it reads as a headline moment */
-.rep-done{text-align:center;margin:7vh 0 auto}
+/* done screen: vertically centred block */
+.rep-done{text-align:center;margin:auto 0}
 .rep-done .big{font-size:56px;margin-bottom:10px}
 .rep-done h2{font-size:24px;font-weight:700;color:var(--ink);margin-top:4px}
 .rep-done p{color:var(--muted);font-size:13px;line-height:1.5}
@@ -720,7 +720,12 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   background:radial-gradient(circle,color-mix(in oklab,var(--primary) 28%,transparent) 0%,transparent 66%);filter:blur(16px)}
 .rep-done .rd-mascot{position:relative;z-index:1;width:180px;max-width:52vw;height:auto;margin:0;display:block;
   filter:drop-shadow(0 14px 24px rgba(124,58,237,.28))}
-.rep-done .rd-mascot.solo{width:168px;max-width:46vw}
+.rep-done .rd-mascot.solo{width:132px;max-width:38vw}
+/* a little idle dance so the popping mascot feels alive */
+@media (prefers-reduced-motion: no-preference){
+  .rep-done .rd-mascot.solo{animation:rdBob 1.5s ease-in-out infinite}
+}
+@keyframes rdBob{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-7px) rotate(1.5deg)}}
 @keyframes riPop{0%{opacity:0;transform:translateY(14px) scale(.9)}100%{opacity:1;transform:none}}
 
 
