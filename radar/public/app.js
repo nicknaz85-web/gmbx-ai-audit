@@ -992,41 +992,78 @@ function myFace(p) { p = p || myProfile(); return p.profilePhoto || (p.gender ==
 const VIBE_WORD = { dead: 'quiet', chill: 'chilled', popping: 'popping', packed: 'packed' };
 const QUEUE_LABEL = { none: 'No queue', '<10': 'Under 10 min', '10-20': '10–20 min', '20-30': '20–30 min', '30+': '30+ min', guestlist: 'Guest list' };
 const MIX_LABEL = { more_women: 'More women', even: 'Even mix', more_men: 'More men' };
-function reportRundown(v, r, i) {
-  const rows = [['Vibe', cap(VIBE_WORD[r.vibe] || r.vibe)]];
-  if (r.queue && QUEUE_LABEL[r.queue]) rows.push(['Queue', QUEUE_LABEL[r.queue]]);
-  if (r.entry != null) rows.push(['Entry', r.entry === 0 ? 'Free' : fmtCur(r.entry, v.currency)]);
-  if (r.mix && MIX_LABEL[r.mix]) rows.push(['Crowd', MIX_LABEL[r.mix]]);
-  if (r.music) rows.push(['Music', r.music]);
-  const photo = r.mediaUrl ? (r.mediaType === 'video'
-    ? `<video class="rr-media" src="${r.mediaUrl}" muted playsinline loop autoplay preload="metadata" onclick="event.stopPropagation();lbShow('${r.mediaId || ''}')"></video>`
-    : `<img class="rr-media" src="${r.mediaUrl}" alt="" loading="lazy" onclick="event.stopPropagation();lbShow('${r.mediaId || ''}')" />`) : '';
-  return `<div class="rep-rundown" id="rr_${v.id}_${i}" hidden>
-    ${photo}
-    ${rows.map(([k, val]) => `<div class="rr-row"><span class="rr-k">${esc(k)}</span><span class="rr-v">${esc(val)}</span></div>`).join('')}
-    ${r.note ? `<div class="rr-note">“${esc(r.note)}”</div>` : ''}
+// "Reported 2 min ago" — clear, live freshness wording (the info is meant to be live)
+function freshLabel(min) {
+  if (min < 1) return 'Reported just now';
+  if (min < 60) { const m = Math.round(min); return `Reported ${m} min ago`; }
+  const h = Math.round(min / 60); return `Reported ${h} hour${h > 1 ? 's' : ''} ago`;
+}
+// Compact summary chips — skipped fields are simply omitted (never shown empty).
+function reportChips(v, r) {
+  const chips = [`<span class="lr-chip vibe">${esc(cap(VIBE_WORD[r.vibe] || r.vibe))}</span>`];
+  if (r.queue && QUEUE_LABEL[r.queue]) chips.push(`<span class="lr-chip">${esc(QUEUE_LABEL[r.queue])}</span>`);
+  if (r.entry != null) chips.push(`<span class="lr-chip">${r.entry === 0 ? 'Free' : esc(fmtCur(r.entry, v.currency))}</span>`);
+  if (r.mix && MIX_LABEL[r.mix]) chips.push(`<span class="lr-chip">${esc(MIX_LABEL[r.mix])}</span>`);
+  if (r.music) chips.push(`<span class="lr-chip">${esc(r.music)}</span>`);
+  return chips.join('');
+}
+// A report's media: one integrated preview (collapsed) that grows when expanded;
+// a swipeable gallery when there are several; nothing when there's no media. Works
+// for a single image, several images, a video, or none — driven by the real report.
+function reportMedia(r) {
+  const list = Array.isArray(r.media) && r.media.length ? r.media
+    : (r.mediaUrl ? [{ url: r.mediaUrl, type: r.mediaType, id: r.mediaId }] : []);
+  if (!list.length) return '';
+  const cell = (m) => m.type === 'video'
+    ? `<video class="lr-cell" src="${m.url}" muted playsinline loop autoplay preload="metadata" onclick="event.stopPropagation();lbShow('${m.id || ''}')"></video>`
+    : `<img class="lr-cell" src="${m.url}" alt="" loading="lazy" onclick="event.stopPropagation();lbShow('${m.id || ''}')" />`;
+  const extra = list.length - 1;
+  return `<div class="lr-media${list.length > 1 ? ' multi' : ''}">
+    <div class="lr-main">${cell(list[0])}${extra > 0 ? `<span class="lr-more">+${extra}</span>` : ''}</div>
+    ${list.length > 1 ? `<div class="lr-gallery">${list.map((m) => `<div class="lr-gcell">${cell(m)}</div>`).join('')}</div>` : ''}
   </div>`;
 }
-function toggleRundown(id) {
-  const el = document.getElementById(id); if (!el) return;
-  el.hidden = !el.hidden;
-  const item = el.previousElementSibling; if (item) item.classList.toggle('open', !el.hidden);
+// One unified live-report card. Same component in both states — tapping expands it
+// from the quick summary into the full detail (larger media, note), no redesign.
+function liveReportCard(v, r, i) {
+  const id = `lr_${v.id}_${i}`;
+  const menu = (r.mine && r.id)
+    ? `<div class="lr-menuwrap"><button class="lr-menu" aria-label="Report options" onclick="event.stopPropagation();toggleRepMenu('${id}')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button><div class="lr-menupop" id="${id}_m" hidden><button class="lr-del" onclick="event.stopPropagation();deleteMyReport('${r.id}')">Delete report</button></div></div>`
+    : '';
+  const chev = `<svg class="lr-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>`;
+  return `<div class="lr-card${r.mine ? ' mine' : ''}" id="${id}" onclick="toggleReport('${id}')">
+    <div class="lr-head">
+      <img class="lr-face" src="${esc(r.photo || '/clubbit-mascot.png')}" alt="" onerror="this.src='/clubbit-mascot.png'" />
+      <div class="lr-id">
+        <div class="lr-name"><b>${esc(r.name)}${r.age ? ', ' + r.age : ''}</b>${r.tag ? `<span class="lr-tag">${esc(r.tag)}</span>` : ''}${r.mine ? `<span class="lr-you">You</span>` : ''}</div>
+        <div class="lr-time">${freshLabel(r.ageMin)}</div>
+      </div>
+      <div class="lr-actions">${menu}${chev}</div>
+    </div>
+    ${reportMedia(r)}
+    <div class="lr-chips">${reportChips(v, r)}</div>
+    ${r.note ? `<div class="lr-note">“${esc(r.note)}”</div>` : ''}
+  </div>`;
 }
-window.toggleRundown = toggleRundown;
+function toggleReport(id) {
+  const el = document.getElementById(id); if (!el) return;
+  el.querySelectorAll('.lr-menupop').forEach((p) => { p.hidden = true; }); // close any open menu
+  el.classList.toggle('open');
+}
+window.toggleReport = toggleReport;
+function toggleRepMenu(id) {
+  const pop = document.getElementById(id + '_m'); if (!pop) return;
+  // close other open menus first
+  document.querySelectorAll('.lr-menupop').forEach((p) => { if (p !== pop) p.hidden = true; });
+  pop.hidden = !pop.hidden;
+}
+window.toggleRepMenu = toggleRepMenu;
 function recentReportsBlock(v) {
   const rs = (v.recentReports || []).filter((r) => r && r.name);
   if (!rs.length) return '';
-  const chev = '<svg class="rep-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
   return `<div class="reports-block">
-    <div class="section-h"><h3>What people are saying</h3><span class="count">${rs.length}</span></div>
-    ${rs.map((r, i) => `<div class="rep-item" onclick="toggleRundown('rr_${v.id}_${i}')">
-      <img class="rep-face" src="${esc(r.photo || '/clubbit-mascot.png')}" alt="" onerror="this.src='/clubbit-mascot.png'" />
-      <div class="rep-txt">
-        <div class="rep-who"><b>${esc(r.name)}${r.age ? ', ' + r.age : ''}</b>${r.tag ? ` <span class="rep-tag">${esc(r.tag)}</span>` : ''} reported${r.mine ? ' <span class="rep-you">You</span>' : ''}</div>
-        <div class="rep-sub">${esc(cap(VIBE_WORD[r.vibe] || r.vibe))} · ${ago(r.ageMin)} ago</div>
-      </div>
-      ${r.mine && r.id ? `<button class="rep-del" onclick="event.stopPropagation();deleteMyReport('${r.id}')" aria-label="Delete your report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>` : chev}
-    </div>${reportRundown(v, r, i)}`).join('')}
+    <div class="section-h"><h3>Live reports</h3><span class="count">${rs.length}</span></div>
+    <div class="lr-list">${rs.map((r, i) => liveReportCard(v, r, i)).join('')}</div>
   </div>`;
 }
 function cap(s) { return String(s || '').charAt(0).toUpperCase() + String(s || '').slice(1); }
@@ -1036,7 +1073,7 @@ function communityBlock(v) {
   const reports = recentReportsBlock(v); // '' when there are none
   const media = v.media || [];
   const strip = media.length ? `<div class="vc-media"${reports ? ' style="margin-top:14px"' : ''}>
-      ${reports ? '<div class="cb-sub">Photos &amp; videos</div>' : '<div class="section-h"><h3>What people are saying</h3><span class="count">' + media.length + '</span></div>'}
+      ${reports ? '<div class="cb-sub">Photos &amp; videos</div>' : '<div class="section-h"><h3>Photos &amp; videos</h3><span class="count">' + media.length + '</span></div>'}
       <div class="media-strip">${media.map(m => `<div class="media-thumbwrap">${
         m.by && m.by.photo ? `<img class="media-by" src="${esc(m.by.photo)}" alt="${esc(m.by.name || '')}" onerror="this.remove()" />` : ''}${
         m.type === 'video'
