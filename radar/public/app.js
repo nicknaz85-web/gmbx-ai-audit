@@ -10,6 +10,7 @@ const API = {
   checkin: (venueId, coords) => post('/api/checkin', { venueId, coords }),
   report: (payload) => post('/api/report', payload),
   pulse: (venueId, state) => post('/api/pulse', { venueId, state }),
+  hoursFlag: (venueId) => post('/api/hours-flag', { venueId }),
   me: () => fetch('/api/me').then(r => r.json()),
   deleteMedia: (id) => post('/api/media/delete', { id }),
   deleteReport: (id) => post('/api/report/delete', { id }),
@@ -1374,10 +1375,16 @@ function renderVenue(v, opts) {
   </div>
 
   <div class="vc-body">
-    <button class="report-cta" onclick="startReport('${v.id}')">
-      <span class="rc-ic">⚡</span>
-      <span class="rc-txt"><b>I'm here — report the vibe</b><small>${closed ? "Let people know if it's actually open" : "Show everyone what it's like right now"}</small></span>
-      <span class="rc-go">›</span></button>
+    ${closed
+      ? `<div class="report-cta closed-cta" aria-disabled="true">
+          <span class="rc-ic">🌙</span>
+          <span class="rc-txt"><b>Venue is closed</b><small>Vibe reporting available when it opens${v.hours && v.hours.opensLabel ? ' at ' + esc(v.hours.opensLabel) : ''}</small></span>
+        </div>
+        <button class="rc-correct" onclick="reportOpenCorrection('${v.id}', this)">It's actually open</button>`
+      : `<button class="report-cta" onclick="startReport('${v.id}')">
+          <span class="rc-ic">⚡</span>
+          <span class="rc-txt"><b>I'm here — report the vibe</b><small>Show everyone what it's like right now</small></span>
+          <span class="rc-go">›</span></button>`}
     ${v.liveBusyness != null ? `<div class="live-busy"><span class="lb-dot"></span><b>${v.liveBusyness}%</b> ${v.liveSource === 'live' ? 'busy right now' : "typical for now"} · <span class="lb-src">BestTime</span></div>` : ''}
     <div class="stat-grid four">
       <div class="stat"><div class="k">How full</div><div class="v">${closed ? '—' : v.fullness.est + '%'}</div>
@@ -1540,6 +1547,15 @@ function startReport(id) {
   renderReport();
 }
 function closeReport() { $('#reportOverlay').hidden = true; }
+// "It's actually open" on a CLOSED venue — an opening-hours correction/verification
+// signal ONLY. It never submits a vibe report and never flips the venue to open on a
+// single tap; the server just records that the listed hours may be wrong.
+async function reportOpenCorrection(id, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Thanks — flagged'; }
+  try { await API.hoursFlag(id); } catch (e) {}
+  toast("Thanks — we'll double-check the hours");
+}
+window.reportOpenCorrection = reportOpenCorrection;
 // small "people in line" cue for the queue step — n dots filled (0–4), growing with
 // the wait; a subtle Clubbit motif instead of an emoji
 function queueDots(n) {

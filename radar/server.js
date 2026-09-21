@@ -579,6 +579,18 @@ async function api(req, res, url) {
     return send(res, 200, { ok: true, venue: venueSnapshot(v, now()) });
   }
 
+  // POST /api/hours-flag { venueId } — "it's actually open" correction signal on a
+  // CLOSED venue. Records that the listed hours may be wrong for later review; it does
+  // NOT change the venue's open/closed state and is NOT a vibe report.
+  if (method === 'POST' && route === 'hours-flag') {
+    const body = await readBody(req);
+    const v = venueById(body.venueId);
+    if (!v) return send(res, 400, { error: 'bad venue' });
+    db.hoursFlags = db.hoursFlags || [];
+    db.hoursFlags.push({ venueId: v.id, uHash: id.uHash, ts: now() });
+    return send(res, 200, { ok: true });
+  }
+
   // POST /api/report  { venueId, vibe, queue, entry, mix, music, coords? }
   if (method === 'POST' && route === 'report') {
     const body = await readBody(req);
