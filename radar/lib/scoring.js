@@ -377,10 +377,12 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     currency: currencyInfo(venue.city),
     entryEstimated: consensus?.entry == null || consensus.entry !== (venue.price || 0), // range/seeded = estimate
 
-    // recent named vibe reports (real users only) — newest first, for the
-    // "Nick, 26 reported…" list on the venue card
-    recentReports: freshReports(venue.id, ref)
-      .filter((r) => r.reporter && r.reporter.name)
+    // named vibe reports (real users only) — newest first, for the LIVE REPORTS
+    // list on the venue card. Kept for 24h since posting (the live-scoring signal
+    // above still decays on its own short ~90min window — this is display only).
+    recentReports: db.reports
+      .filter((r) => r.venueId === venue.id && (ref - r.ts) < 24 * 60 * MIN && r.reporter && r.reporter.name)
+      .map((r) => ({ ...r, age: ageMinutes(r.ts, ref) }))
       .sort((a, b) => a.age - b.age)
       .slice(0, 6)
       .map((r) => {
