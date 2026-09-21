@@ -697,8 +697,8 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   background:radial-gradient(circle,color-mix(in oklab,var(--primary) 72%,transparent),transparent 70%)}
 .rd-fx .o2{width:280px;height:280px;top:-44px;right:-84px;
   background:radial-gradient(circle,#4f7bff,transparent 70%);opacity:.38}
-.rd-fx .o3{width:340px;height:340px;bottom:64px;left:50%;margin-left:-170px;
-  background:radial-gradient(circle,#e0559b,transparent 70%);opacity:.32}
+.rd-fx .o3{width:240px;height:240px;bottom:64px;left:50%;margin-left:-120px;
+  background:radial-gradient(circle,#4f7bff,transparent 70%);opacity:.32}
 .rd-fx .rd-beam{position:absolute;top:-12%;width:150px;height:120%;filter:blur(16px);opacity:.22;transform-origin:top center;
   background:linear-gradient(to bottom,color-mix(in oklab,var(--primary) 34%,transparent),transparent 58%)}
 .rd-fx .b1{left:20%;transform:rotate(15deg)}
