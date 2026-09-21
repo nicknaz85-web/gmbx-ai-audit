@@ -955,7 +955,7 @@ function showMediaViewer(items, index, meta) {
   const mEl = $('#lbMeta');
   if (mEl) {
     if (meta && (meta.name || meta.sub)) {
-      mEl.innerHTML = `${meta.name ? `<b>${esc(meta.name)}</b>` : ''}${meta.name && meta.sub ? ' · ' : ''}${meta.sub ? `<span>${esc(meta.sub)}</span>` : ''}`;
+      mEl.innerHTML = `${meta.photo ? `<img class="lb-mface" src="${esc(meta.photo)}" alt="" onerror="this.remove()" />` : ''}<span class="lb-mtxt">${meta.name ? `<b>${esc(meta.name)}</b>` : ''}${meta.sub ? `<span>${esc(meta.sub)}</span>` : ''}</span>`;
       mEl.hidden = false;
     } else mEl.hidden = true;
   }
@@ -997,9 +997,10 @@ function openLightbox(url, type, by) { showMediaViewer([{ url, type }], 0, by ? 
 window.openLightbox = openLightbox;
 // community "Photos & videos" strip: resolve the media (+poster) from venue data
 window.lbShow = function (id) {
-  const list = (S.activeVenueData && S.activeVenueData.media) || [];
+  const v = S.activeVenueData; const list = (v && v.media) || [];
   const m = list.find((x) => x.id === id); if (!m) return;
-  showMediaViewer([{ url: m.url, type: m.type, id: m.id }], 0, m.by && m.by.name ? { name: m.by.name, sub: null } : null);
+  const sub = m.ageMin != null ? reportClock(m.ageMin, v && v.tzOffset) + (m.ageMin >= 1 ? ' · ' + freshLabel(m.ageMin).replace('Reported ', '') : '') : null;
+  showMediaViewer([{ url: m.url, type: m.type, id: m.id }], 0, (m.by && m.by.name) ? { name: m.by.name, photo: m.by.photo || null, sub } : null);
 };
 // a report's own media — swipe the whole report's media, metadata = reporter + freshness
 window.lrShow = function (ri, mi) {
@@ -1008,7 +1009,8 @@ window.lrShow = function (ri, mi) {
   const list = Array.isArray(r.media) && r.media.length ? r.media
     : (r.mediaUrl ? [{ url: r.mediaUrl, type: r.mediaType, id: r.mediaId }] : []);
   if (!list.length) return;
-  showMediaViewer(list, mi || 0, { name: r.name, sub: freshLabel(r.ageMin) });
+  const rel = freshLabel(r.ageMin).replace('Reported ', '');
+  showMediaViewer(list, mi || 0, { name: r.name + (r.age ? ', ' + r.age : ''), photo: r.photo || null, sub: reportClock(r.ageMin, v.tzOffset) + ' · ' + rel });
 };
 // profile media: it's the current user's own upload → show their name
 window.lbShowMine = function (url, type) {
@@ -1047,6 +1049,13 @@ function freshLabel(min) {
   if (min < 60) { const m = Math.round(min); return `Reported ${m} min ago`; }
   const h = Math.round(min / 60); return `Reported ${h} hour${h > 1 ? 's' : ''} ago`;
 }
+// the clock time a report was posted, in the venue's local timezone ("11:24 PM")
+function reportClock(ageMin, tzOffset) {
+  const ts = Date.now() - (ageMin || 0) * 60000;
+  const d = new Date(ts + (tzOffset || 0) * 3600 * 1000);
+  const h = d.getUTCHours(), m = d.getUTCMinutes();
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+}
 // Compact summary chips — skipped fields are simply omitted (never shown empty).
 function reportChips(v, r) {
   const chips = [`<span class="lr-chip vibe">${esc(cap(VIBE_WORD[r.vibe] || r.vibe))}</span>`];
@@ -1073,6 +1082,7 @@ function liveReportCard(v, r, i) {
     ? `<div class="lr-menuwrap"><button class="lr-menu" aria-label="Report options" onclick="event.stopPropagation();toggleRepMenu('${id}')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button><div class="lr-menupop" id="${id}_m" hidden><button class="lr-del" onclick="event.stopPropagation();deleteMyReport('${r.id}')">Delete report</button></div></div>`
     : '';
   const face = `<img class="lr-face" src="${esc(r.photo || '/clubbit-mascot.png')}" alt="" onerror="this.src='/clubbit-mascot.png'" />`;
+  const clock = reportClock(r.ageMin, v.tzOffset);
   const nameHtml = `<div class="lr-name"><b>${esc(r.name)}${r.age ? ', ' + r.age : ''}</b>${r.tag ? `<span class="lr-tag">${esc(r.tag)}</span>` : ''}${r.mine ? `<span class="lr-you">You</span>` : ''}</div>`;
   const noteHtml = r.note
     ? `<div class="lr-note">${REP_NOTE_IC}<span class="lr-notetext">“${esc(r.note)}”</span></div>` : '';
@@ -1092,7 +1102,7 @@ function liveReportCard(v, r, i) {
   const body = `<div class="lr-body">
       <div class="lr-byline">
         ${hasMedia ? '' : face}
-        <div class="lr-id">${nameHtml}<div class="lr-time">${hasMedia ? '' : '<span class="lr-type inline">Report</span> · '}${freshLabel(r.ageMin)}</div></div>
+        <div class="lr-id">${nameHtml}<div class="lr-time">${hasMedia ? '' : '<span class="lr-type inline">Report</span> · '}${freshLabel(r.ageMin)} · <span class="lr-clock">${clock}</span></div></div>
         ${hasMedia ? '' : `<div class="lr-actions">${menu}</div>`}
       </div>
       <div class="lr-chips">${reportChips(v, r)}</div>
