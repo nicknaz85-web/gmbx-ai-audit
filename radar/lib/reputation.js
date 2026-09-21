@@ -14,7 +14,7 @@ export function getUser(uHash) {
       reports: 0,
       accurate: 0, // reports that later matched community consensus
       checkins: 0,
-      neighborhoods: {}, // hood -> count (for LOCAL badge)
+      neighborhoods: {}, // hood -> count
       lateReports: 0, // reports after 2am (NIGHT OWL)
       earlyScoops: 0, // reported a venue before it became popular (FIRST ON SCENE)
       badges: [],
@@ -33,8 +33,8 @@ export function reporterTrust(uHash) {
   const accuracy = u.reports >= 3 ? u.accurate / u.reports : 0.55;
   const volume = clamp(u.reports / 40, 0, 1);
   let t = 0.4 + 0.35 * accuracy + 0.15 * maturity + 0.1 * volume;
-  // "Local" / "Night Scout" reports get a slight extra weighting (never large).
-  if (u.badges.includes('local') || u.badges.includes('night_scout')) t += 0.06;
+  // "Night Scout" reports get a slight extra weighting (never large).
+  if (u.badges.includes('night_scout')) t += 0.06;
   return clamp(t, 0.35, 1);
 }
 
@@ -137,7 +137,6 @@ const BADGE_DEFS = [
   { id: 'night_scout', label: 'Night Scout', test: (u) => u.accurate >= 12 },
   { id: 'first_on_scene', label: 'First on Scene', test: (u) => u.earlyScoops >= 3 },
   { id: 'vibe_check', label: 'Vibe Check', test: (u) => u.reports >= 10 },
-  { id: 'local', label: 'Local', test: (u) => Object.values(u.neighborhoods).some((c) => c >= 8) },
   { id: 'night_owl', label: 'Night Owl', test: (u) => u.lateReports >= 6 },
   { id: 'trend_spotter', label: 'Trend Spotter', test: (u) => u.earlyScoops >= 6 },
 ];
