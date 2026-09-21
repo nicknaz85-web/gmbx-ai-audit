@@ -1439,7 +1439,7 @@ function renderReport() {
   const sel = R.answers[step.key];
   const inner = $('#reportInner');
   const hint = step.type === 'media' ? "Show what it's like right now"
-    : step.type === 'note' ? 'Optional. A few words about the venue or the night (max 500)'
+    : step.type === 'note' ? 'Optional. A few words about the venue or the night. (max 500)'
     : step.optional ? 'Optional. Tap to add, or skip' : 'Tap your answer';
   // localise the entry-price chips to the venue's currency (€10 → 1000 din, etc.)
   const opts = (step.opts && step.key === 'entry' && venue) ? step.opts.map((o) =>
@@ -3072,6 +3072,24 @@ function initUI() {
 }
 
 initUI();
+// Keyboard-aware overlays: track the soft-keyboard height via the visual viewport
+// and expose it as --kb, so a fixed sheet (e.g. the report note step) can lift its
+// controls above the keyboard instead of letting them hide behind it.
+(function initKeyboardInset() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  let raf = 0;
+  const apply = () => {
+    raf = 0;
+    const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+    // ignore tiny deltas (URL-bar jitter) so we don't fight the layout
+    document.documentElement.style.setProperty('--kb', (kb > 80 ? kb : 0) + 'px');
+  };
+  const schedule = () => { if (!raf) raf = requestAnimationFrame(apply); };
+  vv.addEventListener('resize', schedule);
+  vv.addEventListener('scroll', schedule);
+  apply();
+})();
 // Resolve location RIGHT AWAY (from the saved fix) so the user's pin appears
 // immediately, instead of waiting for the first /api/state fetch to come back.
 if (!S.booted) { S.booted = true; bootLocation(); }

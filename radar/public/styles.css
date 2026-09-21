@@ -438,6 +438,13 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 
 /* ============================================================ REPORT FLOW */
 .report{align-items:stretch;background:var(--card)}
+/* keyboard-aware: when the soft keyboard is open (--kb > 0), shrink the report
+   sheet so its bottom edge sits directly above the keyboard — keeping Back / Skip /
+   Submit and the field/counter visible and reachable without dismissing it first.
+   (height wins cleanly here; a `bottom` offset is ignored because .overlay's
+   inset:0 over-constrains a fixed box.) */
+#reportOverlay{height:calc(100% - var(--kb, 0px));transition:height .16s ease}
+.report.notestep .report-inner{overflow-y:auto}
 .report-inner{position:relative;width:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;height:100%;
   padding:calc(var(--sat) + 18px) 20px calc(var(--sab) + 46px)}
 .rep-head{display:flex;align-items:center;justify-content:space-between}
@@ -1068,7 +1075,9 @@ body.msheet-open .msheet,body.msheet-open .msheet-scrim{pointer-events:auto}
 .rep-note textarea:focus{outline:none;border-color:var(--primary);
   background:color-mix(in oklab,var(--primary) 6%,var(--surface-3));
   box-shadow:0 0 0 3px color-mix(in oklab,var(--primary) 15%,transparent)}
-.rep-note-ic{position:absolute;left:13px;bottom:9px;width:19px;height:19px;
+/* the message icon (bottom-left) and the counter (bottom-right) share the same
+   baseline strip — matched vertical centres and symmetric 13px side insets */
+.rep-note-ic{position:absolute;left:13px;bottom:8px;width:18px;height:18px;
   color:color-mix(in oklab,var(--primary) 55%,var(--muted));opacity:.65;pointer-events:none}
 .rep-note-ic svg{width:100%;height:100%;display:block}
 .rep-notecount{position:absolute;right:13px;bottom:10px;font-size:12px;
