@@ -940,31 +940,80 @@ async function openVenue(id) {
 function closeVenue() { $('#venueOverlay').hidden = true; S.activeVenue = null; S.activeVenueData = null; map.selected = null; map.refreshSelection && map.refreshSelection(); }
 
 // tap any community photo/video to view it full screen, with the poster's avatar
-function openLightbox(url, type, by) {
-  const lb = $('#lightbox'), stage = $('#lbStage'); if (!lb || !stage) return;
-  stage.innerHTML = (type === 'video')
-    ? `<video src="${url}" controls autoplay playsinline loop></video>`
-    : `<img src="${url}" alt="" />`;
-  const badge = $('#lbBy');
-  if (badge) {
-    if (by && by.photo) { badge.innerHTML = `<img src="${by.photo}" alt="" onerror="this.remove()" />${by.name ? `<span>${esc(by.name)}</span>` : ''}`; badge.hidden = false; }
-    else badge.hidden = true;
+// Full-screen Clubbit media viewer: dark overlay, aspect-preserving (never crops),
+// horizontal swipe across a report's media, pinch/double-tap zoom on photos, native
+// video controls, and a subtle bottom metadata line ("Nick · Reported 9 min ago").
+function showMediaViewer(items, index, meta) {
+  const lb = $('#lightbox'), track = $('#lbTrack'); if (!lb || !track || !items || !items.length) return;
+  const start = Math.max(0, Math.min(index || 0, items.length - 1));
+  const multi = items.length > 1;
+  track.classList.toggle('single', !multi);
+  track.innerHTML = items.map((m, i) => `<div class="lb-slide">${
+    m.type === 'video'
+      ? `<video src="${m.url}" controls playsinline ${i === start ? 'autoplay' : ''} loop></video>`
+      : `<img src="${m.url}" alt="" draggable="false" />`}</div>`).join('');
+  const mEl = $('#lbMeta');
+  if (mEl) {
+    if (meta && (meta.name || meta.sub)) {
+      mEl.innerHTML = `${meta.name ? `<b>${esc(meta.name)}</b>` : ''}${meta.name && meta.sub ? ' · ' : ''}${meta.sub ? `<span>${esc(meta.sub)}</span>` : ''}`;
+      mEl.hidden = false;
+    } else mEl.hidden = true;
   }
   lb.hidden = false;
+  requestAnimationFrame(() => { track.scrollLeft = start * track.clientWidth; });
+  wireLbZoom(track, multi);
 }
-function closeLightbox() { const lb = $('#lightbox'); if (!lb) return; lb.hidden = true; $('#lbStage').innerHTML = ''; }
+// pinch + double-tap zoom (and pan while zoomed) on the viewer's photos; swipe
+// between slides stays native. Zooming a photo suspends horizontal swipe.
+function wireLbZoom(track, multi) {
+  track.querySelectorAll('.lb-slide img').forEach((img) => {
+    let scale = 1, tx = 0, ty = 0, startDist = 0, startScale = 1, sx = 0, sy = 0, pan = false, last = 0;
+    const ptrs = new Map();
+    const apply = () => { img.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; };
+    const zoomed = () => scale > 1.02;
+    const mode = (on) => { img.style.touchAction = on ? 'none' : (multi ? 'pan-x' : 'none'); track.style.overflowX = on ? 'hidden' : (multi ? 'auto' : 'hidden'); };
+    img.style.transformOrigin = 'center'; img.style.touchAction = multi ? 'pan-x' : 'none';
+    img.addEventListener('pointerdown', (e) => {
+      ptrs.set(e.pointerId, e); try { img.setPointerCapture(e.pointerId); } catch (_) {} img.style.transition = 'none';
+      if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; startDist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1; startScale = scale; }
+      else if (zoomed()) { pan = true; sx = e.clientX - tx; sy = e.clientY - ty; }
+    });
+    img.addEventListener('pointermove', (e) => {
+      if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, e);
+      if (ptrs.size === 2 && !multi) { const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); scale = Math.min(4, Math.max(1, startScale * (d / startDist))); mode(true); apply(); }
+      else if (pan && zoomed()) { tx = e.clientX - sx; ty = e.clientY - sy; apply(); }
+    });
+    const end = (e) => {
+      ptrs.delete(e.pointerId);
+      if (ptrs.size === 0) { pan = false; if (!zoomed()) { scale = 1; tx = 0; ty = 0; img.style.transition = 'transform .16s ease'; apply(); mode(false); } }
+    };
+    img.addEventListener('pointerup', end); img.addEventListener('pointercancel', end);
+    img.addEventListener('click', () => { const n = Date.now(); if (n - last < 300) { img.style.transition = 'transform .16s ease'; if (zoomed()) { scale = 1; tx = 0; ty = 0; mode(false); } else { scale = 2.4; mode(true); } apply(); } last = n; });
+  });
+}
+function closeLightbox() { const lb = $('#lightbox'); if (!lb) return; lb.hidden = true; $('#lbTrack').innerHTML = ''; }
+// back-compat single-media entry (community strip / profile callers)
+function openLightbox(url, type, by) { showMediaViewer([{ url, type }], 0, by ? { name: by.name || null, sub: by.sub || null } : null); }
 window.openLightbox = openLightbox;
-// venue media: resolve the poster's avatar from the loaded venue data (avoids
-// putting a big data-URL in an onclick attribute)
+// community "Photos & videos" strip: resolve the media (+poster) from venue data
 window.lbShow = function (id) {
   const list = (S.activeVenueData && S.activeVenueData.media) || [];
   const m = list.find((x) => x.id === id); if (!m) return;
-  openLightbox(m.url, m.type, m.by || null);
+  showMediaViewer([{ url: m.url, type: m.type, id: m.id }], 0, m.by && m.by.name ? { name: m.by.name, sub: null } : null);
 };
-// profile media: it's the current user's own upload → show their avatar
+// a report's own media — swipe the whole report's media, metadata = reporter + freshness
+window.lrShow = function (ri, mi) {
+  const v = S.activeVenueData; if (!v) return;
+  const r = (v.recentReports || [])[ri]; if (!r) return;
+  const list = Array.isArray(r.media) && r.media.length ? r.media
+    : (r.mediaUrl ? [{ url: r.mediaUrl, type: r.mediaType, id: r.mediaId }] : []);
+  if (!list.length) return;
+  showMediaViewer(list, mi || 0, { name: r.name, sub: freshLabel(r.ageMin) });
+};
+// profile media: it's the current user's own upload → show their name
 window.lbShowMine = function (url, type) {
   const p = myProfile();
-  openLightbox(url, type, { photo: myFace(p), name: p.firstName || 'You' });
+  showMediaViewer([{ url, type }], 0, { name: p.firstName || 'You', sub: null });
 };
 
 // A short "what this place is" line, used when Google has no editorial blurb.
@@ -1010,17 +1059,18 @@ function reportChips(v, r) {
 // A report's media: one integrated preview (collapsed) that grows when expanded;
 // a swipeable gallery when there are several; nothing when there's no media. Works
 // for a single image, several images, a video, or none — driven by the real report.
-function reportMedia(r) {
+function reportMedia(r, ri) {
   const list = Array.isArray(r.media) && r.media.length ? r.media
     : (r.mediaUrl ? [{ url: r.mediaUrl, type: r.mediaType, id: r.mediaId }] : []);
   if (!list.length) return '';
-  const cell = (m) => m.type === 'video'
-    ? `<video class="lr-cell" src="${m.url}" muted playsinline loop autoplay preload="metadata" onclick="event.stopPropagation();lbShow('${m.id || ''}')"></video>`
-    : `<img class="lr-cell" src="${m.url}" alt="" loading="lazy" onclick="event.stopPropagation();lbShow('${m.id || ''}')" />`;
+  // tapping any cell opens the full-screen viewer at that media (swipe within the report)
+  const cell = (m, mi) => m.type === 'video'
+    ? `<video class="lr-cell" src="${m.url}" muted playsinline loop autoplay preload="metadata" onclick="event.stopPropagation();lrShow(${ri},${mi})"></video>`
+    : `<img class="lr-cell" src="${m.url}" alt="" loading="lazy" onclick="event.stopPropagation();lrShow(${ri},${mi})" />`;
   const extra = list.length - 1;
   return `<div class="lr-media${list.length > 1 ? ' multi' : ''}">
-    <div class="lr-main">${cell(list[0])}${extra > 0 ? `<span class="lr-more">+${extra}</span>` : ''}</div>
-    ${list.length > 1 ? `<div class="lr-gallery">${list.map((m) => `<div class="lr-gcell">${cell(m)}</div>`).join('')}</div>` : ''}
+    <div class="lr-main">${cell(list[0], 0)}${extra > 0 ? `<span class="lr-more">+${extra}</span>` : ''}</div>
+    ${list.length > 1 ? `<div class="lr-gallery">${list.map((m, mi) => `<div class="lr-gcell">${cell(m, mi)}</div>`).join('')}</div>` : ''}
   </div>`;
 }
 // One unified live-report card. Same component in both states — tapping expands it
@@ -1040,9 +1090,9 @@ function liveReportCard(v, r, i) {
       </div>
       <div class="lr-actions">${menu}${chev}</div>
     </div>
-    ${reportMedia(r)}
+    ${reportMedia(r, i)}
     <div class="lr-chips">${reportChips(v, r)}</div>
-    ${r.note ? `<div class="lr-note">“${esc(r.note)}”</div>` : ''}
+    ${r.note ? `<div class="lr-note${r.note.length > 80 ? ' long' : ''}"><svg class="lr-noteic" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M21 6h-2v9H7v2a1 1 0 0 0 1 1h9l4 4V7a1 1 0 0 0-1-1zM17 2H3a1 1 0 0 0-1 1v13l4-4h11a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"/></svg><div class="lr-notebody"><span class="lr-notetext">“${esc(r.note)}”</span><span class="lr-notemore">More</span></div></div>` : ''}
   </div>`;
 }
 function toggleReport(id) {
@@ -1071,9 +1121,14 @@ function cap(s) { return String(s || '').charAt(0).toUpperCase() + String(s || '
 // sits at the bottom of the venue card (below the buttons).
 function communityBlock(v) {
   const reports = recentReportsBlock(v); // '' when there are none
-  const media = v.media || [];
+  // Media already shown inside the LIVE REPORTS cards — don't repeat it in the strip.
+  const shownIds = new Set((v.recentReports || []).map((r) => r.mediaId).filter(Boolean));
+  const media = (v.media || []).filter((m) => !shownIds.has(m.id));
+  // With reports present the strip is a venue-wide gallery of everything ELSE that's
+  // been shared here; without reports it's just the venue's photos & videos.
+  const stripTitle = reports ? 'More from this venue' : 'Photos &amp; videos';
   const strip = media.length ? `<div class="vc-media"${reports ? ' style="margin-top:14px"' : ''}>
-      ${reports ? '<div class="cb-sub">Photos &amp; videos</div>' : '<div class="section-h"><h3>Photos &amp; videos</h3><span class="count">' + media.length + '</span></div>'}
+      ${reports ? '<div class="cb-sub">' + stripTitle + '</div>' : '<div class="section-h"><h3>' + stripTitle + '</h3><span class="count">' + media.length + '</span></div>'}
       <div class="media-strip">${media.map(m => `<div class="media-thumbwrap">${
         m.by && m.by.photo ? `<img class="media-by" src="${esc(m.by.photo)}" alt="${esc(m.by.name || '')}" onerror="this.remove()" />` : ''}${
         m.type === 'video'
@@ -3109,7 +3164,7 @@ function initUI() {
   const ls = $('#langScrim'); if (ls) ls.addEventListener('click', () => closeMSheet('#langSheet', '#langScrim'));
   // fullscreen media viewer
   const lbc = $('#lbClose'); if (lbc) lbc.addEventListener('click', closeLightbox);
-  const lbx = $('#lightbox'); if (lbx) lbx.addEventListener('click', (e) => { if (e.target === lbx) closeLightbox(); });
+  const lbx = $('#lightbox'); if (lbx) lbx.addEventListener('click', (e) => { const t = e.target; if (t === lbx || t.id === 'lbTrack' || t.classList.contains('lb-slide')) closeLightbox(); });
   document.querySelectorAll('[data-close]').forEach((s) => s.addEventListener('click', closeVenue));
 }
 

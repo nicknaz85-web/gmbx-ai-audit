@@ -1166,13 +1166,22 @@ body.msheet-open .msheet,body.msheet-open .msheet-scrim{pointer-events:auto}
 .rep-rundown .rr-note{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:13.5px;color:var(--ink);line-height:1.5}
 
 /* fullscreen media viewer */
-.lightbox{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.94);display:flex;align-items:center;justify-content:center;padding:16px}
+.lightbox{position:fixed;inset:0;z-index:3000;background:#000;display:flex;align-items:center;justify-content:center}
 .lightbox[hidden]{display:none}
 .lb-close{position:absolute;top:calc(var(--sat) + 14px);right:16px;width:42px;height:42px;border-radius:50%;
-  background:rgba(255,255,255,.16);color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;z-index:1}
+  background:rgba(255,255,255,.16);color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;z-index:3}
 .lb-close:active{background:rgba(255,255,255,.28)}
-.lb-stage{max-width:100%;max-height:100%;display:flex;align-items:center;justify-content:center}
-.lb-stage img,.lb-stage video{max-width:100%;max-height:86vh;border-radius:12px;object-fit:contain;background:#000}
+/* swipeable full-screen track: one slide per media, aspect-preserving (never cropped) */
+.lb-track{width:100%;height:100%;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.lb-track.single{overflow:hidden}
+.lb-track::-webkit-scrollbar{width:0;height:0}
+.lb-slide{flex:0 0 100%;width:100%;height:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;padding:16px}
+.lb-slide img,.lb-slide video{max-width:100%;max-height:88vh;object-fit:contain;background:#000;border-radius:10px;will-change:transform}
+/* subtle bottom metadata — "Nick · Reported 9 min ago" */
+.lb-meta{position:absolute;left:0;right:0;bottom:calc(var(--sab) + 18px);z-index:2;text-align:center;pointer-events:none;
+  color:rgba(255,255,255,.82);font-size:13px;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.lb-meta[hidden]{display:none}
+.lb-meta b{color:#fff;font-weight:700}
 .media-thumb,.media-cell{cursor:pointer}
 
 /* report done: two mascots side by side */
@@ -1188,11 +1197,6 @@ body.msheet-open .msheet,body.msheet-open .msheet-scrim{pointer-events:auto}
   padding:0 16px;font-size:16px;color:var(--ink);font-family:inherit}
 .rep-other input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(124,58,237,.15)}
 
-/* lightbox: poster avatar badge (top-left) */
-.lb-by{position:absolute;top:calc(var(--sat) + 14px);left:16px;z-index:1;display:flex;align-items:center;gap:8px;
-  background:rgba(0,0,0,.4);border-radius:22px;padding:4px 12px 4px 4px}
-.lb-by img{width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #fff;background:var(--avatar-bg)}
-.lb-by span{color:#fff;font-size:13px;font-weight:600}
 
 /* report flow: mascot duo for personality */
 .rep-mascots{display:flex;align-items:flex-end;justify-content:center;gap:0;margin:9vh auto 2px;height:210px}
@@ -1241,8 +1245,8 @@ body.msheet-open .msheet,body.msheet-open .msheet-scrim{pointer-events:auto}
 .lr-name b{font-weight:700}
 .lr-tag{font-size:10px;font-weight:700;letter-spacing:.2px;color:color-mix(in oklab,var(--primary) 84%,#fff);
   background:color-mix(in oklab,var(--primary) 16%,transparent);padding:2px 8px;border-radius:11px}
-.lr-you{font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--ink2);
-  background:color-mix(in oklab,var(--ink) 7%,transparent);border:1px solid var(--line2);padding:1px 7px;border-radius:11px}
+.lr-you{font-size:8.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--muted);
+  background:color-mix(in oklab,var(--ink) 5%,transparent);border:1px solid var(--line2);padding:1px 5px;border-radius:9px}
 .lr-time{font-size:12px;color:var(--muted);margin-top:3px;font-weight:500}
 .lr-actions{display:flex;align-items:center;gap:2px;flex:none}
 .lr-menuwrap{position:relative}
@@ -1257,27 +1261,38 @@ body.msheet-open .msheet,body.msheet-open .msheet-scrim{pointer-events:auto}
 /* media — integrated, larger; grows when expanded; swipe gallery when several */
 .lr-media{margin-top:11px}
 .lr-main{position:relative;border-radius:12px;overflow:hidden;background:#000}
-.lr-cell{display:block;width:100%;height:190px;object-fit:cover;background:var(--surface-2);transition:height .22s ease}
-.lr-card.open .lr-main .lr-cell{height:clamp(240px,42vh,340px)}
+.lr-cell{display:block;width:100%;height:170px;object-fit:cover;background:var(--surface-2);transition:height .22s ease}
+.lr-card.open .lr-main .lr-cell{height:clamp(216px,38vh,306px)}
 .lr-more{position:absolute;right:8px;bottom:8px;font-size:12px;font-weight:700;color:#fff;
   background:rgba(0,0,0,.55);padding:3px 9px;border-radius:12px;backdrop-filter:blur(3px)}
 .lr-gallery{display:none;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
 .lr-gallery::-webkit-scrollbar{height:0}
 .lr-gcell{flex:0 0 86%;scroll-snap-align:center;border-radius:12px;overflow:hidden;background:#000}
-.lr-gcell .lr-cell{height:clamp(240px,42vh,340px)}
+.lr-gcell .lr-cell{height:clamp(216px,38vh,306px)}
 .lr-card.open .lr-media.multi .lr-main{display:none}
 .lr-card.open .lr-media.multi .lr-gallery{display:flex}
-/* quick summary chips (same in both states) */
-.lr-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
-.lr-chip{font-size:12px;font-weight:600;color:var(--ink2);background:var(--surface-4);
+/* quick summary chips — one horizontal line, scroll sideways if there are too many
+   (never stack into multiple tall rows) */
+.lr-chips{display:flex;flex-wrap:nowrap;gap:7px;margin-top:11px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;padding-bottom:1px}
+.lr-chips::-webkit-scrollbar{height:0}
+.lr-chip{flex:none;font-size:12px;font-weight:600;color:var(--ink2);background:var(--surface-4);
   border:1px solid var(--line2);padding:5px 11px;border-radius:20px;white-space:nowrap}
 .lr-chip.vibe{color:color-mix(in oklab,var(--primary) 88%,#fff);
   background:color-mix(in oklab,var(--primary) 15%,transparent);border-color:color-mix(in oklab,var(--primary) 28%,transparent)}
-/* written note — expanded only, subtle quote style */
-.lr-note{display:none;margin-top:11px;padding:10px 13px;font-size:13.5px;line-height:1.5;color:var(--ink);font-style:italic;
-  border-left:3px solid color-mix(in oklab,var(--primary) 46%,transparent);border-radius:0 10px 10px 0;
-  background:color-mix(in oklab,var(--primary) 7%,var(--surface-2))}
-.lr-card.open .lr-note{display:block}
+/* written note — shown in both states; a subtle Clubbit quote container with a
+   small message icon. Collapsed clamps to 3 lines (with a "More" hint); expanding
+   the card reveals the full text. */
+.lr-note{display:flex;gap:8px;margin-top:11px;padding:10px 12px;
+  border:1px solid color-mix(in oklab,var(--primary) 16%,var(--line2));border-left:3px solid color-mix(in oklab,var(--primary) 46%,transparent);
+  border-radius:8px 10px 10px 8px;background:color-mix(in oklab,var(--primary) 7%,var(--surface-2))}
+.lr-noteic{flex:none;margin-top:3px;color:color-mix(in oklab,var(--primary) 60%,var(--muted))}
+.lr-notebody{min-width:0;font-size:13.5px;line-height:1.5;color:var(--ink);font-style:italic}
+.lr-notetext{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.lr-card.open .lr-notetext{display:block;-webkit-line-clamp:unset;overflow:visible}
+.lr-notemore{display:none;margin-top:2px;font-style:normal;font-size:12.5px;font-weight:700;color:color-mix(in oklab,var(--primary) 80%,#fff)}
+.lr-note.long .lr-notemore{display:inline-block}
+.lr-card.open .lr-notemore{display:none}
 
 /* profile: tap-a-report detail modal */
 .rdetail-ov{position:fixed;inset:0;z-index:2500;display:flex;align-items:center;justify-content:center;padding:20px}
