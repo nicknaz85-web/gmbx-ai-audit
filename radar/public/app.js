@@ -1388,7 +1388,7 @@ function renderVenue(v, opts) {
 
     ${v.dress ? `<div class="dress"><span class="dress-ic">👔</span><div class="dress-txt"><b>Dress code · ${esc(v.dress.code)}</b><div class="dress-tip">${esc(v.dress.tip)}</div></div></div>` : ''}
 
-    ${(fcPts.length || dec) ? `<div class="forecast">
+    ${(fcPts.length || dec) ? `<div class="forecast${closed ? ' fc-closed' : ''}">
       ${fcPts.length ? `<div class="section-h"><h3>Forecast</h3><span class="count">${esc(fcCount)}</span></div>
       <div class="fc-bars">
         ${(() => { const closedStart = fcPts.length > 0 && fcPts[0].mins !== 0; // no "Now" bar → first bar is the opening hour
