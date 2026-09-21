@@ -1640,6 +1640,11 @@ async function submitReport() {
   const leveledUp = newLevel.name !== myLevel.name;
   const badge = res.badges && res.badges.length ? res.badges[res.badges.length - 1] : null;
   $('#reportInner').innerHTML = `<div class="rep-done">
+    <div class="rd-fx" aria-hidden="true">
+      <span class="rd-beam b1"></span><span class="rd-beam b2"></span>
+      <span class="rd-orb o1"></span><span class="rd-orb o2"></span><span class="rd-orb o3"></span>
+      <i class="rd-spark s1"></i><i class="rd-spark s2"></i><i class="rd-spark s3"></i><i class="rd-spark s4"></i><i class="rd-spark s5"></i><i class="rd-spark s6"></i>
+    </div>
     <div class="rd-mascotwrap"><img class="rd-mascot solo" src="/mascot-busy.png" alt="" onerror="this.style.display='none'" /></div>
     <h2>All good to go <img class="rd-title-cam" src="/report-camera.png" alt="" onerror="this.style.display='none'" /></h2>
     <p class="rd-sub">Thanks, you're on the radar.<br>Now go enjoy the club!</p>
