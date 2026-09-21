@@ -1232,11 +1232,11 @@ body.msheet-open .msheet,body.msheet-open .msheet-scrim{pointer-events:auto}
 /* ===== LIVE REPORTS — each report is a polished, media-forward post preview:
    avatar over the media (top-left), the media as the hero, then a bottom section
    with byline · chips · a 2-line note snippet. Tapping the media opens full-screen. */
-.lr-list{display:flex;flex-direction:column;gap:20px}
+.lr-list{display:flex;flex-direction:column;gap:24px}
 .lr-card{position:relative;border-radius:16px;overflow:hidden;
   background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 6%,var(--surface-3)),var(--surface-3));
   border:1px solid color-mix(in oklab,var(--line2) 55%,transparent);
-  box-shadow:0 2px 12px rgba(0,0,0,.16)}
+  box-shadow:0 3px 14px rgba(0,0,0,.22),0 8px 22px color-mix(in oklab,var(--primary) 9%,transparent)}
 /* hero media */
 .lr-hero{position:relative;display:block;width:100%;aspect-ratio:1.45;background:#0c0912;cursor:pointer;overflow:hidden}
 /* subtle centred play icon for video previews */
