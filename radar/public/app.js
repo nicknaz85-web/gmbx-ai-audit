@@ -1435,6 +1435,7 @@ function renderReport() {
   $('#reportOverlay').classList.toggle('estep', step.key === 'entry');   // entry has 7 options → a bit more compact
   $('#reportOverlay').classList.toggle('mixstep', step.key === 'mix');   // big mascots → reclaim top space
   $('#reportOverlay').classList.toggle('musicstep', step.key === 'music'); // 2-col genre cards
+  $('#reportOverlay').classList.toggle('notestep', step.type === 'note');  // free-text note step
   const sel = R.answers[step.key];
   const inner = $('#reportInner');
   const hint = step.type === 'media' ? "Show what it's like right now"
@@ -1454,6 +1455,7 @@ function renderReport() {
   const mid = step.type === 'media' ? mediaStepHtml()
     : step.type === 'note' ? `<div class="rep-note">
         <textarea id="repNote" maxlength="500" placeholder="e.g. great crowd, easy door, live DJ till late…">${esc(noteVal)}</textarea>
+        <span class="rep-note-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span>
         <div class="rep-notecount"><span id="noteCount">${noteVal.length}</span>/500</div>
       </div>`
     : `<div class="${step.grid ? 'rep-grid' : 'rep-opts'}${step.key === 'music' ? ' music' : ''}">

@@ -1055,12 +1055,27 @@ body.msheet-open .msheet,body.msheet-open .msheet-scrim{pointer-events:auto}
    variant (mascot-dark.png) via JS so it reads on the dark bar */
 :root[data-theme="dark"] .avatar{box-shadow:0 0 0 2px var(--primary),0 0 0 4px var(--card)}
 
-/* report: free-text note step */
-.rep-note{display:flex;flex-direction:column;gap:6px;margin-bottom:auto}
-.rep-note textarea{width:100%;min-height:160px;border:1.5px solid var(--line2);border-radius:14px;background:var(--surface-3);
-  padding:14px;font-family:inherit;font-size:15px;color:var(--ink);resize:none;line-height:1.5}
-.rep-note textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(124,58,237,.15)}
-.rep-notecount{align-self:flex-end;font-size:12px;color:var(--muted);font-family:var(--mono)}
+/* report: free-text note step — same dark Clubbit card language as the option
+   slides: a faint purple-tinted field that lifts to a stronger (but restrained)
+   purple border + glow on focus. The counter and a small comment icon tuck into
+   the field's reserved bottom strip so they read as part of the input. */
+.rep-note{position:relative;display:flex;flex-direction:column;margin-bottom:auto}
+.rep-note textarea{width:100%;min-height:140px;border:1.5px solid color-mix(in oklab,var(--primary) 17%,var(--line2));border-radius:14px;
+  background:color-mix(in oklab,var(--primary) 4%,var(--surface-3));
+  padding:14px 14px 32px;font-family:inherit;font-size:15px;color:var(--ink);resize:none;line-height:1.5;
+  transition:border-color .18s ease,box-shadow .18s ease,background .18s ease}
+.rep-note textarea::placeholder{color:var(--muted)}
+.rep-note textarea:focus{outline:none;border-color:var(--primary);
+  background:color-mix(in oklab,var(--primary) 6%,var(--surface-3));
+  box-shadow:0 0 0 3px color-mix(in oklab,var(--primary) 15%,transparent)}
+.rep-note-ic{position:absolute;left:13px;bottom:9px;width:19px;height:19px;
+  color:color-mix(in oklab,var(--primary) 55%,var(--muted));opacity:.65;pointer-events:none}
+.rep-note-ic svg{width:100%;height:100%;display:block}
+.rep-notecount{position:absolute;right:13px;bottom:10px;font-size:12px;
+  color:color-mix(in oklab,var(--muted) 72%,var(--ink));font-family:var(--mono)}
+/* note step: title/subtitle a touch lower so the vertical rhythm matches the
+   option slides (short field otherwise floats the heading high) */
+.report.notestep .rep-q{margin-top:58px}
 /* venue media: reporter avatar badge (top-left) */
 .media-thumbwrap{position:relative;flex:0 0 auto}
 .media-by{position:absolute;top:6px;left:6px;width:26px;height:26px;border-radius:50%;object-fit:cover;
