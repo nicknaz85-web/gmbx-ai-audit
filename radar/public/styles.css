@@ -538,7 +538,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .prof-badges{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px 0 2px}
 .media-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .media-cell{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);cursor:pointer}
-.rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:auto}
 .rep-opt{display:flex;align-items:center;justify-content:center;gap:11px;padding:16px;border-radius:14px;position:relative;
   background:var(--surface-3);border:1.5px solid color-mix(in oklab,var(--line2) 62%,transparent);font-size:15px;font-weight:500;color:var(--ink);
   transition:border-color .18s ease,background .18s ease,box-shadow .18s ease}
@@ -609,8 +609,6 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .m-comm .m-dot{background:#7d6bff;box-shadow:0 0 8px color-mix(in oklab,#7d6bff 60%,transparent)}
 .m-latin .m-dot{background:#e0559b;box-shadow:0 0 8px color-mix(in oklab,#e0559b 60%,transparent)}
 .m-other .m-dot{background:var(--muted)}
-/* music grid is short (4 rows) → give Skip room to sit lower, away from the cards */
-.report.musicstep .rep-skiprow{margin-top:22px;margin-bottom:0}
 /* queue step: lift Back/Next a little (default report-inner padding is +46px) */
 .report.qstep .report-inner{padding-bottom:calc(var(--sab) + 72px)}
 /* vibe step — branded mascot "vibe cards" */
