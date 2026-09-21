@@ -686,21 +686,41 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   transition:background .2s ease,box-shadow .2s ease,opacity .2s ease}
 .rep-next:not(:disabled){box-shadow:0 4px 12px color-mix(in oklab,var(--primary) 22%,transparent)}
 .rep-next:disabled{background:var(--surface-4);color:color-mix(in oklab,var(--ink) 42%,transparent);box-shadow:none}
-.rep-done{text-align:center;margin:auto 0}
+/* done screen: sit a little above centre so it reads as a headline moment */
+.rep-done{text-align:center;margin:7vh 0 auto}
 .rep-done .big{font-size:56px;margin-bottom:10px}
-.rep-done h2{font-size:21px;font-weight:500;color:var(--ink)}
-.rep-done p{color:var(--muted);font-size:13px;margin-top:8px;line-height:1.5}
-.rep-badge{display:inline-flex;align-items:center;gap:8px;margin-top:16px;font-size:12px;font-weight:500;color:var(--amber-d);background:#feefc3;padding:8px 15px;border-radius:20px}
-.rep-levelnote{margin-top:14px;font-size:12px;color:var(--muted)}
+.rep-done h2{font-size:24px;font-weight:700;color:var(--ink);margin-top:4px}
+.rep-done p{color:var(--muted);font-size:13px;line-height:1.5}
+.rep-done .rd-sub{margin:10px auto 0;max-width:300px}
+/* confidence: a clean, intentional line — value in Clubbit purple */
+.rd-conf{margin-top:6px;font-size:12.5px;color:var(--muted);letter-spacing:.01em}
+.rd-conf b{color:var(--primary);font-weight:700}
+.rep-badge{display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;font-weight:500;color:var(--amber-d);background:#feefc3;padding:8px 15px;border-radius:20px}
+/* contributor progress: a compact reward pill (dark card, soft purple border) */
+.rep-levelnote{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:7px 14px;border-radius:20px;
+  background:color-mix(in oklab,var(--primary) 7%,var(--surface-3));
+  border:1px solid color-mix(in oklab,var(--primary) 15%,var(--line2));
+  font-size:12px;font-weight:500;color:var(--ink2)}
+.rep-levelnote b{color:var(--primary);font-weight:700}
+.rep-levelnote .rl-sep{color:color-mix(in oklab,var(--muted) 60%,transparent)}
+.rep-levelnote .rl-next{color:var(--muted);font-weight:500}
+/* Done: full-width primary button, same weight as the flow's Next buttons */
+.rd-donerow{margin-top:32px}
+.rep-done .rd-donerow .rep-next{width:100%;max-width:none;margin:0}
 /* report: shared "vibe" backdrop for the welcome slides + done screen */
 .report.vibe{background:
   radial-gradient(120% 70% at 50% 12%, #f4ecff 0%, rgba(244,236,255,0) 62%),
   linear-gradient(180deg, #faf6ff 0%, #fdfbff 46%, #ffffff 100%)}
 .report.vibe .rep-venue{color:var(--muted)}
-/* report: done-screen mascot */
-.rep-done .rd-mascot{width:180px;max-width:52vw;height:auto;margin:0 auto 6px;display:block;
-  filter:drop-shadow(0 14px 24px rgba(124,58,237,.2));animation:riPop .5s cubic-bezier(.2,.8,.3,1.2) both}
-.rep-done .rd-mascot.solo{width:220px;max-width:62vw}
+/* report: done-screen mascot — bigger, with a soft purple Clubbit aura behind it */
+.rep-done .rd-mascotwrap{position:relative;display:flex;justify-content:center;align-items:flex-end;margin:0 auto 6px;width:max-content;
+  animation:riPop .5s cubic-bezier(.2,.8,.3,1.2) both}
+.rep-done .rd-mascotwrap::before{content:"";position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);
+  width:82%;height:72%;border-radius:50%;z-index:0;pointer-events:none;
+  background:radial-gradient(circle,color-mix(in oklab,var(--primary) 28%,transparent) 0%,transparent 66%);filter:blur(16px)}
+.rep-done .rd-mascot{position:relative;z-index:1;width:180px;max-width:52vw;height:auto;margin:0;display:block;
+  filter:drop-shadow(0 14px 24px rgba(124,58,237,.28))}
+.rep-done .rd-mascot.solo{width:248px;max-width:66vw}
 @keyframes riPop{0%{opacity:0;transform:translateY(14px) scale(.9)}100%{opacity:1;transform:none}}
 
 
