@@ -1085,7 +1085,7 @@ function liveReportCard(v, r, i) {
   const clock = reportClock(r.ageMin, v.tzOffset);
   const nameHtml = `<div class="lr-name"><b>${esc(r.name)}${r.age ? ', ' + r.age : ''}</b>${r.tag ? `<span class="lr-tag">${esc(r.tag)}</span>` : ''}${r.mine ? `<span class="lr-you">You</span>` : ''}</div>`;
   const noteHtml = r.note
-    ? `<div class="lr-note">${REP_NOTE_IC}<span class="lr-notetext">“${esc(r.note)}”</span></div>` : '';
+    ? `<div class="lr-note${r.note.length > 90 ? ' long' : ''}">${REP_NOTE_IC}<div class="lr-notebody"><span class="lr-notetext">“${esc(r.note)}”</span><button class="lr-notemore" onclick="event.stopPropagation();this.closest('.lr-note').classList.toggle('open')"><span class="mt">More</span><span class="lt">Less</span></button></div></div>` : '';
   const hasVideo = list.some((m) => m.type === 'video');
   const countBadge = list.length > 1
     ? `<span class="lr-mcount">${hasVideo ? '▶' : '❏'} ${list.length}</span>` : '';

@@ -1169,8 +1169,8 @@ body.msheet-open .msheet,body.msheet-open .msheet-scrim{pointer-events:auto}
 /* fullscreen media viewer */
 .lightbox{position:fixed;inset:0;z-index:3000;background:#000;display:flex;align-items:center;justify-content:center}
 .lightbox[hidden]{display:none}
-.lb-close{position:absolute;top:calc(var(--sat) + 14px);left:16px;width:42px;height:42px;border-radius:50%;
-  background:rgba(255,255,255,.16);color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;z-index:3}
+.lb-close{position:absolute;top:calc(var(--sat) + 14px);right:16px;width:42px;height:42px;border-radius:50%;
+  background:rgba(255,255,255,.16);color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;z-index:4}
 .lb-close:active{background:rgba(255,255,255,.28)}
 /* swipeable full-screen track: one slide per media, aspect-preserving (never cropped) */
 .lb-track{width:100%;height:100%;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
@@ -1178,9 +1178,9 @@ body.msheet-open .msheet,body.msheet-open .msheet-scrim{pointer-events:auto}
 .lb-track::-webkit-scrollbar{width:0;height:0}
 .lb-slide{flex:0 0 100%;width:100%;height:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;padding:16px}
 .lb-slide img,.lb-slide video{max-width:100%;max-height:88vh;object-fit:contain;background:#000;border-radius:10px;will-change:transform}
-/* poster metadata — avatar + name + report time, top-right corner */
-.lb-meta{position:absolute;top:calc(var(--sat) + 14px);right:16px;z-index:2;display:flex;align-items:center;gap:9px;
-  max-width:72vw;padding:5px 14px 5px 5px;border-radius:24px;background:rgba(0,0,0,.44);backdrop-filter:blur(5px);pointer-events:none}
+/* poster metadata — avatar + name + report time, top-right (just left of the X) */
+.lb-meta{position:absolute;top:calc(var(--sat) + 14px);right:66px;z-index:2;display:flex;align-items:center;gap:9px;
+  max-width:calc(100vw - 92px);padding:5px 14px 5px 5px;border-radius:24px;background:rgba(0,0,0,.44);backdrop-filter:blur(5px);pointer-events:none}
 .lb-meta[hidden]{display:none}
 .lb-mface{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:none;border:1.5px solid rgba(255,255,255,.85);background:#222}
 .lb-mtxt{display:flex;flex-direction:column;line-height:1.2;min-width:0}
@@ -1234,9 +1234,9 @@ body.msheet-open .msheet,body.msheet-open .msheet-scrim{pointer-events:auto}
    with byline · chips · a 2-line note snippet. Tapping the media opens full-screen. */
 .lr-list{display:flex;flex-direction:column;gap:16px}
 .lr-card{position:relative;border-radius:16px;overflow:hidden;
-  background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 7%,var(--surface-3)),var(--surface-3));
-  border:1px solid color-mix(in oklab,var(--primary) 15%,var(--line2));
-  box-shadow:0 4px 18px color-mix(in oklab,var(--primary) 9%,transparent)}
+  background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 6%,var(--surface-3)),var(--surface-3));
+  border:1px solid color-mix(in oklab,var(--line2) 55%,transparent);
+  box-shadow:0 2px 12px rgba(0,0,0,.16)}
 /* hero media */
 .lr-hero{position:relative;display:block;width:100%;aspect-ratio:4/3;background:#0c0912;cursor:pointer;overflow:hidden}
 .lr-heroimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
@@ -1262,13 +1262,13 @@ body.msheet-open .msheet,body.msheet-open .msheet-scrim{pointer-events:auto}
 .lr-body{padding:11px 13px 13px}
 .lr-byline{display:flex;align-items:flex-start;gap:10px}
 .lr-id{flex:1;min-width:0}
-.lr-name{font-size:14.5px;color:var(--ink);line-height:1.25;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.lr-name{font-size:14.5px;color:var(--ink);line-height:1.25;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .lr-name b{font-weight:700}
 .lr-tag{font-size:10px;font-weight:700;letter-spacing:.2px;color:color-mix(in oklab,var(--primary) 84%,#fff);
   background:color-mix(in oklab,var(--primary) 16%,transparent);padding:2px 8px;border-radius:11px}
-.lr-you{font-size:8.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--muted);
-  background:color-mix(in oklab,var(--ink) 5%,transparent);border:1px solid var(--line2);padding:1px 5px;border-radius:9px}
-.lr-time{font-size:12px;color:var(--muted);margin-top:3px;font-weight:500;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.lr-you{font-size:8px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:color-mix(in oklab,var(--muted) 85%,transparent);
+  background:transparent;border:1px solid color-mix(in oklab,var(--line2) 80%,transparent);padding:1px 5px;border-radius:8px;opacity:.9}
+.lr-time{font-size:12px;color:var(--muted);margin-top:4px;font-weight:500;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .lr-actions{display:flex;align-items:center;gap:2px;flex:none}
 .lr-menuwrap{position:relative}
 .lr-menu{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted);background:transparent}
@@ -1278,18 +1278,27 @@ body.msheet-open .msheet,body.msheet-open .msheet-scrim{pointer-events:auto}
 .lr-del{width:100%;text-align:left;padding:9px 12px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--red);background:transparent}
 .lr-del:active{background:color-mix(in oklab,var(--red) 14%,transparent)}
 /* key report chips — one horizontal line, scroll sideways if there are too many */
-.lr-chips{display:flex;flex-wrap:nowrap;gap:7px;margin-top:11px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+.lr-chips{display:flex;flex-wrap:nowrap;gap:7px;margin-top:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;
   scrollbar-width:none;padding-bottom:1px}
 .lr-chips::-webkit-scrollbar{height:0}
 .lr-chip{flex:none;font-size:12px;font-weight:600;color:var(--ink2);background:var(--surface-4);
   border:1px solid var(--line2);padding:5px 11px;border-radius:20px;white-space:nowrap}
 .lr-chip.vibe{color:color-mix(in oklab,var(--primary) 88%,#fff);
   background:color-mix(in oklab,var(--primary) 15%,transparent);border-color:color-mix(in oklab,var(--primary) 28%,transparent)}
-/* note snippet — subtle quote line with a message icon, clamped to 2 lines */
-.lr-note{display:flex;gap:7px;align-items:flex-start;margin-top:10px;font-size:13px;line-height:1.45;
-  color:color-mix(in oklab,var(--ink) 88%,var(--muted));font-style:italic}
+/* note — subtle dark/purple container; clamped to 2 lines with a More/Less toggle */
+.lr-note{display:flex;gap:8px;align-items:flex-start;margin-top:11px;padding:9px 11px;
+  border:1px solid color-mix(in oklab,var(--primary) 14%,var(--line2));border-left:3px solid color-mix(in oklab,var(--primary) 44%,transparent);
+  border-radius:8px 10px 10px 8px;background:color-mix(in oklab,var(--primary) 6%,var(--surface-2))}
 .lr-noteic{flex:none;margin-top:3px;color:color-mix(in oklab,var(--primary) 62%,var(--muted))}
-.lr-notetext{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.lr-notebody{min-width:0;font-size:13px;line-height:1.45;color:color-mix(in oklab,var(--ink) 90%,var(--muted));font-style:italic}
+.lr-notetext{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.lr-note.open .lr-notetext{display:block;-webkit-line-clamp:unset;overflow:visible}
+.lr-notemore{display:none;margin-top:3px;font-style:normal;font-size:12px;font-weight:700;background:transparent;
+  color:color-mix(in oklab,var(--primary) 82%,#fff)}
+.lr-note.long .lr-notemore{display:inline-block}
+.lr-notemore .lt{display:none}
+.lr-note.open .lr-notemore .mt{display:none}
+.lr-note.open .lr-notemore .lt{display:inline}
 
 /* profile: tap-a-report detail modal */
 .rdetail-ov{position:fixed;inset:0;z-index:2500;display:flex;align-items:center;justify-content:center;padding:20px}
