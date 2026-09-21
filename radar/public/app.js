@@ -1056,51 +1056,50 @@ function reportChips(v, r) {
   if (r.music) chips.push(`<span class="lr-chip">${esc(r.music)}</span>`);
   return chips.join('');
 }
-// A report's media: one integrated preview (collapsed) that grows when expanded;
-// a swipeable gallery when there are several; nothing when there's no media. Works
-// for a single image, several images, a video, or none — driven by the real report.
-function reportMedia(r, ri) {
-  const list = Array.isArray(r.media) && r.media.length ? r.media
+function reportMediaList(r) {
+  return Array.isArray(r.media) && r.media.length ? r.media
     : (r.mediaUrl ? [{ url: r.mediaUrl, type: r.mediaType, id: r.mediaId }] : []);
-  if (!list.length) return '';
-  // tapping any cell opens the full-screen viewer at that media (swipe within the report)
-  const cell = (m, mi) => m.type === 'video'
-    ? `<video class="lr-cell" src="${m.url}" muted playsinline loop autoplay preload="metadata" onclick="event.stopPropagation();lrShow(${ri},${mi})"></video>`
-    : `<img class="lr-cell" src="${m.url}" alt="" loading="lazy" onclick="event.stopPropagation();lrShow(${ri},${mi})" />`;
-  const extra = list.length - 1;
-  return `<div class="lr-media${list.length > 1 ? ' multi' : ''}">
-    <div class="lr-main">${cell(list[0], 0)}${extra > 0 ? `<span class="lr-more">+${extra}</span>` : ''}</div>
-    ${list.length > 1 ? `<div class="lr-gallery">${list.map((m, mi) => `<div class="lr-gcell">${cell(m, mi)}</div>`).join('')}</div>` : ''}
-  </div>`;
 }
-// One unified live-report card. Same component in both states — tapping expands it
-// from the quick summary into the full detail (larger media, note), no redesign.
+const REP_NOTE_IC = '<svg class="lr-noteic" viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M21 6h-2v9H7v2a1 1 0 0 0 1 1h9l4 4V7a1 1 0 0 0-1-1zM17 2H3a1 1 0 0 0-1 1v13l4-4h11a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"/></svg>';
+// A live-report card as a polished media-forward post preview: avatar over the media
+// (top-left), the media as the hero, then a bottom section with the byline, key
+// report chips and a 2-line note snippet. Falls back to a clean data card with no
+// media. Tapping the media opens the full-screen viewer.
 function liveReportCard(v, r, i) {
   const id = `lr_${v.id}_${i}`;
+  const list = reportMediaList(r);
+  const hasMedia = list.length > 0;
   const menu = (r.mine && r.id)
     ? `<div class="lr-menuwrap"><button class="lr-menu" aria-label="Report options" onclick="event.stopPropagation();toggleRepMenu('${id}')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button><div class="lr-menupop" id="${id}_m" hidden><button class="lr-del" onclick="event.stopPropagation();deleteMyReport('${r.id}')">Delete report</button></div></div>`
     : '';
-  const chev = `<svg class="lr-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>`;
-  return `<div class="lr-card${r.mine ? ' mine' : ''}" id="${id}" onclick="toggleReport('${id}')">
-    <div class="lr-head">
-      <img class="lr-face" src="${esc(r.photo || '/clubbit-mascot.png')}" alt="" onerror="this.src='/clubbit-mascot.png'" />
-      <div class="lr-id">
-        <div class="lr-name"><b>${esc(r.name)}${r.age ? ', ' + r.age : ''}</b>${r.tag ? `<span class="lr-tag">${esc(r.tag)}</span>` : ''}${r.mine ? `<span class="lr-you">You</span>` : ''}</div>
-        <div class="lr-time">${freshLabel(r.ageMin)}</div>
+  const face = `<img class="lr-face" src="${esc(r.photo || '/clubbit-mascot.png')}" alt="" onerror="this.src='/clubbit-mascot.png'" />`;
+  const nameHtml = `<div class="lr-name"><b>${esc(r.name)}${r.age ? ', ' + r.age : ''}</b>${r.tag ? `<span class="lr-tag">${esc(r.tag)}</span>` : ''}${r.mine ? `<span class="lr-you">You</span>` : ''}</div>`;
+  const noteHtml = r.note
+    ? `<div class="lr-note">${REP_NOTE_IC}<span class="lr-notetext">“${esc(r.note)}”</span></div>` : '';
+  const hasVideo = list.some((m) => m.type === 'video');
+  const countBadge = list.length > 1
+    ? `<span class="lr-mcount">${hasVideo ? '▶' : '❏'} ${list.length}</span>` : '';
+  // hero: media with avatar + "Live report" label overlaid; tap → full-screen viewer
+  const hero = hasMedia ? `<div class="lr-hero" onclick="lrShow(${i},0)">
+      ${list[0].type === 'video'
+        ? `<video class="lr-heroimg" src="${list[0].url}" muted playsinline loop autoplay preload="metadata"></video>`
+        : `<img class="lr-heroimg" src="${list[0].url}" alt="" loading="lazy" />`}
+      <img class="lr-face on-media" src="${esc(r.photo || '/clubbit-mascot.png')}" alt="" onerror="this.src='/clubbit-mascot.png'" />
+      <span class="lr-type">Live report</span>
+      <div class="lr-heroact" onclick="event.stopPropagation()">${countBadge}${menu}</div>
+    </div>` : '';
+  // body: byline (avatar inline only when there's no hero) + chips + note snippet
+  const body = `<div class="lr-body">
+      <div class="lr-byline">
+        ${hasMedia ? '' : face}
+        <div class="lr-id">${nameHtml}<div class="lr-time">${hasMedia ? '' : '<span class="lr-type inline">Report</span> · '}${freshLabel(r.ageMin)}</div></div>
+        ${hasMedia ? '' : `<div class="lr-actions">${menu}</div>`}
       </div>
-      <div class="lr-actions">${menu}${chev}</div>
-    </div>
-    ${reportMedia(r, i)}
-    <div class="lr-chips">${reportChips(v, r)}</div>
-    ${r.note ? `<div class="lr-note${r.note.length > 80 ? ' long' : ''}"><svg class="lr-noteic" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M21 6h-2v9H7v2a1 1 0 0 0 1 1h9l4 4V7a1 1 0 0 0-1-1zM17 2H3a1 1 0 0 0-1 1v13l4-4h11a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"/></svg><div class="lr-notebody"><span class="lr-notetext">“${esc(r.note)}”</span><span class="lr-notemore">More</span></div></div>` : ''}
-  </div>`;
+      <div class="lr-chips">${reportChips(v, r)}</div>
+      ${noteHtml}
+    </div>`;
+  return `<div class="lr-card${r.mine ? ' mine' : ''}${hasMedia ? ' has-media' : ' no-media'}" id="${id}">${hero}${body}</div>`;
 }
-function toggleReport(id) {
-  const el = document.getElementById(id); if (!el) return;
-  el.querySelectorAll('.lr-menupop').forEach((p) => { p.hidden = true; }); // close any open menu
-  el.classList.toggle('open');
-}
-window.toggleReport = toggleReport;
 function toggleRepMenu(id) {
   const pop = document.getElementById(id + '_m'); if (!pop) return;
   // close other open menus first
