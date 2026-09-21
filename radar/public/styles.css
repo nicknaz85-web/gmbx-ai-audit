@@ -616,8 +616,8 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .m-comm .m-dot{background:#7d6bff;box-shadow:0 0 8px color-mix(in oklab,#7d6bff 60%,transparent)}
 .m-latin .m-dot{background:#e0559b;box-shadow:0 0 8px color-mix(in oklab,#e0559b 60%,transparent)}
 .m-other .m-dot{background:var(--muted)}
-/* queue step: lift Back/Next a little (default report-inner padding is +46px) */
-.report.qstep .report-inner{padding-bottom:calc(var(--sab) + 72px)}
+/* queue step: Back/Next sit at the same bottom height as every other step (default) */
+.report.qstep .report-inner{padding-bottom:calc(var(--sab) + 46px)}
 /* vibe step — branded mascot "vibe cards" */
 .rep-opt.vibe{justify-content:flex-start;text-align:left;gap:13px;padding:8px 14px;position:relative;overflow:hidden}
 .rep-opt.vibe .rvm-wrap{flex:none;width:54px;height:54px;display:flex;align-items:center;justify-content:center}
