@@ -1649,7 +1649,7 @@ async function submitReport() {
     <h2>All good to go <img class="rd-title-cam" src="/report-camera.png" alt="" onerror="this.style.display='none'" /></h2>
     <p class="rd-sub">Thanks, you're on the radar.<br>Now go enjoy the club!</p>
     ${leveledUp
-      ? `<div class="rep-badge">${newLevel.emoji} Level up! You're now a <b>${esc(newLevel.name)}</b></div>`
+      ? `<div class="rep-badge">${newLevel.emoji}<span>Level up! You're now a <b>${esc(newLevel.name)}</b></span></div>`
       : `<div class="rep-levelnote">${newLevel.emoji} <b>${esc(newLevel.name)}</b>${newLevel.next ? ` <span class="rl-sep">·</span> <span class="rl-next">${newLevel.next.min - newLevel.count} more to ${esc(newLevel.next.name)}</span>` : ` <span class="rl-sep">·</span> <span class="rl-next">max level</span>`}</div>`}
     ${badge ? `<div class="rep-badge">🏅 ${esc(badge)} unlocked</div>` : ''}
     <div class="rd-donerow"><button class="rep-next" onclick="afterReport('${R.venueId}')">Done</button></div>
