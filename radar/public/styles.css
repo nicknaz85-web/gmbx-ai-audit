@@ -720,7 +720,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   background:radial-gradient(circle,color-mix(in oklab,var(--primary) 28%,transparent) 0%,transparent 66%);filter:blur(16px)}
 .rep-done .rd-mascot{position:relative;z-index:1;width:180px;max-width:52vw;height:auto;margin:0;display:block;
   filter:drop-shadow(0 14px 24px rgba(124,58,237,.28))}
-.rep-done .rd-mascot.solo{width:248px;max-width:66vw}
+.rep-done .rd-mascot.solo{width:168px;max-width:46vw}
 @keyframes riPop{0%{opacity:0;transform:translateY(14px) scale(.9)}100%{opacity:1;transform:none}}
 
 
