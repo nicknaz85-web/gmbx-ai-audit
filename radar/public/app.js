@@ -2673,14 +2673,14 @@ async function renderProfile() {
   if (_meCache) paintProfile(_meCache);
   else body.innerHTML = `
     <div class="phero">
-      <div class="phero-ava"><div class="sk" style="width:112px;height:112px;border-radius:50%"></div></div>
-      <div class="sk" style="width:130px;height:22px;border-radius:8px;margin-top:14px"></div>
-      <div class="sk" style="width:92px;height:13px;border-radius:6px;margin-top:9px"></div>
+      <div class="phero-ava"><div class="sk" style="width:100%;height:100%;border-radius:50%"></div></div>
+      <div class="sk" style="width:116px;height:21px;border-radius:8px;margin-top:7px"></div>
+      <div class="sk" style="width:86px;height:13px;border-radius:6px;margin-top:8px"></div>
+      <div class="sk" style="width:112px;height:24px;border-radius:20px;margin-top:8px"></div>
     </div>
-    <div class="pcard-l"><div class="sk" style="width:100%;height:40px;border-radius:8px"></div></div>
-    <div class="pstats">
-      <div class="pstat2"><div class="sk" style="width:64%;height:44px;border-radius:8px;margin:0 auto"></div></div>
-      <div class="pstat2"><div class="sk" style="width:64%;height:44px;border-radius:8px;margin:0 auto"></div></div>
+    <div class="pcard-l"><div class="sk" style="width:100%;height:50px;border-radius:8px"></div></div>
+    <div class="pstats one">
+      <div class="pstat2"><div class="sk" style="width:42%;height:44px;border-radius:8px;margin:0 auto"></div></div>
     </div>
     <div class="pdetails">
       <div class="sk" style="height:15px;margin:15px 0;border-radius:6px"></div>
