@@ -388,12 +388,13 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
    so a 100% bar is exactly twice a 50% bar and heights always match their labels */
 .fc-track{width:100%;max-width:30px;height:78px;display:flex;align-items:flex-end;position:relative}
 .fc-bar{width:100%;min-height:4px;border-radius:9px 9px 4px 4px;transform-origin:bottom;
-  background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 48%,transparent),color-mix(in oklab,var(--primary) 20%,transparent));
-  animation:fcGrow .72s cubic-bezier(.85,0,.15,1) both;animation-delay:calc(var(--i,0)*62ms)}
-/* the % hugs the top of its bar (positioned per-bar inline), never scaled by the bar */
-.fc-pct{position:absolute;left:-7px;right:-7px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink2);font-weight:600;white-space:nowrap;transition:color .3s;
-  animation:fcPctIn .4s ease both;animation-delay:calc(var(--i,0)*62ms + .3s)}
+  background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 48%,transparent),color-mix(in oklab,var(--primary) 20%,transparent))}
+/* bars grow from zero (staggered) the first time the forecast opens */
+.forecast.fc-animate .fc-bar{animation:fcGrow .5s cubic-bezier(.85,0,.15,1) both;animation-delay:calc(var(--i,0)*40ms)}
+.forecast.fc-animate .fc-pct{animation:fcPctIn .3s ease both;animation-delay:calc(var(--i,0)*40ms + .16s)}
 @keyframes fcPctIn{from{opacity:0}to{opacity:1}}
+/* the % hugs the top of its bar (positioned per-bar inline), never scaled by the bar */
+.fc-pct{position:absolute;left:-7px;right:-7px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink2);font-weight:600;white-space:nowrap;transition:color .3s}
 .fc-lab{font-size:9.5px;color:var(--muted);white-space:nowrap;font-weight:600}
 /* current hour — solid Clubbit purple */
 .fc-col.now .fc-bar{background:linear-gradient(180deg,var(--primary),color-mix(in oklab,var(--primary) 74%,#000))}
@@ -927,7 +928,6 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 /* quiet upgrade to full payload: no entrance replay (keep the idle bop for busy/packed) */
 #venueCard.vc-still .vc-body>*{animation:none}
 #venueCard.vc-still .pr-mascot:not(.m-busy):not(.m-packed){animation:none}
-#venueCard.vc-still .fc-bar,#venueCard.vc-still .fc-pct{animation:none}
 
 /* ---- Instagram button on venue profile ---- */
 .btn-ig{width:100%;color:#fff;border:none;
