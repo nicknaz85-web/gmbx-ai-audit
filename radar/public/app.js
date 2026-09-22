@@ -2385,12 +2385,12 @@ function editProfile() {
     <div class="edit-sheet">
       <div class="eh-grip"><span></span></div>
       <button class="edit-x" id="edX" aria-label="Close">✕</button>
+      <h3>Edit profile</h3>
       <div class="edit-hero">
         <img class="edit-ava" id="edAva" src="${esc(ava)}" alt="" onerror="this.src='/clubbit-mascot.png'" />
         <button class="edit-changephoto" id="edChangePhoto" type="button">Change photo</button>
         <input type="file" id="edPicInput" accept="image/*" style="display:none" />
       </div>
-      <h3>Edit profile</h3>
       <label class="ed-field"><span>First name</span>
         <input class="ed-input" id="edName" type="text" maxlength="40" value="${esc(p.firstName || '')}" placeholder="Your name" enterkeyhint="done" autocomplete="given-name" /></label>
       <label class="ed-field"><span>Gender</span>
@@ -2435,8 +2435,28 @@ function editProfile() {
   q('#edName').oninput = refreshDirty;
   q('#edGender').onchange = refreshDirty;
   q('#edDob').onchange = () => { const v = q('#edDob').value; const txt = q('#edDobText'); txt.textContent = v ? ddmmyyyy(v) : 'Select date'; txt.classList.toggle('ph', !v); refreshDirty(); };
-  // change photo — held pending until Save (so Cancel/Discard reverts it)
-  q('#edChangePhoto').onclick = () => q('#edPicInput').click();
+  // change photo — a Clubbit action sheet; the choice is held pending until Save
+  const defaultAva = () => { const g = q('#edGender').value; return g === 'Woman' ? '/clubbit-face-f.png' : g === 'Man' ? '/clubbit-face-m.png' : g === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png'; };
+  q('#edChangePhoto').onclick = () => {
+    const hasPhoto = pendingPhoto ? true : (pendingPhoto === null ? false : !!p.profilePhoto);
+    const s = document.createElement('div');
+    s.className = 'photo-as';
+    s.innerHTML = `<div class="photo-as-scrim"></div><div class="photo-as-card">
+        <button class="photo-as-item" data-a="camera" type="button">Take photo</button>
+        <button class="photo-as-item" data-a="gallery" type="button">Choose from gallery</button>
+        ${hasPhoto ? '<button class="photo-as-item danger" data-a="remove" type="button">Remove photo</button>' : ''}
+      </div><div class="photo-as-card"><button class="photo-as-item cancel" data-a="cancel" type="button">Cancel</button></div>`;
+    document.body.appendChild(s);
+    const sclose = () => s.remove();
+    s.querySelector('.photo-as-scrim').onclick = sclose;
+    s.querySelectorAll('.photo-as-item').forEach((b) => { b.onclick = () => {
+      const a = b.dataset.a; sclose();
+      const inp = q('#edPicInput');
+      if (a === 'camera') { inp.setAttribute('capture', 'user'); inp.click(); }
+      else if (a === 'gallery') { inp.removeAttribute('capture'); inp.click(); }
+      else if (a === 'remove') { pendingPhoto = null; q('#edAva').src = defaultAva(); refreshDirty(); }
+    }; });
+  };
   q('#edPicInput').onchange = async (e) => {
     const f = e.target.files && e.target.files[0]; e.target.value = '';
     if (!f) return;

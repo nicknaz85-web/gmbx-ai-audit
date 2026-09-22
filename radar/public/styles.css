@@ -576,19 +576,19 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
   border-radius:20px 20px 0 0;padding:8px 18px calc(var(--sab) + 16px);box-shadow:0 -14px 44px rgba(0,0,0,.45);
   max-height:min(94vh,720px);overflow-y:auto;animation:sheetUp .28s cubic-bezier(.2,.8,.3,1)}
 @keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
-.eh-grip{display:flex;justify-content:center;padding:2px 0 6px}
+.eh-grip{display:flex;justify-content:center;padding:2px 0 4px}
 .eh-grip span{width:38px;height:4px;border-radius:3px;background:var(--line2)}
-.edit-x{position:absolute;top:12px;right:14px;width:32px;height:32px;border-radius:50%;background:var(--surface-3);
-  color:var(--muted);font-size:15px;display:flex;align-items:center;justify-content:center;z-index:2}
+.edit-x{position:absolute;top:10px;right:11px;width:28px;height:28px;border-radius:50%;background:var(--surface-3);
+  color:var(--muted);font-size:13px;display:flex;align-items:center;justify-content:center;z-index:2}
 .edit-x:active{background:var(--surface-4)}
-.edit-hero{display:flex;flex-direction:column;align-items:center;gap:5px;margin:2px 0 6px}
-.edit-ava{width:70px;height:70px;border-radius:50%;object-fit:cover;background:var(--avatar-bg);
+.edit-sheet h3{margin:3px 0 10px;font-size:16px;font-weight:700;color:var(--ink);text-align:center}
+.edit-hero{display:flex;flex-direction:column;align-items:center;gap:4px;margin:0 0 12px}
+.edit-ava{width:58px;height:58px;border-radius:50%;object-fit:cover;background:var(--avatar-bg);
   box-shadow:0 0 0 2px var(--primary),0 0 0 4px var(--card)}
 .edit-changephoto{background:none;color:color-mix(in oklab,var(--primary) 72%,var(--muted));font-size:12.5px;font-weight:700;padding:2px 6px}
 .edit-changephoto:active{color:var(--primary)}
-.edit-sheet h3{margin:0 0 12px;font-size:16px;font-weight:700;color:var(--ink);text-align:center}
-.ed-field{display:block;margin-bottom:11px}
-.ed-field>span{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:500}
+.ed-field{display:block;margin-bottom:9px}
+.ed-field>span{display:block;font-size:11px;color:color-mix(in oklab,var(--muted) 92%,transparent);margin-bottom:5px;font-weight:500}
 .ed-input{width:100%;height:44px;border-radius:12px;border:1px solid var(--line2);background:var(--surface-2);
   padding:0 14px;font-size:15px;color:var(--ink);font-family:inherit;font-weight:500}
 .ed-field select.ed-input{appearance:none;-webkit-appearance:none;padding-right:38px}
@@ -605,9 +605,20 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .ed-err{color:#e05252;font-size:12.5px;min-height:15px;margin-bottom:6px}
 .edit-actions{display:flex;gap:10px;margin-top:4px}
 .edit-actions .btn{flex:1;height:46px}
-.ed-cancel{background:var(--surface-3);color:var(--ink2);border:1px solid var(--line2)}
+.ed-cancel{background:var(--surface-3);color:var(--ink2);border:1px solid var(--line)}
 .ed-cancel:active{background:var(--surface-4)}
 .edit-actions .btn-primary:disabled{opacity:.45}
+/* Change-photo action sheet */
+.photo-as{position:fixed;inset:0;z-index:1320;display:flex;flex-direction:column;justify-content:flex-end;
+  padding:0 10px calc(var(--sab) + 10px);gap:8px}
+.photo-as-scrim{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.photo-as-card{position:relative;z-index:1;background:var(--card);border:1px solid var(--line2);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-lg)}
+.photo-as-item{width:100%;height:52px;background:none;font-size:15px;font-weight:600;color:var(--ink);
+  border-bottom:1px solid var(--line2)}
+.photo-as-item:last-child{border-bottom:0}
+.photo-as-item:active{background:var(--surface-3)}
+.photo-as-item.danger{color:var(--red)}
+.photo-as-item.cancel{font-weight:700}
 /* discard-changes confirm */
 .discard-ov{position:fixed;inset:0;z-index:1300;display:flex;align-items:center;justify-content:center;padding:24px}
 .discard-scrim{position:absolute;inset:0;background:rgba(0,0,0,.5)}
