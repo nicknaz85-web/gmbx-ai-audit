@@ -329,10 +329,14 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .pr-mascot{width:74px;height:74px;object-fit:contain;flex:none;image-rendering:auto;
   filter:drop-shadow(0 4px 10px rgba(0,0,0,.35));animation:mascotIn .5s cubic-bezier(.2,1.3,.35,1) both}
 .pr-mascot.m-busy,.pr-mascot.m-packed{animation:mascotBop .9s ease-in-out .5s infinite}
-/* CLOSED — mute the whole live-activity panel so it reads as inactive */
-.pr-hero.closed{opacity:.56;background:linear-gradient(180deg,color-mix(in oklab,var(--surface-3) 50%,transparent),transparent)}
-.pr-hero.closed .pr-mascot{filter:drop-shadow(0 4px 10px rgba(0,0,0,.3)) grayscale(.7);opacity:.42;animation:none}
+/* CLOSED — the closed state is integrated into this panel: dimmed sleeping mascot,
+   a CLOSED / Opens label where the score sits, muted bar, and the correction pill. */
+.pr-hero.closed{background:linear-gradient(180deg,color-mix(in oklab,var(--surface-3) 50%,transparent),transparent)}
+.pr-hero.closed .pr-mascot{filter:drop-shadow(0 4px 10px rgba(0,0,0,.3)) grayscale(.7);opacity:.5;animation:none}
 .pr-hero.closed .pr-track{background:var(--surface-3)}
+.pr-closed{display:flex;flex-direction:column;line-height:1.1}
+.pr-closed b{font-size:22px;font-weight:800;letter-spacing:.5px;color:var(--ink2)}
+.pr-closed small{font-size:12px;font-weight:500;color:var(--muted);margin-top:3px}
 @keyframes mascotIn{from{opacity:0;transform:translateY(8px) scale(.7)}to{opacity:1;transform:none}}
 @keyframes mascotBop{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-5px) rotate(2deg)}}
 .pr-main{flex:1;min-width:0}
@@ -885,18 +889,9 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .report-cta .rc-txt b{font-size:14.5px;font-weight:700}
 .report-cta .rc-txt small{font-size:11.5px;color:var(--muted)}
 .report-cta .rc-go{font-size:22px;color:var(--primary);flex:none;font-weight:700}
-/* CLOSED state — same card, muted & disabled: lower-opacity purple, moon icon, no
-   arrow, not tappable. The correction action lives INSIDE the card, below the text. */
-.report-cta.closed-cta{cursor:default;margin-bottom:14px;align-items:flex-start;gap:11px;
-  border-color:color-mix(in oklab,var(--primary) 12%,var(--line2));
-  background:linear-gradient(100deg,color-mix(in oklab,var(--primary) 7%,var(--surface-3)),var(--surface-3))}
-.report-cta.closed-cta:active{transform:none}
-.report-cta.closed-cta .rc-ic{filter:none;opacity:.62;font-size:17px;flex:none;margin-top:1px}
-.report-cta.closed-cta .rc-txt{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;line-height:1.25}
-.report-cta.closed-cta .rc-txt b{color:color-mix(in oklab,var(--ink) 78%,var(--muted))}
-/* secondary "It's actually open" — small, low-weight muted-purple outline pill,
-   left-aligned with the text above it */
-.rc-correct{align-self:flex-start;margin:8px 0 0;padding:4px 11px;border-radius:16px;background:none;letter-spacing:.1px;
+/* CLOSED state now lives INSIDE the Party Radar panel (see .pr-closed below). The
+   "It's actually open" secondary action — a small, low-weight muted-purple outline pill. */
+.rc-correct{display:inline-block;margin:9px 0 0;padding:4px 11px;border-radius:16px;background:none;letter-spacing:.1px;
   border:1px solid color-mix(in oklab,var(--primary) 18%,var(--line2));
   color:color-mix(in oklab,var(--primary) 48%,var(--muted));font-size:11px;font-weight:500}
 .rc-correct:active{background:color-mix(in oklab,var(--primary) 10%,transparent);color:var(--primary)}

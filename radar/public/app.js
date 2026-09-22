@@ -1367,20 +1367,18 @@ function renderVenue(v, opts) {
     <div class="pr-hero${closed ? ' closed' : ''}">
       <img class="pr-mascot m-${mascotFor(v.radar.score)}" src="${mascotSrc(v.radar.score)}" alt="" />
       <div class="pr-main">
-        <div class="pr-top"><span class="pr-num" style="color:${closed ? 'var(--muted)' : bc.core}">${closed ? '—' : v.radar.score}</span>${closed ? '' : `<span class="pr-lab c-${band}">${esc(v.radar.label)}</span>`}</div>
+        <div class="pr-top">${closed
+          ? `<span class="pr-closed"><b>CLOSED</b><small>${v.hours && v.hours.opensLabel ? 'Opens ' + esc(v.hours.opensLabel) : 'Closed now'}</small></span>`
+          : `<span class="pr-num" style="color:${bc.core}">${v.radar.score}</span><span class="pr-lab c-${band}">${esc(v.radar.label)}</span>`}</div>
         <div class="pr-track"><i style="width:${Math.max(closed ? 0 : 4, v.radar.score)}%;background:${closed ? 'var(--muted)' : bc.core}"></i></div>
         <div class="pr-sub"><span class="pr-sub-lab">Party Radar</span>${closed ? ' · No live activity' : ''}</div>
+        ${closed ? `<button class="rc-correct" onclick="reportOpenCorrection('${v.id}', this)">It's actually open</button>` : ''}
       </div>
     </div>
   </div>
 
   <div class="vc-body">
-    ${closed
-      ? `<div class="report-cta closed-cta" aria-disabled="true">
-          <span class="rc-ic">🌙</span>
-          <span class="rc-txt"><b>Venue is closed</b><small>Vibe reporting unlocks when the venue opens${v.hours && v.hours.opensLabel ? ' ' + esc(v.hours.opensLabel) : ''}</small><button class="rc-correct" onclick="reportOpenCorrection('${v.id}', this)">It's actually open</button></span>
-        </div>`
-      : `<button class="report-cta" onclick="startReport('${v.id}')">
+    ${closed ? '' : `<button class="report-cta" onclick="startReport('${v.id}')">
           <span class="rc-ic">⚡</span>
           <span class="rc-txt"><b>I'm here — report the vibe</b><small>Show everyone what it's like right now</small></span>
           <span class="rc-go">›</span></button>`}
