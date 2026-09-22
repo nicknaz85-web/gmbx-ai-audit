@@ -2736,7 +2736,7 @@ function paintProfile(me) {
       <div class="pl-total">${reports + photos} ${t('contributions')}</div>
     </div>
     <div class="pstats one">
-      <div class="pstat2"><div class="pv">${reports}</div><div class="pk">${t('reports')}</div></div>
+      <div class="pstat2"><div class="pv">${reports}</div><div class="pk">${reports === 1 ? 'Report' : t('reports')}</div></div>
     </div>
     ${badges.length ? `<div class="pbadges">${badges.map((b) => `<span class="pbadge">🏅 ${esc(b.label || b)}</span>`).join('')}</div>` : ''}
     ${rows.length ? `<div class="pdetails">${rows.map(([k, v]) => `<div class="pdetail"><span class="pk">${k}</span><span class="pv">${v}</span></div>`).join('')}</div>` : ''}
