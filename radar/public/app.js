@@ -1555,7 +1555,6 @@ function closeReport() { $('#reportOverlay').hidden = true; }
 async function reportOpenCorrection(id, btn) {
   if (btn) { btn.disabled = true; btn.textContent = 'Thanks — flagged'; }
   try { await API.hoursFlag(id); } catch (e) {}
-  toast("Thanks — we'll double-check the hours");
 }
 window.reportOpenCorrection = reportOpenCorrection;
 // small "people in line" cue for the queue step — n dots filled (0–4), growing with
