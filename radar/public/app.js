@@ -1312,11 +1312,11 @@ function renderVenue(v, opts) {
   const fcPts = fc.filter((p) => p.open !== false);
   // when closed, the first bar is the next opening (mins > 0) → the header reads the
   // opening night ("Fri night"); when open it's the live "next N hours" window.
-  // animate the bars only the FIRST time the forecast appears for this venue open
-  // (it arrives in the quiet detail-upgrade render, which is otherwise noAnim), not
-  // again on refresh.
+  // animate the bars once per venue open — but only when the forecast is actually
+  // SCROLLED into view (it sits far down the card). Rendered collapsed (.fc-reveal);
+  // an IntersectionObserver swaps in .fc-animate to grow them. S._fcSeen is set when
+  // it plays, so a refresh before you scroll doesn't lose the animation.
   const fcAnimate = fcPts.length > 0 && S._fcSeen !== v.id;
-  if (fcAnimate) S._fcSeen = v.id;
   const fcClosedStart = fcPts.length > 0 && fcPts[0].mins !== 0;
   const fcCount = fcClosedStart ? openSessionLabel(fcPts[0].mins, v.tzOffset) : `next ${fcPts.length} hour${fcPts.length === 1 ? '' : 's'}`;
   const srcLabel = { community: 'COMMUNITY', venue: 'VENUE UPDATE', estimate: 'ESTIMATE', live: 'LIVE', besttime: 'FOOT TRAFFIC', closed: 'CLOSED' }[v.source] || 'ESTIMATE';
@@ -1405,7 +1405,7 @@ function renderVenue(v, opts) {
 
     ${v.dress ? `<div class="dress"><span class="dress-ic">👔</span><div class="dress-txt"><b>Dress code · ${esc(v.dress.code)}</b><div class="dress-tip">${esc(v.dress.tip)}</div></div></div>` : ''}
 
-    ${(fcPts.length || dec) ? `<div class="forecast${closed ? ' fc-closed' : ''}${fcAnimate ? ' fc-animate' : ''}">
+    ${(fcPts.length || dec) ? `<div class="forecast${closed ? ' fc-closed' : ''}${fcAnimate ? ' fc-reveal' : ''}">
       ${fcPts.length ? `<div class="section-h"><h3>Forecast</h3><span class="count">${esc(fcCount)}</span></div>
       <div class="fc-bars">
         ${(() => { const closedStart = fcPts.length > 0 && fcPts[0].mins !== 0; // no "Now" bar → first bar is the opening hour
@@ -1442,6 +1442,18 @@ function renderVenue(v, opts) {
 
     <div class="note">Anonymous and aggregated · no individual locations are ever shown</div>
   </div>`;
+
+  // grow the forecast bars when they scroll into view (once per venue open)
+  if (fcAnimate) {
+    const fcEl = _card.querySelector('.forecast.fc-reveal');
+    const play = () => { if (!fcEl) return; fcEl.classList.remove('fc-reveal'); fcEl.classList.add('fc-animate'); S._fcSeen = v.id; };
+    if (fcEl && 'IntersectionObserver' in window) {
+      const io = new IntersectionObserver((entries) => {
+        for (const e of entries) if (e.isIntersecting) { io.disconnect(); play(); }
+      }, { threshold: 0.3 });
+      io.observe(fcEl);
+    } else play();
+  }
 }
 function titleCase(s) { s = String(s).toLowerCase(); return s.charAt(0).toUpperCase() + s.slice(1); }
 

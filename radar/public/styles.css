@@ -389,7 +389,10 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .fc-track{width:100%;max-width:30px;height:78px;display:flex;align-items:flex-end;position:relative}
 .fc-bar{width:100%;min-height:4px;border-radius:9px 9px 4px 4px;transform-origin:bottom;
   background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 48%,transparent),color-mix(in oklab,var(--primary) 20%,transparent))}
-/* bars grow from zero (staggered) the first time the forecast opens */
+/* pending reveal: bars sit collapsed until the forecast scrolls into view */
+.forecast.fc-reveal .fc-bar{transform:scaleY(0)}
+.forecast.fc-reveal .fc-pct{opacity:0}
+/* then grow from zero (staggered) when it enters view */
 .forecast.fc-animate .fc-bar{animation:fcGrow .5s cubic-bezier(.85,0,.15,1) both;animation-delay:calc(var(--i,0)*40ms)}
 .forecast.fc-animate .fc-pct{animation:fcPctIn .3s ease both;animation-delay:calc(var(--i,0)*40ms + .16s)}
 @keyframes fcPctIn{from{opacity:0}to{opacity:1}}
