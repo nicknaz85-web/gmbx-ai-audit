@@ -2441,7 +2441,7 @@ const I18N = {
     contactSupport: 'Contact support', reportIssue: 'Report an issue',
     eventsNearby: 'Events near you', distanceUnit: 'Distance unit',
     removePhoto: 'Remove photo (use default)', profile: 'Profile', reports: 'Reports', photos: 'Photos',
-    contributions: 'contributions to the radar', yourPhotos: 'Your photos & videos', noPhotos: "You haven't added any photos yet.",
+    contributions: 'total contributions', yourPhotos: 'Your photos & videos', noPhotos: "You haven't added any photos yet.",
     yourReports: 'Your reports', noReports: "You haven't reported yet. Report the vibe at a venue to build your overview.",
     toNext: 'to', maxLevel: 'Max level', email: 'Email', gender: 'Gender', dob: 'Date of birth',
     account: 'Account', prefs: 'Preferences' },
@@ -2744,8 +2744,9 @@ function paintProfile(me) {
     <button class="pedit-btn" id="editProfileBtn">${pencil} ${t('editProfile')}</button>
     ${p.profilePhoto ? `<button class="pedit-btn" id="removePicBtn" style="background:none;color:var(--muted);margin-top:8px">${t('removePhoto')}</button>` : ''}
     <div class="psec-h"><h3>${t('yourReports')}</h3><span class="count">${myReports.length}</span></div>
-    ${myReports.length ? `<div class="myrep-list">${myReports.map((r) => `
-      <div class="myrep">
+    ${myReports.length ? `<div class="myrep-list">${myReports.map((r) => {
+      const meta = [cap(VIBE_WORD[r.vibe] || r.vibe || 'reported'), (r.entry != null ? (r.entry === 0 ? 'Free' : '€' + r.entry) : null), r.music].filter(Boolean).map(esc).join(' · ');
+      return `<div class="myrep" id="mr_${r.id}">
         ${r.mediaUrl
           ? (r.mediaType === 'video'
             ? `<video class="myrep-media" src="${r.mediaUrl}" muted playsinline loop preload="metadata" onclick="lbShowMine('${r.mediaUrl}','video')"></video>`
@@ -2753,12 +2754,12 @@ function paintProfile(me) {
           : `<div class="myrep-media noimg">📍</div>`}
         <div class="myrep-txt" onclick="showMyReportDetail('${r.id}')">
           <div class="myrep-venue">${esc(r.venueName)}</div>
-          <div class="myrep-meta">${esc(cap(VIBE_WORD[r.vibe] || r.vibe || 'reported'))}${r.entry != null ? ' · ' + (r.entry === 0 ? 'Free' : '€' + r.entry) : ''}${r.music ? ' · ' + esc(r.music) : ''}</div>
-          <div class="myrep-time">${ago(r.ageMin)} ago · tap for details</div>
+          <div class="myrep-meta">${meta}</div>
+          <div class="myrep-time">${esc(freshLabel(r.ageMin))}</div>
         </div>
-        <button class="rep-del" onclick="deleteMyReport('${r.id}')" aria-label="Delete report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
-      </div>`).join('')}</div>`
-      : `<div class="empty">${t('noReports')}</div>`}`;
+        <div class="lr-menuwrap myrep-act"><button class="lr-menu" aria-label="Report options" onclick="event.stopPropagation();toggleRepMenu('mr_${r.id}')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button><div class="lr-menupop" id="mr_${r.id}_m" hidden><button class="lr-del" onclick="event.stopPropagation();deleteMyReport('${r.id}')">Delete report</button></div></div>
+      </div>`; }).join('')}</div>`
+      : `<div class="prep-empty"><img class="prep-empty-ic" src="/mascot-quiet.png" alt="" onerror="this.style.display='none'" /><div class="prep-empty-t">No reports yet</div><div class="prep-empty-s">Report the vibe at a venue to start building your profile.</div></div>`}`;
   // pencil / change photo
   const picInput = $('#profilePicInput');
   const he = $('#heroEdit'); if (he) he.onclick = () => picInput && picInput.click();
@@ -2806,17 +2807,22 @@ function showMyReportDetail(id) {
   el.className = 'rdetail-ov';
   el.innerHTML = `<div class="rdetail-scrim"></div>
     <div class="rdetail-card">
-      <div class="rdetail-head"><h3>${esc(r.venueName)}</h3><button class="msheet-x rd-x">✕</button></div>
+      <div class="rdetail-head">
+        <h3>${esc(r.venueName)}</h3>
+        <div class="rd-actions">
+          <div class="lr-menuwrap"><button class="lr-menu" aria-label="Report options" onclick="event.stopPropagation();toggleRepMenu('rdmenu')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button><div class="lr-menupop" id="rdmenu_m" hidden><button class="lr-del" id="rdDelBtn">Delete report</button></div></div>
+          <button class="msheet-x rd-x" aria-label="Close">✕</button>
+        </div>
+      </div>
       ${media}
       <div class="rdetail-rows">${items.map(([k, v]) => `<div class="pdetail"><span class="pk">${k}</span><span class="pv">${v}</span></div>`).join('')}</div>
-      ${r.note ? `<div class="rr-note">“${esc(r.note)}”</div>` : ''}
-      <button class="pedit-btn rd-del" style="background:color-mix(in oklab,var(--red) 12%,transparent);color:var(--red);margin-top:14px">Delete report</button>
+      ${r.note ? `<div class="rd-comment"><div class="rd-comment-h">${REP_NOTE_IC}<span>Comment</span></div><div class="rd-comment-body">“${esc(r.note)}”</div></div>` : ''}
     </div>`;
   document.body.appendChild(el);
   const close = () => el.remove();
   el.querySelector('.rdetail-scrim').onclick = close;
   el.querySelector('.rd-x').onclick = close;
-  el.querySelector('.rd-del').onclick = () => { close(); deleteMyReport(r.id); };
+  const del = el.querySelector('#rdDelBtn'); if (del) del.onclick = (e) => { e.stopPropagation(); close(); deleteMyReport(r.id); };
 }
 window.showMyReportDetail = showMyReportDetail;
 // scrollable list of every event this week at the open venue (Ticketmaster)
