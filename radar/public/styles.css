@@ -894,7 +894,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
    no border, no fill), directly under "Party Radar · No live activity". */
 .rc-correct{display:inline-flex;align-items:center;gap:4px;margin:6px 0 0;padding:0;background:none;border:none;
   color:color-mix(in oklab,var(--primary) 58%,var(--muted));font-size:12px;font-weight:600;letter-spacing:.1px}
-.rc-correct .rc-arrow{font-size:14px;opacity:.85;position:relative;top:-1px}
+.rc-correct .rc-arrow{font-size:14px;opacity:.85;position:relative;top:-2.5px}
 .rc-correct:active{color:var(--primary)}
 .rc-correct:disabled{color:var(--muted);font-weight:500}
 .rc-correct:active{background:color-mix(in oklab,var(--primary) 10%,transparent);color:var(--primary)}
