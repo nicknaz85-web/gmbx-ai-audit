@@ -927,25 +927,25 @@ async function openVenue(id) {
   S.activeVenue = id; map.selected = id; map.refreshSelection && map.refreshSelection();
   closeSheet();
   const ov = $('#venueOverlay'); ov.hidden = false;
-  // Show the venue INSTANTLY from the data we already loaded (/api/state) instead of
-  // waiting on a network round-trip, then quietly upgrade with the full detail
-  // (user photos + full events) when it arrives.
-  const cached = (S.data && S.data.venues || []).find((x) => x.id === id);
+  // Reopen INSTANTLY with the full detail we already fetched — the whole card (forecast
+  // and all) shows at once, no baked-then-full swap. First open shows a brief skeleton,
+  // then the complete card in a single render (no partial snapshot popping in first).
+  const cd = S._vdetail && S._vdetail[id];
   let shown = false;
-  // the cached (state) snapshot is lighter than the full payload — if rendering it
-  // throws for any missing field, fall back to the skeleton and the full fetch so
-  // the venue ALWAYS opens.
-  if (cached) { try { S.activeVenueData = cached; renderVenue(cached); shown = true; } catch (e) { shown = false; } }
+  if (cd) { try { S.activeVenueData = cd.v; renderVenue(cd.v); shown = true; } catch (e) { shown = false; } }
   if (!shown) $('#venueCard').innerHTML = '<div class="vc-hero skel" style="height:220px"></div>';
+  // fresh cached detail → done: no refetch, no flash
+  if (cd && Date.now() - cd.ts < 20000) return;
   try {
     const v = await API.venue(id);
     if (S.activeVenue !== id) return;
+    (S._vdetail || (S._vdetail = {}))[id] = { v, ts: Date.now() };
     S.activeVenueData = v; // full detail incl. media + full events
-    // quiet upgrade — don't replay the entrance animation if the cached card is
-    // already showing (that re-animation is the "it refreshes again" the user saw)
-    renderVenue(v, { noAnim: shown });
+    renderVenue(v, { noAnim: shown }); // quiet refresh if the card is already showing
   } catch (e) { if (!shown) $('#venueCard').innerHTML = '<div class="empty">Couldn’t load this venue — try again.</div>'; }
 }
+// drop a venue's cached detail so its next open re-fetches (after a report/checkin/pulse)
+function invalidateVenueDetail(id) { if (S._vdetail && id) delete S._vdetail[id]; }
 function closeVenue() { $('#venueOverlay').hidden = true; S.activeVenue = null; S.activeVenueData = null; S._fcSeen = null; map.selected = null; map.refreshSelection && map.refreshSelection(); }
 
 // tap any community photo/video to view it full screen, with the poster's avatar
@@ -1512,6 +1512,7 @@ async function checkIn(id) {
   const res = await API.checkin(id, coords);
   if (res.accepted) {
     toast('📍 Checked in — you\'re on the radar');
+    invalidateVenueDetail(id);
     const v = res.venue; v._checkedIn = true;
     renderVenue(v);
   } else {
@@ -1523,6 +1524,7 @@ async function checkIn(id) {
 }
 async function sendPulse(id, state) {
   await API.pulse(id, state);
+  invalidateVenueDetail(id);
   toast({ busier: '🤯 Even busier — logged', yes: '🔥 Still popping — logged', slowing: '🙂 Slowing down — logged' }[state]);
   refreshSoon();
 }
@@ -1822,7 +1824,7 @@ async function submitReport() {
   </div>`;
   refreshSoon();
 }
-function afterReport(id) { closeReport(); openVenue(id); }
+function afterReport(id) { invalidateVenueDetail(id); closeReport(); openVenue(id); }
 
 // open Google Maps directions to the ACTUAL bar — routed by its name (and exact
 // Google place id when we have it), never the approximate map pin.
@@ -3138,7 +3140,7 @@ async function deleteMyReport(id) {
       // re-fetches and syncs the level counter to that authoritative total.
       toast('Report deleted');
       if (S.tab === 'profile') renderProfile();       // refresh the profile overview
-      else if (S.activeVenue) openVenue(S.activeVenue); // or reload the venue card
+      else if (S.activeVenue) { invalidateVenueDetail(S.activeVenue); openVenue(S.activeVenue); } // or reload the venue card
       refreshSoon();
     } else toast('Could not delete' + (r && r.error ? ': ' + r.error : ''));
   } catch { toast('Could not delete'); }
