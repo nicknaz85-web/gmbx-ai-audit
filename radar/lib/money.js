@@ -25,7 +25,7 @@ const CURRENCY_BY_CITY = {
   // Bosnia — BAM
   Sarajevo: 'BAM',
   // Albania — ALL
-  Tirana: 'ALL',
+  Tirana: 'ALL', Vlora: 'ALL',
   // Switzerland — CHF (Austria & Slovenia are on the euro)
   Zurich: 'CHF', Geneva: 'CHF',
   // Nordics & Bulgaria (Finland & Ireland are on the euro)

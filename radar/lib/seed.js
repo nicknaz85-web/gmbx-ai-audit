@@ -131,6 +131,7 @@ const NEIGHBORHOODS = [
   { id: 'pristina',        name: 'Pristina',   city: 'Pristina',  center: { lat: 42.6629, lng: 21.1655 }, radius: 440, bestFor: ['Dancing', 'Bars'] },
   // ALBANIA
   { id: 'blloku',          name: 'Blloku',     city: 'Tirana',    center: { lat: 41.3200, lng: 19.8180 }, radius: 420, bestFor: ['Dancing', 'Rooftops'] },
+  { id: 'lungomare_vlore', name: 'Lungomare',  city: 'Vlora',     center: { lat: 40.4530, lng: 19.4870 }, radius: 650, bestFor: ['Dancing', 'Bars'] },
 
   // HUNGARY — Budapest (District VII ruin-bar & club quarter)
   { id: 'erzsebetvaros',   name: 'Erzsébetváros', city: 'Budapest',  center: { lat: 47.4979, lng: 19.0637 }, radius: 460, bestFor: ['Ruin Bars', 'Dancing'] },
@@ -730,6 +731,12 @@ const VENUE_DEFS = [
 
   // ALBANIA — Tirana (Blloku)
   ['Lollipop',        'blloku', 'Dancing',  'Club',    400, 1.4, 14, 12, { mult: 1.0,  trend: 0.7 }, false],
+
+  // ALBANIA — Vlorë (Lungomare / Uji i Ftohtë summer coast)
+  ['Folie Marine',    'lungomare_vlore', 'Dancing',  'Club', 900, 1.2, 18, 15, { mult: 1.05, trend: 0.8 }, true],
+  ['Havana Beach',    'lungomare_vlore', 'Bars',     'Bar',  350, 0.6, 12, 0,  { mult: 0.95, trend: 0.5 }, false],
+  ['Bora Bora',       'lungomare_vlore', 'Dancing',  'Club', 600, 1.0, 15, 10, { mult: 1.0,  trend: 0.7 }, false],
+  ['Colombo Lounge',  'lungomare_vlore', 'Cocktails','Bar',  220, 0.4, 11, 0,  { mult: 0.9,  trend: 0.4 }, false],
 
   // HUNGARY — Budapest (District VII)
   ['Instant-Fogas',    'erzsebetvaros', 'Dancing', 'Club',  1500, 1.6, 22, 8,  { mult: 1.15, trend: 0.9 }, true],
@@ -4086,7 +4093,7 @@ const CITY_NIGHT = {
   Belgrade: 1.5, Tbilisi: 1.5,
   // +1 (Italy / Portugal / Balkans / Turkey / Middle East / East Asia / Caribbean)
   Rome: 1, Milan: 1, Lisbon: 1, Porto: 1, Budva: 1, Sarajevo: 1, Zagreb: 1,
-  Ljubljana: 1, Bucharest: 1, Sofia: 1, Tirana: 1, Pristina: 1, 'Chișinău': 1,
+  Ljubljana: 1, Bucharest: 1, Sofia: 1, Tirana: 1, Vlora: 1, Pristina: 1, 'Chișinău': 1,
   Istanbul: 1, Beirut: 1, 'Tel Aviv': 1, Tokyo: 1, Osaka: 1, Seoul: 1,
   Havana: 1, 'San Juan': 1, Lagos: 1,
   // Latin America (very late in BA)
