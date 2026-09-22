@@ -2733,12 +2733,11 @@ function paintProfile(me) {
       <div class="pl-top"><span class="pl-name">${lvl.emoji} ${esc(lvl.name)}</span>
         <span class="pl-next">${lvl.next ? `${lvl.next.min - lvl.count} ${t('toNext')} ${esc(lvl.next.name)}` : t('maxLevel')}</span></div>
       <div class="pl-track"><i style="width:${pct}%"></i></div>
+      <div class="pl-total">${reports + photos} ${t('contributions')}</div>
     </div>
-    <div class="pstats">
+    <div class="pstats one">
       <div class="pstat2"><div class="pv">${reports}</div><div class="pk">${t('reports')}</div></div>
-      <div class="pstat2"><div class="pv">${photos}</div><div class="pk">${t('photos')}</div></div>
     </div>
-    <div class="pcard-total" style="text-align:center;font-size:12.5px;color:var(--muted);margin-top:10px">${reports + photos} ${t('contributions')}</div>
     ${badges.length ? `<div class="pbadges">${badges.map((b) => `<span class="pbadge">🏅 ${esc(b.label || b)}</span>`).join('')}</div>` : ''}
     ${rows.length ? `<div class="pdetails">${rows.map(([k, v]) => `<div class="pdetail"><span class="pk">${k}</span><span class="pv">${v}</span></div>`).join('')}</div>` : ''}
     <button class="pedit-btn" id="editProfileBtn">${pencil} ${t('editProfile')}</button>
