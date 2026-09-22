@@ -2374,33 +2374,82 @@ function editProfile() {
   const p = loadLocalProfile();
   const GENDERS = ['Man', 'Woman', 'Non-binary', 'Prefer not to say'];
   const maxDob = new Date(Date.now() - 18 * 365.25 * 864e5).toISOString().slice(0, 10);
+  const ddmmyyyy = (iso) => { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
+  const ava = p.profilePhoto || (p.gender === 'Woman' ? '/clubbit-face-f.png' : p.gender === 'Man' ? '/clubbit-face-m.png' : p.gender === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png');
+  const chev = '<svg class="ed-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+  const calIc = '<svg class="ed-cal" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="3"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>';
   const ov = document.createElement('div');
   ov.className = 'overlay edit-ov';
   ov.innerHTML = `
     <div class="overlay-scrim" data-x="1"></div>
-    <div class="edit-card">
+    <div class="edit-sheet">
+      <div class="eh-grip"><span></span></div>
+      <button class="edit-x" id="edX" aria-label="Close">✕</button>
+      <div class="edit-hero">
+        <img class="edit-ava" id="edAva" src="${esc(ava)}" alt="" onerror="this.src='/clubbit-mascot.png'" />
+        <button class="edit-changephoto" id="edChangePhoto" type="button">Change photo</button>
+        <input type="file" id="edPicInput" accept="image/*" style="display:none" />
+      </div>
       <h3>Edit profile</h3>
       <label class="ed-field"><span>First name</span>
-        <input id="edName" type="text" maxlength="40" value="${esc(p.firstName || '')}" placeholder="Your name" /></label>
+        <input class="ed-input" id="edName" type="text" maxlength="40" value="${esc(p.firstName || '')}" placeholder="Your name" enterkeyhint="done" autocomplete="given-name" /></label>
       <label class="ed-field"><span>Gender</span>
-        <select id="edGender">${GENDERS.map((g) => `<option value="${g}" ${p.gender === g ? 'selected' : ''}>${g}</option>`).join('')}</select></label>
-      <label class="ed-field"><span>Date of birth</span>
-        <input id="edDob" type="date" max="${maxDob}" value="${esc(p.dateOfBirth || '')}" /></label>
+        <div class="ed-selwrap"><select class="ed-input" id="edGender">${GENDERS.map((g) => `<option value="${g}" ${p.gender === g ? 'selected' : ''}>${g}</option>`).join('')}</select>${chev}</div></label>
+      <div class="ed-field"><span>Date of birth</span>
+        <div class="ed-dobwrap"><div class="ed-input ed-dob"><span id="edDobText" class="${p.dateOfBirth ? '' : 'ph'}">${p.dateOfBirth ? esc(ddmmyyyy(p.dateOfBirth)) : 'Select date'}</span>${calIc}</div>
+          <input id="edDob" class="ed-dob-native" type="date" max="${maxDob}" value="${esc(p.dateOfBirth || '')}" aria-label="Date of birth" /></div></div>
       <div class="ed-err" id="edErr"></div>
       <div class="edit-actions">
-        <button class="btn btn-ghost" id="edCancel">Cancel</button>
-        <button class="btn btn-primary" id="edSave">Save</button>
+        <button class="btn ed-cancel" id="edCancel" type="button">Cancel</button>
+        <button class="btn btn-primary" id="edSave" type="button" disabled>Save</button>
       </div>
     </div>`;
   document.body.appendChild(ov);
+  const q = (s) => ov.querySelector(s);
+  const initial = { name: p.firstName || '', gender: p.gender || GENDERS[0], dob: p.dateOfBirth || '' };
+  let pendingPhoto; // undefined = unchanged
   const close = () => ov.remove();
-  ov.querySelector('[data-x]').onclick = close;
-  ov.querySelector('#edCancel').onclick = close;
-  ov.querySelector('#edSave').onclick = () => {
-    const name = ov.querySelector('#edName').value.trim();
-    const gender = ov.querySelector('#edGender').value;
-    const dob = ov.querySelector('#edDob').value;
-    const err = ov.querySelector('#edErr');
+  const dirty = () => q('#edName').value.trim() !== initial.name
+    || q('#edGender').value !== initial.gender
+    || (q('#edDob').value || '') !== initial.dob
+    || pendingPhoto !== undefined;
+  const refreshDirty = () => { q('#edSave').disabled = !dirty(); };
+  const tryClose = () => {
+    if (!dirty()) return close();
+    const c = document.createElement('div');
+    c.className = 'discard-ov';
+    c.innerHTML = `<div class="discard-scrim"></div><div class="discard-card">
+      <div class="discard-t">Discard changes?</div>
+      <div class="discard-s">Your edits haven't been saved.</div>
+      <div class="discard-actions"><button class="btn ed-cancel" id="dcKeep" type="button">Keep editing</button><button class="btn ed-danger" id="dcDiscard" type="button">Discard</button></div>
+    </div>`;
+    document.body.appendChild(c);
+    const cclose = () => c.remove();
+    c.querySelector('.discard-scrim').onclick = cclose;
+    c.querySelector('#dcKeep').onclick = cclose;
+    c.querySelector('#dcDiscard').onclick = () => { cclose(); close(); };
+  };
+  q('[data-x]').onclick = tryClose;
+  q('#edX').onclick = tryClose;
+  q('#edCancel').onclick = tryClose;
+  q('#edName').oninput = refreshDirty;
+  q('#edGender').onchange = refreshDirty;
+  q('#edDob').onchange = () => { const v = q('#edDob').value; const txt = q('#edDobText'); txt.textContent = v ? ddmmyyyy(v) : 'Select date'; txt.classList.toggle('ph', !v); refreshDirty(); };
+  // change photo — held pending until Save (so Cancel/Discard reverts it)
+  q('#edChangePhoto').onclick = () => q('#edPicInput').click();
+  q('#edPicInput').onchange = async (e) => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    if (!f.type.startsWith('image/')) return toast('Please choose an image');
+    let dataUrl; try { dataUrl = await cropPhoto(f); } catch { return toast('Could not read that image'); }
+    if (!dataUrl) return;
+    pendingPhoto = dataUrl; q('#edAva').src = dataUrl; refreshDirty();
+  };
+  q('#edSave').onclick = () => {
+    const name = q('#edName').value.trim();
+    const gender = q('#edGender').value;
+    const dob = q('#edDob').value;
+    const err = q('#edErr');
     if (!name) { err.textContent = 'Please enter your name.'; return; }
     let age = p.calculatedAge || null;
     if (dob) {
@@ -2409,13 +2458,11 @@ function editProfile() {
       if (age < 18) { err.textContent = 'You must be 18 or older to use Clubbit.'; return; }
     }
     const next = { ...p, firstName: name, gender, dateOfBirth: dob || p.dateOfBirth || null, calculatedAge: age };
-    next.public = { ...(p.public || {}), firstName: name, age };
+    if (pendingPhoto !== undefined) { next.profilePhoto = pendingPhoto; }
+    next.public = { ...(p.public || {}), firstName: name, age, profilePhoto: next.profilePhoto || null };
     saveProfileEverywhere(next);
-    // header avatar may switch if gender changed and there's no photo
-    if (!next.profilePhoto) {
-      const hdr = document.querySelector('.avatar img');
-      if (hdr) hdr.src = gender === 'Woman' ? '/clubbit-face-f.png' : gender === 'Man' ? '/clubbit-face-m.png' : gender === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png';
-    }
+    const hdr = document.querySelector('.avatar img');
+    if (hdr) hdr.src = next.profilePhoto || (gender === 'Woman' ? '/clubbit-face-f.png' : gender === 'Man' ? '/clubbit-face-m.png' : gender === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png');
     close(); toast('Profile updated ✓'); renderProfile();
   };
 }
