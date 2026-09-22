@@ -2733,7 +2733,7 @@ function paintProfile(me) {
       <div class="pl-top"><span class="pl-name">${lvl.emoji} ${esc(lvl.name)}</span>
         <span class="pl-next">${lvl.next ? `${lvl.next.min - lvl.count} ${t('toNext')} ${esc(lvl.next.name)}` : t('maxLevel')}</span></div>
       <div class="pl-track"><i style="width:${pct}%"></i></div>
-      <div class="pl-total">${reports + photos} ${t('contributions')}</div>
+      <div class="pl-total">${reports} ${reports === 1 ? 'total contribution' : t('contributions')}</div>
     </div>
     <div class="pstats one">
       <div class="pstat2"><div class="pv">${reports}</div><div class="pk">${reports === 1 ? 'Report' : t('reports')}</div></div>
