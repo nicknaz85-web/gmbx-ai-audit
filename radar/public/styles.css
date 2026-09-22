@@ -396,6 +396,22 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .forecast.fc-animate .fc-bar{animation:fcGrow .5s cubic-bezier(.85,0,.15,1) both;animation-delay:calc(var(--i,0)*40ms)}
 .forecast.fc-animate .fc-pct{animation:fcPctIn .3s ease both;animation-delay:calc(var(--i,0)*40ms + .16s)}
 @keyframes fcPctIn{from{opacity:0}to{opacity:1}}
+/* staggered fade-up of the venue card's sections when it opens (first render only —
+   the quiet detail upgrade carries .vc-still so it doesn't replay) */
+@keyframes vcFadeUp{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+#venueCard:not(.vc-still) .vc-hero > *,
+#venueCard:not(.vc-still) .vc-body > *{animation:vcFadeUp .42s cubic-bezier(.2,.7,.3,1) both}
+#venueCard:not(.vc-still) .vc-hero > *:nth-child(2){animation-delay:.04s}
+#venueCard:not(.vc-still) .vc-hero > *:nth-child(3){animation-delay:.08s}
+#venueCard:not(.vc-still) .vc-hero > *:nth-child(4){animation-delay:.12s}
+#venueCard:not(.vc-still) .vc-hero > *:nth-child(n+5){animation-delay:.15s}
+#venueCard:not(.vc-still) .vc-body > *:nth-child(1){animation-delay:.14s}
+#venueCard:not(.vc-still) .vc-body > *:nth-child(2){animation-delay:.18s}
+#venueCard:not(.vc-still) .vc-body > *:nth-child(3){animation-delay:.22s}
+#venueCard:not(.vc-still) .vc-body > *:nth-child(4){animation-delay:.26s}
+#venueCard:not(.vc-still) .vc-body > *:nth-child(5){animation-delay:.3s}
+#venueCard:not(.vc-still) .vc-body > *:nth-child(6){animation-delay:.34s}
+#venueCard:not(.vc-still) .vc-body > *:nth-child(n+7){animation-delay:.37s}
 /* the % hugs the top of its bar (positioned per-bar inline), never scaled by the bar */
 .fc-pct{position:absolute;left:-7px;right:-7px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink2);font-weight:600;white-space:nowrap;transition:color .3s}
 .fc-lab{font-size:9.5px;color:var(--muted);white-space:nowrap;font-weight:600}
@@ -927,7 +943,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:n
 .vc-body>*:nth-child(5){animation-delay:.19s}
 .vc-body>*:nth-child(6){animation-delay:.23s}
 .vc-body>*:nth-child(n+7){animation-delay:.26s}
-@media (prefers-reduced-motion:reduce){.vc-body>*,.pr-mascot{animation:none}}
+@media (prefers-reduced-motion:reduce){.vc-body>*,.vc-hero>*,.pr-mascot{animation:none}}
 /* quiet upgrade to full payload: no entrance replay (keep the idle bop for busy/packed) */
 #venueCard.vc-still .vc-body>*{animation:none}
 #venueCard.vc-still .pr-mascot:not(.m-busy):not(.m-packed){animation:none}
