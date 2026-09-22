@@ -1377,10 +1377,12 @@ function renderVenue(v, opts) {
   <div class="vc-body">
     ${closed
       ? `<div class="report-cta closed-cta" aria-disabled="true">
-          <span class="rc-ic">🌙</span>
-          <span class="rc-txt"><b>Venue is closed</b><small>Vibe reporting available when it opens${v.hours && v.hours.opensLabel ? ' at ' + esc(v.hours.opensLabel) : ''}</small></span>
-        </div>
-        <button class="rc-correct" onclick="reportOpenCorrection('${v.id}', this)">It's actually open</button>`
+          <div class="cc-main">
+            <span class="rc-ic">🌙</span>
+            <span class="rc-txt"><b>Venue is closed</b><small>Vibe reporting unlocks when the venue opens${v.hours && v.hours.opensLabel ? ' ' + esc(v.hours.opensLabel) : ''}</small></span>
+          </div>
+          <button class="rc-correct" onclick="reportOpenCorrection('${v.id}', this)">It's actually open</button>
+        </div>`
       : `<button class="report-cta" onclick="startReport('${v.id}')">
           <span class="rc-ic">⚡</span>
           <span class="rc-txt"><b>I'm here — report the vibe</b><small>Show everyone what it's like right now</small></span>
