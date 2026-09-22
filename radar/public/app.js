@@ -1372,7 +1372,7 @@ function renderVenue(v, opts) {
           : `<span class="pr-num" style="color:${bc.core}">${v.radar.score}</span><span class="pr-lab c-${band}">${esc(v.radar.label)}</span>`}</div>
         <div class="pr-track"><i style="width:${Math.max(closed ? 0 : 4, v.radar.score)}%;background:${closed ? 'var(--muted)' : bc.core}"></i></div>
         <div class="pr-sub"><span class="pr-sub-lab">Party Radar</span>${closed ? ' · No live activity' : ''}</div>
-        ${closed ? `<button class="rc-correct" onclick="reportOpenCorrection('${v.id}', this)">It's actually open</button>` : ''}
+        ${closed ? `<button class="rc-correct" onclick="reportOpenCorrection('${v.id}', this)">It's actually open <span class="rc-arrow">→</span></button>` : ''}
       </div>
     </div>
   </div>
