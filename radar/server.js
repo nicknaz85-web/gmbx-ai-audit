@@ -231,6 +231,10 @@ function buildStateJSON() {
       source: s.source, special: s.special,
       open: s.open, hours: s.hours, season: s.season, google: gLite(s.google), googlePhoto: s.googlePhoto,
       expectedPeak: s.expectedPeak, dress: s.dress, instagram: s.instagram, tonight: s.tonight || null,
+      // slim recent-report signal so the Notifications "Reports" feed can surface fresh
+      // community reports at nearby venues (full report list stays on /api/venue/:id)
+      report: s.report ? { vibe: s.report.vibe || null, queue: s.report.queue || null, entry: (s.report.entry != null ? s.report.entry : null) } : null,
+      lastReportAgeMin: s.lastReportAgeMin != null ? s.lastReportAgeMin : null,
       photo: ((s.media || []).find((m) => m.type === 'image') || {}).url || null,
     };
   });
