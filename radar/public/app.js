@@ -1774,9 +1774,10 @@ async function submitReport() {
   $('#reportInner').innerHTML = `<div class="rep-done"><div class="big">•••</div><h2>Sending…</h2></div>`;
   const res = await API.report(payload);
   if (res && res.error) { toast(res.needMedia ? 'A photo or video is required' : ('Could not send: ' + res.error)); R.step = 1; renderReport(); return; }
-  // the point only counts toward the level once this report has stood 24h — so we
-  // show the CURRENT level here (no fake bump) and let it climb after it locks in.
-  const lvl = myLevel;
+  // the point counts as soon as you report (it only rolls back if you delete within 24h)
+  setReportCount(beforeCount + 1);
+  const newLevel = levelFor(beforeCount + 1);
+  const leveledUp = newLevel.name !== myLevel.name;
   const badge = res.badges && res.badges.length ? res.badges[res.badges.length - 1] : null;
   $('#reportInner').innerHTML = `<div class="rep-done">
     <div class="rd-fx" aria-hidden="true">
@@ -1786,8 +1787,10 @@ async function submitReport() {
     </div>
     <div class="rd-mascotwrap"><img class="rd-mascot solo rd-vid" src="${danceMascot()}" alt="" onerror="this.src='/mascot-busy.png'" /></div>
     <h2>All good to go <img class="rd-title-cam" src="/report-camera.png" alt="" onerror="this.style.display='none'" /></h2>
-    <p class="rd-sub">Thanks, you're on the radar.<br>It counts toward your level after 24h.</p>
-    <div class="rep-levelnote">${lvl.emoji} <b>${esc(lvl.name)}</b>${lvl.next ? ` <span class="rl-sep">·</span> <span class="rl-next">${lvl.next.min - lvl.count} more to ${esc(lvl.next.name)}</span>` : ` <span class="rl-sep">·</span> <span class="rl-next">max level</span>`}</div>
+    <p class="rd-sub">Thanks, you're on the radar.<br>Now go enjoy the club!</p>
+    ${leveledUp
+      ? `<div class="rep-badge">${newLevel.emoji}<span>Level up! You're now a <b>${esc(newLevel.name)}</b></span></div>`
+      : `<div class="rep-levelnote">${newLevel.emoji} <b>${esc(newLevel.name)}</b>${newLevel.next ? ` <span class="rl-sep">·</span> <span class="rl-next">${newLevel.next.min - newLevel.count} more to ${esc(newLevel.next.name)}</span>` : ` <span class="rl-sep">·</span> <span class="rl-next">max level</span>`}</div>`}
     ${badge ? `<div class="rep-badge">🏅 ${esc(badge)} unlocked</div>` : ''}
     <div class="rd-donerow"><button class="rep-next" onclick="afterReport('${R.venueId}')">Done</button></div>
   </div>`;

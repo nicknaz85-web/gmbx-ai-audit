@@ -17,7 +17,7 @@ import { refreshVenue as gpRefresh, refreshStale as gpRefreshStale, warmAll as g
 import { venueSnapshot, areaSnapshot, clusters, radarFeed, detectTransitions } from './lib/scoring.js';
 import { scheduleEvents } from './lib/events.js';
 import {
-  getUser, refreshBadges, badgeLabel, screenCheckin, computeReportConfidence, lockDueReports,
+  getUser, refreshBadges, badgeLabel, screenCheckin, computeReportConfidence,
 } from './lib/reputation.js';
 import { anonHash, randId, now, MIN, clamp, round, enableDemoClock } from './lib/util.js';
 
@@ -541,7 +541,7 @@ async function api(req, res, url) {
       });
     return send(res, 200, {
       badges,
-      reportsMade: lockDueReports(u), // only reports that have stood ≥24h count toward the level
+      reportsMade: Math.round(u.reports),
       checkins: u.checkins,
       photos: mine.length,
       media,
@@ -634,11 +634,8 @@ async function api(req, res, url) {
       photo: (typeof rp.photo === 'string' && rp.photo.length <= 300000) ? rp.photo : null,
     } : null;
 
-    const reportId = randId('rp');
-    // the level point is provisional until the report has stood 24h (anti-farming)
-    u.reportPending.push({ id: reportId, ts });
     db.reports.push({
-      id: reportId, venueId: v.id, uHash: id.uHash, dHash: id.dHash, ts,
+      id: randId('rp'), venueId: v.id, uHash: id.uHash, dHash: id.dHash, ts,
       coords, vibe,
       queue: safeEnum(body.queue, ['none', '<10', '10-20', '20-30', '30+', 'guestlist', 'unknown']),
       entry: typeof body.entry === 'number' ? clamp(body.entry, 0, 200) : (body.entry === 'guestlist' ? 0 : null),
@@ -720,15 +717,9 @@ async function api(req, res, url) {
     db.media = db.media.filter((x) => x.id !== m.id);
     const linked = db.reports.find((r) => r.mediaId === m.id);
     db.reports = db.reports.filter((r) => r.mediaId !== m.id); // remove the linked report
-    // a report only "locks in" a level point after it has stood 24h — deleting while
-    // still provisional drops it; deleting after it locked keeps the point.
-    if (linked) {
-      const u = getUser(id.uHash);
-      lockDueReports(u);
-      const pi = u.reportPending.findIndex((p) => p.id === linked.id);
-      if (pi >= 0) u.reportPending.splice(pi, 1);
-      if (now() - linked.ts < 24 * 3600 * 1000) u.reports = Math.max(0, u.reports - 1); // trust volume
-    }
+    // the point counts as soon as you report; deleting only rolls it back within 24h
+    // (after that the contribution is locked in and stays on your level).
+    if (linked && now() - linked.ts < 24 * 3600 * 1000) { const u = getUser(id.uHash); u.reports = Math.max(0, u.reports - 1); }
     try { fs.unlinkSync(path.join(MEDIA_DIR, m.id + '.' + m.ext)); } catch (e) { /* file may already be gone */ }
     saveSnapshotSoon();
     return send(res, 200, { ok: true });
@@ -741,14 +732,8 @@ async function api(req, res, url) {
     if (!r) return send(res, 404, { error: 'not found' });
     if (r.uHash !== id.uHash) return send(res, 403, { error: 'not your report' });
     db.reports = db.reports.filter((x) => x.id !== r.id);
-    {
-      const u = getUser(id.uHash);
-      lockDueReports(u); // promote reports that already crossed 24h
-      const pi = u.reportPending.findIndex((p) => p.id === r.id);
-      if (pi >= 0) u.reportPending.splice(pi, 1); // still provisional (<24h) → point never counts
-      // a report that already locked in (≥24h) keeps its level point
-      if (now() - r.ts < 24 * 3600 * 1000) u.reports = Math.max(0, u.reports - 1); // trust volume
-    }
+    // the point counts immediately; deleting only rolls it back within 24h (after that it's locked in)
+    if (now() - r.ts < 24 * 3600 * 1000) { const u = getUser(id.uHash); u.reports = Math.max(0, u.reports - 1); }
     if (r.mediaId) {
       const m = db.media.find((x) => x.id === r.mediaId);
       db.media = db.media.filter((x) => x.id !== r.mediaId);

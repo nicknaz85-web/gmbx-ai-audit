@@ -18,31 +18,9 @@ export function getUser(uHash) {
       lateReports: 0, // reports after 2am (NIGHT OWL)
       earlyScoops: 0, // reported a venue before it became popular (FIRST ON SCENE)
       badges: [],
-      reportsLocked: 0,   // level points from reports that have stood ≥24h
-      reportPending: [],  // [{id, ts}] reports younger than 24h — not counted yet
     };
   }
-  const u = db.users[uHash];
-  // migrate older accounts: grandfather existing report points as already-locked
-  if (u.reportsLocked === undefined) { u.reportsLocked = Math.round(u.reports || 0); u.reportPending = []; }
-  if (!Array.isArray(u.reportPending)) u.reportPending = [];
-  return u;
-}
-
-// A report only counts toward the user's level once it has stood for 24h. This
-// promotes any pending reports that have crossed 24h into the locked point total
-// and returns the current locked total (what the UI shows as reportsMade).
-const LOCK_MS = 24 * 60 * MIN;
-export function lockDueReports(u, ref = now()) {
-  if (!u) return 0;
-  if (!Array.isArray(u.reportPending)) u.reportPending = [];
-  if (u.reportsLocked === undefined) u.reportsLocked = Math.round(u.reports || 0);
-  const stillPending = [];
-  for (const p of u.reportPending) {
-    if (ref - p.ts >= LOCK_MS) u.reportsLocked += 1; else stillPending.push(p);
-  }
-  u.reportPending = stillPending;
-  return u.reportsLocked;
+  return db.users[uHash];
 }
 
 // Reporter trust 0.35..1.0. New accounts start neutral-low; accuracy lifts it.
