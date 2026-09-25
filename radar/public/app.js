@@ -76,7 +76,7 @@ function eventRadiusKm() { try { const v = localStorage.getItem('clubbit_ev_radi
 function setEventRadius(v) { try { localStorage.setItem('clubbit_ev_radius', v === 'all' ? 'all' : String(v)); } catch {} }
 function evRadiusLabel() {
   const km = eventRadiusKm();
-  if (km === 'all') return 'All events';
+  if (km === 'all') return 'Any';
   return kmToStep(km) + (currentUnits() === 'mi' ? ' mi' : ' km');
 }
 function cityOf(v) { const a = (S.data.areas || []).find((x) => x.id === v.neighborhood); return (a && a.city) || v.neighborhoodName; }
@@ -866,58 +866,16 @@ function renderSheet() {
 // The single source of truth for the "Near you tonight" feed. Returns an ordered
 // list of { v, emoji, text, sub } picks. Both the rendered feed AND the bell badge
 // count use this, so the number on the bell always equals the rows you see.
+// The home activity preview uses the SAME Clubbit activity model as the notification
+// centre — a mixed, relevance-ranked feed of venue activity, reports and (eligible) events.
 function feedItems() {
-  const d = S.data; if (!d) return [];
-  // Base the feed on venues NEAR you (or, before location is known, on what's in the
-  // current map view) — never the whole world, so the bell never shows a global count.
-  let vs;
-  if (S.userLoc) {
-    vs = d.venues.map((v) => { v._dist = haversineKm(S.userLoc, v.coords); return v; });
-    const near = vs.filter((v) => v._dist <= 40);
-    vs = near.length ? near : vs.slice().sort((a, b) => a._dist - b._dist).slice(0, 25);
-  } else {
-    vs = d.venues.filter((v) => (typeof inScope === 'function' ? inScope(v) : true));
-    if (!vs.length) vs = d.venues.slice(0, 25);
-  }
-  const seen = new Set();
-  const items = [];
-  const add = (v, emoji, text, sub) => {
-    if (seen.has(v.id) || items.length >= 30) return; seen.add(v.id);
-    items.push({ v, emoji, text, sub });
-  };
-  // ONLY currently-open venues appear in notifications, so the bell count always
-  // equals how many spots near you are open right now.
-  const openV = vs.filter((v) => v.open).sort((a, b) => b.radar.score - a.radar.score);
-  const dist = (v) => v._dist != null ? ' · ' + distLabel(v._dist) : '';
-  // 1) tonight's top pick
-  if (openV[0]) add(openV[0], '⭐', `Tonight: head to ${openV[0].name}`, `${openV[0].radar.label} now · ${openV[0].neighborhoodName}${openV[0].hours ? ' · till ' + openV[0].hours.closesLabel : ''}`);
-  // 2) popping / heating up right now
-  openV.filter((v) => ['surging', 'exploding', 'heating'].includes(v.momentum.state))
-    .sort((a, b) => b.momentum.M - a.momentum.M).slice(0, 4)
-    .forEach((v) => add(v, '🔥', `${v.name} is ${v.momentum.state === 'heating' ? 'heating up' : 'popping off'}`, `${v.neighborhoodName}${v.pct > 0 ? ' · +' + v.pct + '%' : ''}${dist(v)}`));
-  // 3) peaks later tonight
-  openV.filter((v) => v.expectedPeak).slice(0, 3)
-    .forEach((v) => add(v, '⏰', `${v.name} peaks around ${v.expectedPeak}`, `${v.neighborhoodName}${dist(v)}`));
-  // 4) every other open venue near you
-  openV.forEach((v) => add(v, '🎉', `${v.name} is open now`, `${v.radar.label} · ${v.neighborhoodName}${v.hours && v.hours.closesLabel ? ' · till ' + v.hours.closesLabel : ''}${dist(v)}`));
-  return items;
+  return ncAllItems(buildNotifs());
 }
 function feedRows() {
   const items = feedItems();
-  if (!items.length) return '<div class="empty">No venues near you right now — try zooming the map or picking a city.</div>';
-  return items.map(({ v, emoji, text, sub }) => {
-    const ic = v.googlePhoto
-      ? `<div class="feed-ic photo"><img src="${esc(v.googlePhoto)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('photo');this.parentNode.style.background='${BAND_COLOR[bandKey(v.radar.score)].core}';this.replaceWith(document.createTextNode('${emoji}'))" /><span class="feed-ic-tag">${emoji}</span></div>`
-      : `<div class="feed-ic" style="background:${BAND_COLOR[bandKey(v.radar.score)].core}">${emoji}</div>`;
-    return `<div class="feed-item" onclick="rowClick('${v.id}')">
-      ${ic}
-      <div class="feed-txt"><b>${esc(text)}</b>
-        <div class="fsub">${esc(sub)}</div>
-        ${v.instagram ? `<button class="feed-ig" onclick="event.stopPropagation();openInsta('${v.id}')">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/></svg>
-          What's on tonight</button>` : ''}</div>
-    </div>`;
-  }).join('');
+  if (!items.length) return '<div class="empty">Nothing happening nearby right now — try zooming the map or picking a city.</div>';
+  const read = ncReadSet();
+  return `<div class="nc-group nc-feed">${items.map((n) => ncItemHtml(n, read)).join('')}</div>`;
 }
 
 /* ============================================================
@@ -1060,7 +1018,19 @@ function levelFor(n) {
   return { name: cur.name, emoji: cur.emoji, min: cur.min, count: n, next };
 }
 function myProfile() { try { return JSON.parse(localStorage.getItem('clubbit_profile')) || {}; } catch (e) { return {}; } }
-function myFace(p) { p = p || myProfile(); return p.profilePhoto || (p.gender === 'Woman' ? '/clubbit-face-f.png' : p.gender === 'Man' ? '/clubbit-face-m.png' : p.gender === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png'); }
+// Default avatar for a gender when there's no custom photo — "Prefer not to say" uses
+// the drink glass (so it persists as the profile pic); man/unset uses the base mascot.
+const GENDER_AVA = { Woman: '/clubbit-face-f.png', Man: '/clubbit-face-m.png', 'Non-binary': '/clubbit-face-nb.png', 'Prefer not to say': '/clubbit-face-drink.png' };
+function genderAvatar(gender) { return GENDER_AVA[gender] || '/clubbit-mascot.png'; }
+// the celebratory dancing/sipping mascot on the report-complete screen, matched to gender
+// (woman → woman, non-binary & "prefer not to say" → non-binary, man/unset → base)
+function danceMascot() {
+  let g = ''; try { g = (myProfile().gender || '').toLowerCase(); } catch (e) {}
+  if (g === 'woman') return '/clubbit-woman-sip-smooth.webp';
+  if (g && g !== 'man') return '/clubbit-nonbinary-sip-smooth.webp';
+  return '/clubbit-dance-sip-smooth.webp';
+}
+function myFace(p) { p = p || myProfile(); return p.profilePhoto || genderAvatar(p.gender); }
 
 // "Nick, 26 · Scout reported — packed · 12 min ago" cards
 const VIBE_WORD = { dead: 'quiet', chill: 'chilled', popping: 'popping', packed: 'packed' };
@@ -1272,14 +1242,16 @@ function reviewsBlock(v) {
 function mascotFor(score) {
   return score >= 80 ? 'packed' : score >= 55 ? 'busy' : score >= 28 ? 'chill' : 'quiet';
 }
-// Show the mascot that matches the user's onboarding gender. The man has full
-// activity poses (sleeping→dancing); woman / non-binary / other use their own
-// mascot for every state (until gendered activity poses exist).
+// Show the mascot that matches the user's onboarding gender — each gender now has
+// the full activity set (sleeping → chilling → dancing → wild) driven by the party
+// score, so the pose tracks how alive the venue is. "Prefer not to say" (or any
+// unrecognised value) uses the non-binary set; man/unset uses the base set.
 function mascotSrc(score) {
   let g = ''; try { g = (myProfile().gender || '').toLowerCase(); } catch (e) {}
-  if (g === 'woman') return '/clubbit-mascot-f.png';
-  if (g && g !== 'man') return '/clubbit-mascot-nb.png'; // non-binary / prefer not to say / other
-  return '/mascot-' + mascotFor(score) + '.png'; // man (or unset) → activity poses
+  const state = mascotFor(score); // quiet | chill | busy | packed
+  if (g === 'woman') return '/mascot-f-' + state + '.png';
+  if (g && g !== 'man') return '/mascot-nb-' + state + '.png'; // non-binary / prefer not to say / other
+  return '/mascot-' + state + '.png'; // man (or unset) → base activity poses
 }
 // A short "what it is" line: type · music · dress — the full description hides behind More.
 function venueTagline(v) {
@@ -1802,10 +1774,9 @@ async function submitReport() {
   $('#reportInner').innerHTML = `<div class="rep-done"><div class="big">•••</div><h2>Sending…</h2></div>`;
   const res = await API.report(payload);
   if (res && res.error) { toast(res.needMedia ? 'A photo or video is required' : ('Could not send: ' + res.error)); R.step = 1; renderReport(); return; }
-  // level up: count this contribution and see if we crossed a tier
-  setReportCount(beforeCount + 1);
-  const newLevel = levelFor(beforeCount + 1);
-  const leveledUp = newLevel.name !== myLevel.name;
+  // the point only counts toward the level once this report has stood 24h — so we
+  // show the CURRENT level here (no fake bump) and let it climb after it locks in.
+  const lvl = myLevel;
   const badge = res.badges && res.badges.length ? res.badges[res.badges.length - 1] : null;
   $('#reportInner').innerHTML = `<div class="rep-done">
     <div class="rd-fx" aria-hidden="true">
@@ -1813,12 +1784,10 @@ async function submitReport() {
       <span class="rd-orb o1"></span><span class="rd-orb o2"></span><span class="rd-orb o3"></span>
       <i class="rd-spark s1"></i><i class="rd-spark s2"></i><i class="rd-spark s3"></i><i class="rd-spark s4"></i><i class="rd-spark s5"></i><i class="rd-spark s6"></i>
     </div>
-    <div class="rd-mascotwrap"><img class="rd-mascot solo" src="/mascot-busy.png" alt="" onerror="this.style.display='none'" /></div>
+    <div class="rd-mascotwrap"><img class="rd-mascot solo rd-vid" src="${danceMascot()}" alt="" onerror="this.src='/mascot-busy.png'" /></div>
     <h2>All good to go <img class="rd-title-cam" src="/report-camera.png" alt="" onerror="this.style.display='none'" /></h2>
-    <p class="rd-sub">Thanks, you're on the radar.<br>Now go enjoy the club!</p>
-    ${leveledUp
-      ? `<div class="rep-badge">${newLevel.emoji}<span>Level up! You're now a <b>${esc(newLevel.name)}</b></span></div>`
-      : `<div class="rep-levelnote">${newLevel.emoji} <b>${esc(newLevel.name)}</b>${newLevel.next ? ` <span class="rl-sep">·</span> <span class="rl-next">${newLevel.next.min - newLevel.count} more to ${esc(newLevel.next.name)}</span>` : ` <span class="rl-sep">·</span> <span class="rl-next">max level</span>`}</div>`}
+    <p class="rd-sub">Thanks, you're on the radar.<br>It counts toward your level after 24h.</p>
+    <div class="rep-levelnote">${lvl.emoji} <b>${esc(lvl.name)}</b>${lvl.next ? ` <span class="rl-sep">·</span> <span class="rl-next">${lvl.next.min - lvl.count} more to ${esc(lvl.next.name)}</span>` : ` <span class="rl-sep">·</span> <span class="rl-next">max level</span>`}</div>
     ${badge ? `<div class="rep-badge">🏅 ${esc(badge)} unlocked</div>` : ''}
     <div class="rd-donerow"><button class="rep-next" onclick="afterReport('${R.venueId}')">Done</button></div>
   </div>`;
@@ -2033,18 +2002,18 @@ async function refresh() {
 let _rt, _searchFlyT;
 function refreshSoon() { clearTimeout(_rt); _rt = setTimeout(refresh, 900); }
 
-// The bell badge counts exactly the feed items you'll see on click — but stays
-// hidden until at least one nearby club is actually OPEN (no count for a night
-// when everything nearby is still closed).
-function feedOpenCount() {
-  const items = feedItems();
-  if (!items.some((it) => it.v.open)) return 0;
-  return items.length;
+// the bell now opens the notification center, so its badge = unread notifications
+function notifUnreadCount() {
+  try {
+    const all = ncAllItems(buildNotifs());
+    const read = ncReadSet();
+    return all.filter((n) => !read.has(n.id)).length;
+  } catch (e) { return 0; }
 }
 function updateChrome() {
   const d = S.data; if (!d) return;
   const badge = $('#feedBadge'); if (!badge) return;
-  const n = feedOpenCount();
+  const n = notifUnreadCount();
   if (n > 0) { badge.textContent = Math.min(99, n); badge.style.display = 'flex'; }
   else { badge.style.display = 'none'; }
 }
@@ -2375,9 +2344,16 @@ function editProfile() {
   const GENDERS = ['Man', 'Woman', 'Non-binary', 'Prefer not to say'];
   const maxDob = new Date(Date.now() - 18 * 365.25 * 864e5).toISOString().slice(0, 10);
   const ddmmyyyy = (iso) => { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
-  const ava = p.profilePhoto || (p.gender === 'Woman' ? '/clubbit-face-f.png' : p.gender === 'Man' ? '/clubbit-face-m.png' : p.gender === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png');
+  const DRINK = '/clubbit-face-drink.png';
+  // avatar for a gender when there's no custom photo — drink glass for "Prefer not to say"
+  const genderAva = (g) => g === 'Woman' ? '/clubbit-face-f.png' : g === 'Man' ? '/clubbit-face-m.png' : g === 'Non-binary' ? '/clubbit-face-nb.png' : DRINK;
+  const ava = p.profilePhoto || genderAva(p.gender);
   const chev = '<svg class="ed-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
   const calIc = '<svg class="ed-cal" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="3"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>';
+  const GFACE = { Man: '/clubbit-face-m.png', Woman: '/clubbit-face-f.png', 'Non-binary': '/clubbit-face-nb.png' };
+  // the gendered options show their mascot chip; "Prefer not to say" is text-only in the
+  // field (its drink glass shows only as the avatar / profile pic, not as an inline icon)
+  const genderDisp = (g) => { const src = GFACE[g] || ''; return `${src ? `<img class="ed-gface" src="${src}" alt="" onerror="this.remove()" />` : ''}<span>${esc(g)}</span>`; };
   const ov = document.createElement('div');
   ov.className = 'overlay edit-ov';
   ov.innerHTML = `
@@ -2393,11 +2369,12 @@ function editProfile() {
       </div>
       <label class="ed-field"><span>First name</span>
         <input class="ed-input" id="edName" type="text" maxlength="40" value="${esc(p.firstName || '')}" placeholder="Your name" enterkeyhint="done" autocomplete="given-name" /></label>
-      <label class="ed-field"><span>Gender</span>
-        <div class="ed-selwrap"><select class="ed-input" id="edGender">${GENDERS.map((g) => `<option value="${g}" ${p.gender === g ? 'selected' : ''}>${g}</option>`).join('')}</select>${chev}</div></label>
+      <div class="ed-field"><span>Gender</span>
+        <button type="button" class="ed-input ed-gender" id="edGenderBtn"><span class="ed-gender-cur" id="edGenderCur">${genderDisp(p.gender || GENDERS[0])}</span>${chev}</button>
+        <input id="edGender" type="hidden" value="${esc(p.gender || GENDERS[0])}" /></div>
       <div class="ed-field"><span>Date of birth</span>
-        <div class="ed-dobwrap"><div class="ed-input ed-dob"><span id="edDobText" class="${p.dateOfBirth ? '' : 'ph'}">${p.dateOfBirth ? esc(ddmmyyyy(p.dateOfBirth)) : 'Select date'}</span>${calIc}</div>
-          <input id="edDob" class="ed-dob-native" type="date" max="${maxDob}" value="${esc(p.dateOfBirth || '')}" aria-label="Date of birth" /></div></div>
+        <button type="button" class="ed-input ed-dob" id="edDobBtn"><span id="edDobText" class="${p.dateOfBirth ? '' : 'ph'}">${p.dateOfBirth ? esc(ddmmyyyy(p.dateOfBirth)) : 'Select date'}</span>${calIc}</button>
+        <input id="edDob" type="hidden" value="${esc(p.dateOfBirth || '')}" /></div>
       <div class="ed-err" id="edErr"></div>
       <div class="edit-actions">
         <button class="btn ed-cancel" id="edCancel" type="button">Cancel</button>
@@ -2433,10 +2410,30 @@ function editProfile() {
   q('#edX').onclick = tryClose;
   q('#edCancel').onclick = tryClose;
   q('#edName').oninput = refreshDirty;
-  q('#edGender').onchange = refreshDirty;
-  q('#edDob').onchange = () => { const v = q('#edDob').value; const txt = q('#edDobText'); txt.textContent = v ? ddmmyyyy(v) : 'Select date'; txt.classList.toggle('ph', !v); refreshDirty(); };
+  q('#edGenderBtn').onclick = () => clubbitGenderPicker({
+    value: q('#edGender').value,
+    options: GENDERS.map((g) => ({ value: g, label: g, img: GFACE[g] || null })),
+    onPick: (g) => {
+      q('#edGender').value = g;
+      q('#edGenderCur').innerHTML = genderDisp(g);
+      // live-preview the matching mascot when no custom photo is set
+      if (pendingPhoto === null || (pendingPhoto === undefined && !p.profilePhoto)) q('#edAva').src = defaultAva();
+      refreshDirty();
+    },
+  });
+  q('#edDobBtn').onclick = () => clubbitDatePicker({
+    value: q('#edDob').value,
+    max: maxDob,
+    onPick: (iso) => {
+      q('#edDob').value = iso;
+      const txt = q('#edDobText');
+      txt.textContent = ddmmyyyy(iso);
+      txt.classList.remove('ph');
+      refreshDirty();
+    },
+  });
   // change photo — a Clubbit action sheet; the choice is held pending until Save
-  const defaultAva = () => { const g = q('#edGender').value; return g === 'Woman' ? '/clubbit-face-f.png' : g === 'Man' ? '/clubbit-face-m.png' : g === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png'; };
+  const defaultAva = () => genderAva(q('#edGender').value);
   q('#edChangePhoto').onclick = () => {
     const hasPhoto = pendingPhoto ? true : (pendingPhoto === null ? false : !!p.profilePhoto);
     const s = document.createElement('div');
@@ -2482,9 +2479,137 @@ function editProfile() {
     next.public = { ...(p.public || {}), firstName: name, age, profilePhoto: next.profilePhoto || null };
     saveProfileEverywhere(next);
     const hdr = document.querySelector('.avatar img');
-    if (hdr) hdr.src = next.profilePhoto || (gender === 'Woman' ? '/clubbit-face-f.png' : gender === 'Man' ? '/clubbit-face-m.png' : gender === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png');
-    close(); toast('Profile updated ✓'); renderProfile();
+    if (hdr) hdr.src = next.profilePhoto || genderAva(gender);
+    close(); renderProfile();
   };
+}
+
+// A Clubbit-styled date-of-birth wheel picker (scrolling sliders) — replaces the native picker.
+// opts: { value: 'YYYY-MM-DD' | '', max: 'YYYY-MM-DD', onPick(iso) }
+function clubbitDatePicker({ value, max, onPick } = {}) {
+  const SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const parse = (s) => { if (!s) return null; const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+  const iso2 = (n) => String(n).padStart(2, '0');
+  const ISO = (y, m, d) => `${y}-${iso2(m + 1)}-${iso2(d)}`;
+  const ITEM = 40; // px per row (must match .dw-item height)
+  const maxD = parse(max) || new Date();
+  const minYear = 1940;
+  const maxYear = maxD.getFullYear();
+  let start = parse(value) || maxD;
+  if (start > maxD) start = maxD;
+  let sy = start.getFullYear(), sm = start.getMonth(), sd = start.getDate();
+
+  const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
+  const monthMax = (y) => (y === maxYear ? maxD.getMonth() : 11);
+  const dayMax = (y, m) => (y === maxYear && m === maxD.getMonth() ? maxD.getDate() : daysInMonth(y, m));
+
+  const ov = document.createElement('div');
+  ov.className = 'overlay dw-ov';
+  ov.innerHTML = `<div class="overlay-scrim" data-x="1"></div>
+    <div class="dw-sheet">
+      <div class="eh-grip"><span></span></div>
+      <h3>Date of birth</h3>
+      <div class="dw-wheels">
+        <div class="dw-band"></div>
+        <div class="dw-col" id="dwDay"></div>
+        <div class="dw-col dw-mon" id="dwMon"></div>
+        <div class="dw-col" id="dwYear"></div>
+      </div>
+      <button class="btn btn-primary dw-done" id="dwDone" type="button">Confirm</button>
+    </div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.querySelector('[data-x]').onclick = close;
+  const dayCol = ov.querySelector('#dwDay');
+  const monCol = ov.querySelector('#dwMon');
+  const yrCol = ov.querySelector('#dwYear');
+
+  const idxOf = (el) => Math.max(0, Math.min(el.children.length - 1, Math.round(el.scrollTop / ITEM)));
+  const markCenter = (el) => { const i = idxOf(el); const kids = el.children; for (let k = 0; k < kids.length; k++) kids[k].classList.toggle('on', k === i); };
+  // scroll a column programmatically without it counting as a user "settle" (avoids re-fill cascades)
+  const setScroll = (el, top) => {
+    el._lock = true;
+    el.scrollTop = top;
+    markCenter(el);
+    clearTimeout(el._unlock);
+    el._unlock = setTimeout(() => { el._lock = false; }, 80);
+  };
+  // reconcile a column's rows in place — only add/remove trailing items when the count
+  // actually changes (never a full innerHTML replace) so unchanged columns don't blink.
+  const reconcile = (el, rows) => {
+    const cur = el.children.length, need = rows.length;
+    for (let i = cur - 1; i >= need; i--) el.removeChild(el.lastChild);
+    if (need > cur) {
+      const frag = document.createDocumentFragment();
+      for (let i = cur; i < need; i++) { const d = document.createElement('div'); d.className = 'dw-item'; d.textContent = rows[i]; frag.appendChild(d); }
+      el.appendChild(frag);
+    }
+    const m = Math.min(cur, need);
+    for (let i = 0; i < m; i++) { const t = String(rows[i]); if (el.children[i].textContent !== t) el.children[i].textContent = t; }
+  };
+  const buildInto = (el, rows, selIdx) => { reconcile(el, rows); void el.offsetHeight; setScroll(el, selIdx * ITEM); };
+  // after a dependent list changed length, keep the current scroll unless it now falls
+  // past the last row (then snap it back to the last valid row) — no blink, no jump.
+  const clampScroll = (el, count) => { const mx = (count - 1) * ITEM; if (el.scrollTop > mx) setScroll(el, mx); else markCenter(el); };
+  const dayRows = () => { const dm = dayMax(sy, sm); if (sd > dm) sd = dm; const r = []; for (let d = 1; d <= dm; d++) r.push(d); return r; };
+  const monRows = () => { const mm = monthMax(sy); if (sm > mm) sm = mm; return SHORT.slice(0, mm + 1); };
+  const yearRows = () => { const r = []; for (let y = maxYear; y >= minYear; y--) r.push(y); return r; };
+
+  // settle: after a USER stops scrolling a column, commit its value and reconcile dependents
+  const onSettle = (el, cb) => {
+    let t;
+    el.addEventListener('scroll', () => {
+      markCenter(el);
+      if (el._lock) return; // ignore our own programmatic scrolls
+      clearTimeout(t);
+      t = setTimeout(cb, 100);
+    });
+  };
+  onSettle(yrCol, () => {
+    sy = maxYear - idxOf(yrCol);
+    const mr = monRows(); reconcile(monCol, mr); clampScroll(monCol, mr.length);
+    const dr = dayRows(); reconcile(dayCol, dr); clampScroll(dayCol, dr.length);
+  });
+  onSettle(monCol, () => { sm = idxOf(monCol); const dr = dayRows(); reconcile(dayCol, dr); clampScroll(dayCol, dr.length); });
+  onSettle(dayCol, () => { sd = idxOf(dayCol) + 1; });
+
+  buildInto(yrCol, yearRows(), maxYear - sy);
+  buildInto(monCol, monRows(), sm);
+  buildInto(dayCol, dayRows(), sd - 1);
+
+  ov.querySelector('#dwDone').onclick = () => {
+    // read final positions directly so a mid-flick tap still commits the centered row
+    sy = maxYear - idxOf(yrCol);
+    sm = Math.min(idxOf(monCol), monthMax(sy));
+    sd = Math.min(idxOf(dayCol) + 1, dayMax(sy, sm));
+    onPick(ISO(sy, sm, sd));
+    close();
+  };
+}
+
+// A Clubbit-styled gender picker bottom sheet — mascots for the gendered options,
+// plain text for "Prefer not to say".
+// opts: { value, options:[{value,label,img}], onPick(value) }
+function clubbitGenderPicker({ value, options, onPick } = {}) {
+  const check = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>';
+  const ov = document.createElement('div');
+  ov.className = 'overlay gp-ov';
+  ov.innerHTML = `<div class="overlay-scrim" data-x="1"></div>
+    <div class="gp-sheet">
+      <div class="eh-grip"><span></span></div>
+      <h3>Gender</h3>
+      <div class="gp-list">
+        ${options.map((o) => `<button type="button" class="gp-opt${o.value === value ? ' sel' : ''}${o.img ? '' : ' noface'}" data-v="${esc(o.value)}">
+          ${o.img ? `<img class="gp-face" src="${esc(o.img)}" alt="" onerror="this.style.visibility='hidden'" />` : ''}
+          <span class="gp-label">${esc(o.label)}</span>
+          <span class="gp-check">${check}</span>
+        </button>`).join('')}
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.querySelector('[data-x]').onclick = close;
+  ov.querySelectorAll('.gp-opt').forEach((b) => { b.onclick = () => { onPick(b.dataset.v); close(); }; });
 }
 
 // ============================================================ THEME + LANGUAGE
@@ -2511,7 +2636,9 @@ const I18N = {
     contributions: 'total contributions', yourPhotos: 'Your photos & videos', noPhotos: "You haven't added any photos yet.",
     yourReports: 'Your reports', noReports: "You haven't reported yet. Report the vibe at a venue to build your overview.",
     toNext: 'to', maxLevel: 'Max level', email: 'Email', gender: 'Gender', dob: 'Date of birth',
-    account: 'Account', prefs: 'Preferences' },
+    account: 'Account', prefs: 'Preferences', discovery: 'Discovery', support: 'Support',
+    notifications: 'Notifications', eventRadius: 'Event radius', privacyTerms: 'Privacy & Terms',
+    getHelp: 'Get help with Clubbit', tellWrong: 'Tell us what went wrong' },
   es: { settings: 'Ajustes', appearance: 'Apariencia', light: 'Claro', dark: 'Oscuro', language: 'Idioma',
     signOut: 'Cerrar sesión', deleteAccount: 'Eliminar cuenta', editProfile: 'Editar perfil', changePhoto: 'Cambiar foto',
     removePhoto: 'Quitar foto (usar predeterminada)', profile: 'Perfil', reports: 'Reportes', photos: 'Fotos',
@@ -2596,13 +2723,14 @@ function renderSettings() {
   const gear = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
   const chev = gear('<path d="M9 18l6-6-6-6"/>');
   body.innerHTML = `
+    <div class="set-sectlabel">${t('prefs')}</div>
     <div class="setgrp">
-      <div class="setrow" style="align-items:flex-start;flex-direction:column;gap:12px">
-        <div style="display:flex;align-items:center;gap:13px;width:100%">
+      <div class="setrow setrow-stack">
+        <div class="sr-head">
           <span class="sr-ic">${gear('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>')}</span>
           <span class="sr-main"><span class="sr-label">${t('appearance')}</span></span>
         </div>
-        <div class="segtoggle" style="width:100%">
+        <div class="segtoggle segfull">
           <button data-theme-set="light" class="${th === 'light' ? 'on' : ''}">${gear('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>')} ${t('light')}</button>
           <button data-theme-set="dark" class="${th === 'dark' ? 'on' : ''}">${gear('<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>')} ${t('dark')}</button>
         </div>
@@ -2610,19 +2738,13 @@ function renderSettings() {
       <button class="setrow" id="setLangRow">
         <span class="sr-ic">${gear('<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/>')}</span>
         <span class="sr-main"><span class="sr-label">${t('language')}</span></span>
-        <span class="sr-val">${esc(lang[1])} ${chev}</span>
+        <span class="sr-val"><span class="sr-valtxt">${esc(lang[1])}</span> ${chev}</span>
       </button>
-    </div>
-    <div class="setgrp">
-      <div class="setrow">
-        <span class="sr-ic">${gear('<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 1v2M12 21v2M1 12h2M21 12h2"/>')}</span>
-        <span class="sr-main"><span class="sr-label">${t('eventsNearby')}</span></span>
-        <div class="stepper">
-          <button class="step-btn" id="evMinus" aria-label="less">−</button>
-          <span class="step-val" id="evVal">${esc(evRadiusLabel())}</span>
-          <button class="step-btn" id="evPlus" aria-label="more">+</button>
-        </div>
-      </div>
+      <button class="setrow" id="setNotif">
+        <span class="sr-ic">${gear('<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>')}</span>
+        <span class="sr-main"><span class="sr-label">${t('notifications')}</span></span>
+        <span class="sr-val">${chev}</span>
+      </button>
       <div class="setrow">
         <span class="sr-ic">${gear('<path d="M3 8h18v8H3z"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/>')}</span>
         <span class="sr-main"><span class="sr-label">${t('distanceUnit')}</span></span>
@@ -2632,20 +2754,42 @@ function renderSettings() {
         </div>
       </div>
     </div>
+
+    <div class="set-sectlabel">${t('discovery')}</div>
+    <div class="setgrp">
+      <div class="setrow">
+        <span class="sr-ic">${gear('<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 1v2M12 21v2M1 12h2M21 12h2"/>')}</span>
+        <span class="sr-main"><span class="sr-label">${t('eventRadius')}</span></span>
+        <div class="stepper">
+          <button class="step-btn" id="evMinus" aria-label="less">−</button>
+          <span class="step-val" id="evVal">${esc(evRadiusLabel())}</span>
+          <button class="step-btn" id="evPlus" aria-label="more">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-sectlabel">${t('support')}</div>
     <div class="setgrp">
       <button class="setrow" id="setSupport">
         <span class="sr-ic">${gear('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>')}</span>
-        <span class="sr-main"><span class="sr-label">${t('contactSupport')}</span></span>
+        <span class="sr-main"><span class="sr-label">${t('contactSupport')}</span><span class="sr-sub">${t('getHelp')}</span></span>
         <span class="sr-val">${chev}</span>
       </button>
       <button class="setrow" id="setReport">
         <span class="sr-ic">${gear('<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>')}</span>
-        <span class="sr-main"><span class="sr-label">${t('reportIssue')}</span></span>
+        <span class="sr-main"><span class="sr-label">${t('reportIssue')}</span><span class="sr-sub">${t('tellWrong')}</span></span>
+        <span class="sr-val">${chev}</span>
+      </button>
+      <button class="setrow" id="setLegal">
+        <span class="sr-ic">${gear('<path d="M9 12l2 2 4-4"/><path d="M12 2 4 5v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V5l-8-3z"/>')}</span>
+        <span class="sr-main"><span class="sr-label">${t('privacyTerms')}</span></span>
         <span class="sr-val">${chev}</span>
       </button>
     </div>
+
+    <div class="set-sectlabel">${t('account')}</div>
     <div class="setgrp">
-      <button class="setrow" id="setSignOut">
+      <button class="setrow muted" id="setSignOut">
         <span class="sr-ic">${gear('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>')}</span>
         <span class="sr-main"><span class="sr-label">${t('signOut')}</span></span>
       </button>
@@ -2686,8 +2830,58 @@ function renderSettings() {
     const diag = `\n\n———————\n(please keep the details below — they help us debug)\nApp: Clubbit\nPlatform: ${navigator.platform || ''}\n${navigator.userAgent || ''}`;
     openMail(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Clubbit — Issue report')}&body=${encodeURIComponent('What went wrong?\n' + diag)}`);
   };
+  $('#setNotif').onclick = openNotifications;
+  $('#setLegal').onclick = openLegal;
   $('#setSignOut').onclick = doSignOut;
   $('#setDelete').onclick = doDeleteAccount;
+}
+// ---- Notification preferences (kept on their own screen so Settings stays clean) ----
+const NOTIF_KEYS = [
+  ['events', 'Events near you', 'New lineups and events happening around you'],
+  ['saved', 'Saved venue updates', 'When a venue you saved starts popping off'],
+  ['nearby', 'Nearby venue activity', 'When somewhere close to you gets busy'],
+  ['reports', 'Report activity', 'Reactions and follow-ups on your reports'],
+  ['updates', 'Clubbit updates', 'Important news and new features'],
+];
+function notifPrefs() { try { return JSON.parse(localStorage.getItem('clubbit_notifs')) || {}; } catch { return {}; } }
+function notifOn(k) { const p = notifPrefs(); return p[k] !== false; } // default on
+function setNotif(k, v) { const p = notifPrefs(); p[k] = v; try { localStorage.setItem('clubbit_notifs', JSON.stringify(p)); } catch {} }
+function openNotifications() {
+  const body = $('#notifBody'); if (!body) return;
+  $('#notifTitle').textContent = t('notifications');
+  body.innerHTML = `<div class="setgrp">${NOTIF_KEYS.map(([k, label, sub]) => `
+    <div class="setrow notif-row" data-nk="${k}">
+      <span class="sr-main"><span class="sr-label">${esc(label)}</span><span class="sr-sub">${esc(sub)}</span></span>
+      <button class="nswitch ${notifOn(k) ? 'on' : ''}" role="switch" aria-checked="${notifOn(k)}" data-sw="${k}"><span class="nswitch-dot"></span></button>
+    </div>`).join('')}</div>`;
+  body.querySelectorAll('[data-sw]').forEach((b) => b.onclick = () => {
+    const k = b.dataset.sw; const nv = !notifOn(k); setNotif(k, nv);
+    b.classList.toggle('on', nv); b.setAttribute('aria-checked', String(nv));
+  });
+  openMSheet('#notifSheet', '#notifScrim');
+}
+// ---- Privacy & Terms ----
+function openLegal() {
+  const body = $('#legalBody'); if (!body) return;
+  $('#legalTitle').textContent = t('privacyTerms');
+  const sect = (title, paras) => `<div class="legal-sect"><h3>${title}</h3>${paras.map((p) => `<p>${p}</p>`).join('')}</div>`;
+  body.innerHTML = `
+    ${sect('Privacy Policy', [
+      'Clubbit only collects what it needs to show you nightlife near you: your approximate location, the profile you set up, and the reports and photos you choose to share.',
+      'Your location is used to find venues around you and is never sold. Reports you post are public and help everyone see how alive a place is right now.',
+      'You can edit your profile or delete your account and all its content at any time from Settings.',
+    ])}
+    ${sect('Terms of Service', [
+      'Clubbit is a community crowd-intelligence app. Vibe scores, queue estimates and forecasts are informational and can be wrong — always follow venue staff and local rules.',
+      'Be respectful when you report: no fake reports, harassment, or content that isn\'t yours to share. We may remove content or accounts that break these rules.',
+      'You must be 18 or older to use Clubbit.',
+    ])}
+    ${sect('Community & Reporting Guidelines', [
+      'Report honestly — say what you actually see. Don\'t post other people\'s photos without their okay, and keep it legal and kind.',
+      'See something wrong? Use “Report an issue” in Settings and we\'ll take a look.',
+    ])}
+    <div class="legal-foot">Questions? <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></div>`;
+  openMSheet('#legalSheet', '#legalScrim');
 }
 // support inbox for the in-app "Contact support" / "Report an issue" links.
 // mailto opens the phone's default mail app (Gmail on most Androids) with the
@@ -2774,7 +2968,7 @@ function paintProfile(me) {
   S.myReports = myReports;
   const p = loadLocalProfile();
   const name = p.firstName || 'You';
-  const ava = p.profilePhoto || (p.gender === 'Woman' ? '/clubbit-face-f.png' : p.gender === 'Man' ? '/clubbit-face-m.png' : p.gender === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png');
+  const ava = p.profilePhoto || genderAvatar(p.gender);
   const subBits = [];
   if (p.calculatedAge) subBits.push(p.calculatedAge);
   if (p.gender) subBits.push(profGender(p.gender));
@@ -2825,7 +3019,7 @@ function paintProfile(me) {
         </div>
         <div class="lr-menuwrap myrep-act"><button class="lr-menu" aria-label="Report options" onclick="event.stopPropagation();toggleRepMenu('mr_${r.id}')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button><div class="lr-menupop" id="mr_${r.id}_m" hidden><button class="lr-del" onclick="event.stopPropagation();deleteMyReport('${r.id}')">Delete report</button></div></div>
       </div>`; }).join('')}</div>`
-      : `<div class="prep-empty"><img class="prep-empty-ic" src="/mascot-quiet.png" alt="" onerror="this.style.display='none'" /><div class="prep-empty-t">No reports yet</div><div class="prep-empty-s">Report the vibe at a venue to start building your profile.</div></div>`}`;
+      : `<div class="prep-empty"><img class="prep-empty-ic" src="/mascot-quiet.png" alt="" onerror="this.style.display='none'" /><div class="prep-empty-t">No reports yet</div><div class="prep-empty-s">Report a vibe to build your profile</div></div>`}`;
   // pencil / change photo
   const picInput = $('#profilePicInput');
   const he = $('#heroEdit'); if (he) he.onclick = () => picInput && picInput.click();
@@ -2836,7 +3030,7 @@ function paintProfile(me) {
     if (prof.public) prof.public.profilePhoto = null;
     saveProfileEverywhere(prof);
     const hdr = document.querySelector('.avatar img');
-    if (hdr) hdr.src = prof.gender === 'Woman' ? '/clubbit-face-f.png' : prof.gender === 'Man' ? '/clubbit-face-m.png' : prof.gender === 'Non-binary' ? '/clubbit-face-nb.png' : '/clubbit-mascot.png';
+    if (hdr) hdr.src = prof.profilePhoto || genderAvatar(prof.gender);
     toast('Photo reset to default ✓');
     renderProfile();
   };
@@ -2934,37 +3128,262 @@ function eventsNearYou() {
   }
   return vs;
 }
-// a scrollable list of tonight/this-week's events near the user (opens the venue)
+// ---- Clubbit notification center (events + popping venues nearby + your reports) ----
+// Read/unread is tracked per-notification id in localStorage.
+function ncReadSet() { try { return new Set(JSON.parse(localStorage.getItem('clubbit_notif_read')) || []); } catch { return new Set(); } }
+function ncMarkRead(ids) { try { const s = ncReadSet(); ids.forEach((i) => s.add(i)); localStorage.setItem('clubbit_notif_read', JSON.stringify([...s].slice(-400))); } catch {} }
+// radius label shown in the header — explains why far-away cities can appear on "Any"
+function ncRadiusLabel() {
+  const R = eventRadiusKm();
+  if (R === 'all') return 'Any';
+  return kmToStep(R) + (currentUnits() === 'mi' ? ' mi' : ' km');
+}
+// The Clubbit activity model — three independent notification streams:
+//  • VENUES  (always) — live nightlife activity near you: picking up, popping, peaks soon,
+//                       best nearby, saved spots going live.
+//  • REPORTS (always) — fresh community reports nearby + your own reports.
+//  • EVENTS  (conditional) — only when "Events near you" is on, filtered by the Event radius.
+// Event settings NEVER affect Venues or Reports.
+const NC_ICON = {
+  venue: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2s7 4.2 7 10a7 7 0 0 1-14 0C5 6.2 12 2 12 2z"/></svg>',
+  report: '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9M4 5a15 15 0 0 1 15 15"/><circle cx="5" cy="19" r="1.6" fill="currentColor" stroke="none"/></svg>',
+  event: '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v3a2 2 0 0 0 0 4v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a2 2 0 0 0 0-4z"/></svg>',
+};
+// keep headlines short — drop a trailing city/neighbourhood ("Monkey Bar Belgrade" → "Monkey Bar")
+function nfShort(v) {
+  let n = (v.name || '').trim();
+  [v.city, v.neighborhoodName].forEach((w) => {
+    if (!w) return;
+    const suf = ' ' + String(w).toLowerCase();
+    if (n.toLowerCase().endsWith(suf)) {
+      const cand = n.slice(0, -suf.length).trim();
+      // keep the trim only if it still reads like a real name (not "A for", "The")
+      if (cand.length >= 5 && !/\b(a|an|the|for|of|at|on|in|by|to|and|de|la|le)$/i.test(cand)) n = cand;
+    }
+  });
+  return n || (v.name || '');
+}
+function nfMins(m) { m = Math.max(5, Math.round(m / 5) * 5); if (m < 60) return m + ' min'; const h = Math.floor(m / 60), mm = m % 60; return mm === 0 ? h + ' hour' + (h === 1 ? '' : 's') : h + 'h ' + mm + 'm'; }
+function nfOpensAt(v) { return String(v.hours.opensLabel || '').replace(/^[A-Za-z]{3}\s+/, ''); } // strip weekday prefix
+// The specific, current state of a venue — used for saved venues so a saved card
+// says exactly what's happening (never a vague "is live now").
+function nfState(v, distStr) {
+  const h = v.hours || {}, s = v.radar.score;
+  if (v.open === false && h.opensInMin != null) {
+    if (h.opensInMin >= 0 && h.opensInMin <= 90) return { title: `${nfShort(v)} opens in ${nfMins(Math.max(5, h.opensInMin))}`, sub: [distStr] };
+    if (h.opensInMin <= 600) return { title: `${nfShort(v)} opens at ${nfOpensAt(v)}`, sub: [distStr] };
+    return null;
+  }
+  if (v.open) {
+    if (h.openedAgoMin != null && h.openedAgoMin <= 45) return { title: `${nfShort(v)} just opened`, sub: [distStr] };
+    if (['surging', 'exploding', 'heating'].includes(v.momentum.state)) return { title: `${nfShort(v)} is getting busy`, sub: [distStr] };
+    if (s >= 84) return { title: `${nfShort(v)} is packed right now`, sub: [distStr] };
+    if (v.peakInMin != null && v.peakInMin > 0 && v.peakInMin <= 90 && v.expectedPeak) return { title: `${nfShort(v)} peaks around ${v.expectedPeak}`, sub: [distStr] };
+    return { title: `${nfShort(v)} is open now`, sub: [v.radar.label, distStr] };
+  }
+  return null;
+}
+// VENUE stream — context-aware nightlife activity, always available (independent of
+// Event settings). Copy states exactly what changed; timing gates keep it relevant.
+function nfVenues() {
+  const d = S.data; if (!d || !d.venues) return [];
+  const loc = S.userLoc;
+  let vs = d.venues.map((v) => { v._ndist = (loc && v.coords) ? haversineKm(loc, v.coords) : null; return v; });
+  if (loc) { const near = vs.filter((v) => v._ndist != null && v._ndist <= 40); vs = near.length ? near : vs.slice().sort((a, b) => (a._ndist == null ? 1e9 : a._ndist) - (b._ndist == null ? 1e9 : b._ndist)).slice(0, 60); }
+  const dist = (v) => (v._ndist != null ? distLabel(v._ndist) : null);
+  const out = []; const seen = new Set();
+  const add = (v, rank, accent, title, subBits) => {
+    if (seen.has(v.id) || out.length >= 24) return; seen.add(v.id);
+    out.push({ id: 'vn_' + v.id, kind: 'venue', rank, accent, title, sub: subBits.filter(Boolean).join(' · '),
+      img: v.googlePhoto || v.photo || null, band: bandKey(v.radar.score), score: v.radar.score,
+      tap: `ncGo('${v.id}')`, sort: v._ndist == null ? 1e9 : v._ndist });
+  };
+  const open = vs.filter((v) => v.open);
+  const closed = vs.filter((v) => v.open === false && v.hours && v.hours.opensInMin != null);
+  const byOpen = (a, b) => a.hours.opensInMin - b.hours.opensInMin;
+  const byScore = (a, b) => b.radar.score - a.radar.score;
+  // 1 — SAVED SPOT: say exactly what the saved venue is doing right now
+  [...open.filter((v) => isSaved(v.id)), ...closed.filter((v) => isSaved(v.id))].slice(0, 4)
+    .forEach((v) => { const st = nfState(v, dist(v)); if (st) add(v, 1, 'Saved spot', st.title, st.sub); });
+  // 2 — JUST OPENED (opened within the last ~45 min)
+  open.filter((v) => v.hours && v.hours.openedAgoMin != null && v.hours.openedAgoMin <= 45)
+    .sort((a, b) => a.hours.openedAgoMin - b.hours.openedAgoMin).slice(0, 4)
+    .forEach((v) => add(v, 2, 'Just opened', `${nfShort(v)} just opened`, [dist(v)]));
+  // 2 — OPENING SOON (opens in ~5–90 min)
+  closed.filter((v) => v.hours.opensInMin >= 0 && v.hours.opensInMin <= 90).sort(byOpen).slice(0, 4)
+    .forEach((v) => add(v, 2, 'Opening soon', `${nfShort(v)} opens in ${nfMins(Math.max(5, v.hours.opensInMin))}`, [dist(v)]));
+  // 3 — GETTING BUSY (crowd meaningfully rising)
+  open.filter((v) => ['surging', 'exploding', 'heating'].includes(v.momentum.state)).sort((a, b) => b.momentum.M - a.momentum.M).slice(0, 3)
+    .forEach((v) => add(v, 3, 'Getting busy', `${nfShort(v)} is getting busy`, [v.pct > 0 ? '+' + v.pct + '% busier' : v.radar.label, dist(v)]));
+  // 3 — PACKED NOW (currently packed)
+  open.filter((v) => v.radar.score >= 84).sort(byScore).slice(0, 3)
+    .forEach((v) => add(v, 3, 'Packed now', `${nfShort(v)} is packed right now`, [dist(v)]));
+  // 4 — FREE ENTRY (worthwhile free spot open now)
+  open.filter((v) => v.entry === 0 && v.radar.score >= 55).sort(byScore).slice(0, 2)
+    .forEach((v) => add(v, 4, 'Free entry', `Free entry at ${nfShort(v)} tonight`, [dist(v)]));
+  // 5 — PEAKING SOON (forecast peak within ~90 min, and open)
+  open.filter((v) => v.peakInMin != null && v.peakInMin > 0 && v.peakInMin <= 90 && v.expectedPeak)
+    .sort((a, b) => a.peakInMin - b.peakInMin).slice(0, 3)
+    .forEach((v) => add(v, 5, 'Peaking soon', `${nfShort(v)} peaks around ${v.expectedPeak}`, [dist(v)]));
+  // 6 — OPEN NOW (a few lively open spots worth knowing)
+  open.filter((v) => v.radar.score >= 68).sort(byScore).slice(0, 4)
+    .forEach((v) => add(v, 6, 'Open now', `${nfShort(v)} is open now`, [v.radar.label, dist(v)]));
+  // 7 — TOP PICK (best nearby right now)
+  open.slice().sort(byScore).slice(0, 2)
+    .forEach((v) => add(v, 7, 'Top pick', `${nfShort(v)} is a top pick nearby`, [v.radar.label, dist(v)]));
+  // 8 — OPENING TONIGHT (opens later tonight, up to ~10h out so afternoon checks see it)
+  closed.filter((v) => v.hours.opensInMin > 90 && v.hours.opensInMin <= 600).sort(byOpen).slice(0, 6)
+    .forEach((v) => add(v, 8, 'Opening tonight', `${nfShort(v)} opens at ${nfOpensAt(v)}`, [dist(v)]));
+  return out.sort((a, b) => a.rank - b.rank || a.sort - b.sort);
+}
+// REPORT stream — fresh community reports nearby + your own, always available
+function nfReports() {
+  const d = S.data; const loc = S.userLoc; const out = [];
+  if (d && d.venues) {
+    d.venues.map((v) => { v._ndist = (loc && v.coords) ? haversineKm(loc, v.coords) : null; return v; })
+      .filter((v) => v.report && v.lastReportAgeMin != null && v.lastReportAgeMin <= 180)
+      .sort((a, b) => a.lastReportAgeMin - b.lastReportAgeMin).slice(0, 14)
+      .forEach((v) => {
+        const rep = v.report; const ago = (freshLabel(v.lastReportAgeMin) || '').replace('Reported ', '');
+        const noQueue = rep.queue && /no queue|no line|none/i.test(String(rep.queue));
+        let accent = 'Fresh report', title = `New report at ${nfShort(v)}`;
+        if (noQueue) { accent = 'No queue'; title = `No queue at ${nfShort(v)}`; }
+        const bits = [rep.vibe ? cap(VIBE_WORD[rep.vibe] || rep.vibe) : null, !noQueue && rep.queue ? rep.queue : null, rep.entry != null ? (rep.entry === 0 ? 'Free' : '€' + rep.entry) : null].filter(Boolean).join(' · ');
+        out.push({ id: 'rc_' + v.id, kind: 'report', rank: 4, accent, title, sub: [bits, ago].filter(Boolean).join(' · '),
+          img: v.googlePhoto || v.photo || null, tap: `ncGo('${v.id}')`, sort: v.lastReportAgeMin });
+      });
+  }
+  (S.myReports || []).forEach((r) => {
+    out.push({ id: 'rp_' + r.id, kind: 'report', rank: 7.5, accent: 'Your report', title: `You reported at ${r.venueName || 'a venue'}`,
+      sub: [cap(VIBE_WORD[r.vibe] || r.vibe || 'the vibe'), (freshLabel(r.ageMin) || '').replace('Reported ', '')].filter(Boolean).join(' · '),
+      img: r.mediaType === 'image' ? (r.mediaUrl || null) : null, tap: `ncReport('${r.id}')`, sort: 1e5 + (r.ageMin == null ? 1e4 : r.ageMin) });
+  });
+  return out.sort((a, b) => a.rank - b.rank || a.sort - b.sort);
+}
+// EVENT stream — conditional on the Events setting + Event radius (eventsNearYou applies radius)
+function nfEvents() {
+  if (!notifOn('events')) return [];
+  const out = [];
+  eventsNearYou().forEach((v) => {
+    const ev = v.tonight; const when = ev.isTonight ? 'Tonight' : eventDay(ev.date);
+    out.push({ id: 'ev_' + v.id, kind: 'event', tonight: !!ev.isTonight, rank: ev.isTonight ? 1 : 2,
+      accent: `${when}${ev.time ? ' · ' + ev.time : ''}`,
+      title: (ev.artists && ev.artists.length) ? ev.artists.join(', ') : ev.name,
+      sub: [v.name, v.neighborhoodName, v._dist != null ? distLabel(v._dist) : null].filter(Boolean).join(' · '),
+      tag: ev.count > 1 ? '+' + (ev.count - 1) + ' more' : 'Live lineup',
+      img: ev.image || null, tap: `ncGo('${v.id}')`, sort: v._dist != null ? v._dist : 1e9 });
+  });
+  return out;
+}
+function buildNotifs() { return { venue: nfVenues(), report: nfReports(), event: nfEvents() }; }
+// The "All" activity feed leads with core Clubbit signals (venues + reports) and only
+// folds in a small, capped set of events — so Notifications never becomes an events browser.
+// The full events list still lives in the Events tab.
+function ncAllItems(data) {
+  const core = [...data.venue, ...data.report].sort((a, b) => a.rank - b.rank || a.sort - b.sort);
+  return [...core, ...data.event.slice(0, 6)];
+}
+function ncGo(id) { closeEventsNear(); rowClick(id); }
+function ncReport(id) { closeEventsNear(); showMyReportDetail(id); }
+window.ncGo = ncGo; window.ncReport = ncReport;
+let _ncFilter = 'all';
+function ncEmptyHtml(f) {
+  let title = 'Nothing new nearby right now', sub = 'Fresh nightlife activity will show up here.';
+  if (f === 'report') { title = 'No fresh reports yet'; sub = 'Live crowd, queue and entry reports appear here.'; }
+  else if (f === 'venue') { title = 'Nothing new nearby right now'; sub = 'Check back a little later tonight.'; }
+  else if (f === 'event') { const bounded = eventRadiusKm() !== 'all'; title = bounded ? 'No events within your radius tonight' : 'No events happening near you tonight'; sub = bounded ? 'Set Event radius to Any to see events further away.' : 'Check back soon for new lineups.'; }
+  return `<div class="nc-empty"><img class="nc-empty-ic" src="/mascot-quiet.png" alt="" onerror="this.style.display='none'"/><div class="nc-empty-t">${esc(title)}</div><div class="nc-empty-s">${esc(sub)}</div></div>`;
+}
+// sections per tab. All = one mixed relevance feed; Events = Tonight/Upcoming.
+function ncSections(data, f) {
+  if (f === 'venue') return [{ label: '', items: data.venue }];
+  if (f === 'report') return [{ label: '', items: data.report }];
+  if (f === 'event') {
+    const tn = data.event.filter((n) => n.tonight); const up = data.event.filter((n) => !n.tonight);
+    return [{ label: 'Tonight', items: tn }, { label: 'Upcoming', items: up }].filter((s) => s.items.length);
+  }
+  return [{ label: '', items: ncAllItems(data) }];
+}
+function ncItemHtml(n, read) {
+  const unread = !read.has(n.id);
+  let box;
+  if (n.img) {
+    box = `<img src="${esc(n.img)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><span class="nc-fallback nc-fb-${n.kind}">${NC_ICON[n.kind] || ''}</span>`;
+  } else if (n.kind === 'venue' && n.band) {
+    box = `<span class="nc-score" style="background:${BAND_COLOR[n.band].core}">${n.score}</span>`;
+  } else {
+    box = `<span class="nc-fallback nc-fb-${n.kind} show">${NC_ICON[n.kind] || ''}</span>`;
+  }
+  return `<button class="nc-item${unread ? ' unread' : ''}" onclick="${n.tap}">
+      <span class="nc-img">${box}</span>
+      <span class="nc-body">
+        <span class="nc-accent nc-k-${n.kind}">${esc(n.accent)}${n.tag ? `<span class="nc-tag">${esc(n.tag)}</span>` : ''}</span>
+        <span class="nc-title">${esc(n.title)}</span>
+        <span class="nc-sub2">${esc(n.sub)}</span>
+      </span>
+    </button>`;
+}
+function ncRender(data) {
+  const list = document.getElementById('ncList'); if (!list) return;
+  const read = ncReadSet();
+  const secs = ncSections(data, _ncFilter);
+  const total = secs.reduce((n, s) => n + s.items.length, 0);
+  // radius context lives ONLY inside the Events tab — it's an event-specific setting
+  let head = '';
+  if (_ncFilter === 'event') {
+    const R = eventRadiusKm();
+    const line = R === 'all' ? 'Event radius: Any' : 'Events within ' + ncRadiusLabel();
+    head = `<div class="nc-evctx"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg><span>${esc(line)}</span></div>`;
+  }
+  if (!total) { list.innerHTML = head + ncEmptyHtml(_ncFilter); return; }
+  const showLabels = secs.length > 1;
+  list.innerHTML = head + secs.map((s) => `${showLabels && s.label ? `<div class="nc-sect">${esc(s.label)}</div>` : ''}<div class="nc-group">${s.items.map((n) => ncItemHtml(n, read)).join('')}</div>`).join('');
+}
 function showEventsNearYou() {
-  const vs = eventsNearYou(); if (!vs.length) return;
-  const rows = vs.map((v) => {
-    const ev = v.tonight;
-    const when = ev.isTonight ? 'Tonight' : eventDay(ev.date);
-    const who = ev.artists && ev.artists.length ? ev.artists.join(', ') : ev.name;
-    const cover = ev.image
-      ? `<span class="evr-cover"><img src="${esc(ev.image)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('noimg');this.remove()"/></span>`
-      : `<span class="evr-cover noimg">🎤</span>`;
-    const d = v._dist != null ? ' · ' + distLabel(v._dist) : '';
-    return `<div class="evrow" onclick="closeEventsNear();rowClick('${v.id}')">
-      ${cover}
-      <span class="evr-txt"><b>${when}${ev.time ? ' · ' + esc(ev.time) : ''}${ev.count > 1 ? ' · +' + (ev.count - 1) + ' more' : ''}</b>
-        <span class="evr-name">${esc(who)}</span>
-        <span class="evr-sub">${esc(v.name)} · ${esc(v.neighborhoodName)}${esc(d)}</span></span>
-      <span class="evr-go">View ›</span></div>`;
-  }).join('');
-  const el = document.createElement('div');
-  el.className = 'rdetail-ov'; el.id = 'eventsNearOv';
-  el.innerHTML = `<div class="rdetail-scrim"></div>
-    <div class="rdetail-card">
-      <div class="rdetail-head"><h3>Events ${(S.userLoc && eventRadiusKm() !== 'all') ? 'near you' : 'tonight'} · ${vs.length}</h3><button class="msheet-x ev-x">✕</button></div>
-      <div class="evlist">${rows}</div>
+  let el = document.getElementById('eventsNearOv');
+  if (el) el.remove();
+  _ncFilter = 'all';
+  const data = buildNotifs();
+  const total = ncAllItems(data).length;
+  const eventsOn = notifOn('events');
+  el = document.createElement('div');
+  el.className = 'nc-ov'; el.id = 'eventsNearOv';
+  el.innerHTML = `
+    <div class="nc-sheet">
+      <div class="nc-top">
+        <button class="nc-back" data-x="1" aria-label="Back"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="nc-titles"><h2>Notifications</h2><div class="nc-sub">${total ? total + ' update' + (total === 1 ? '' : 's') + ' around you' : "You're all caught up"}</div></div>
+        <button class="nc-markread" id="ncMarkRead">Mark all read</button>
+      </div>
+      <div class="nc-tabs" id="ncTabs">
+        <button class="nc-tab on" data-f="all">All</button>
+        <button class="nc-tab" data-f="venue">Venues</button>
+        <button class="nc-tab" data-f="report">Reports</button>
+        ${eventsOn ? '<button class="nc-tab" data-f="event">Events</button>' : ''}
+      </div>
+      <div class="nc-list" id="ncList"></div>
     </div>`;
   document.body.appendChild(el);
-  const close = () => el.remove();
-  el.querySelector('.rdetail-scrim').onclick = close;
-  el.querySelector('.ev-x').onclick = close;
+  requestAnimationFrame(() => el.classList.add('open'));
+  el.querySelectorAll('[data-x]').forEach((b) => b.onclick = closeEventsNear);
+  el.querySelectorAll('#ncTabs .nc-tab').forEach((b) => b.onclick = () => {
+    _ncFilter = b.dataset.f;
+    el.querySelectorAll('#ncTabs .nc-tab').forEach((x) => x.classList.toggle('on', x === b));
+    ncRender(data);
+  });
+  document.getElementById('ncMarkRead').onclick = () => {
+    const all = [...data.venue, ...data.report, ...data.event].map((n) => n.id);
+    ncMarkRead(all); ncRender(data);
+    if (typeof updateChrome === 'function') updateChrome();
+  };
+  ncRender(data);
 }
-function closeEventsNear() { const el = document.getElementById('eventsNearOv'); if (el) el.remove(); }
+function closeEventsNear() {
+  const el = document.getElementById('eventsNearOv'); if (!el) return;
+  el.classList.remove('open');
+  setTimeout(() => { if (el && el.parentNode) el.remove(); }, 280);
+  if (typeof updateChrome === 'function') updateChrome(); // refresh the bell badge after reading
+}
 window.showEventsNearYou = showEventsNearYou;
 window.closeEventsNear = closeEventsNear;
 // tap a stacked map pin → list the venues sharing that spot so you can pick one
@@ -3264,7 +3683,7 @@ function initUI() {
   // app bar
   $('#brandHome').addEventListener('click', () => { map.fit(); closeVenue(); closeSheet(); });
   $('#profileBtn').addEventListener('click', () => openSheet('profile'));
-  $('#feedBtn').addEventListener('click', () => openSheet('feed'));
+  $('#feedBtn').addEventListener('click', () => showEventsNearYou());
 
   // search
   $('#searchBtn').addEventListener('click', () => {
@@ -3310,6 +3729,10 @@ function initUI() {
   const ss = $('#settingsScrim'); if (ss) ss.addEventListener('click', () => closeMSheet('#settingsSheet', '#settingsScrim'));
   const lc = $('#langClose'); if (lc) lc.addEventListener('click', () => closeMSheet('#langSheet', '#langScrim'));
   const ls = $('#langScrim'); if (ls) ls.addEventListener('click', () => closeMSheet('#langSheet', '#langScrim'));
+  const nc = $('#notifClose'); if (nc) nc.addEventListener('click', () => closeMSheet('#notifSheet', '#notifScrim'));
+  const ns = $('#notifScrim'); if (ns) ns.addEventListener('click', () => closeMSheet('#notifSheet', '#notifScrim'));
+  const gc = $('#legalClose'); if (gc) gc.addEventListener('click', () => closeMSheet('#legalSheet', '#legalScrim'));
+  const gs = $('#legalScrim'); if (gs) gs.addEventListener('click', () => closeMSheet('#legalSheet', '#legalScrim'));
   // fullscreen media viewer
   const lbc = $('#lbClose'); if (lbc) lbc.addEventListener('click', closeLightbox);
   const lbx = $('#lightbox'); if (lbx) lbx.addEventListener('click', (e) => { const t = e.target; if (t === lbx || t.id === 'lbTrack' || t.classList.contains('lb-slide')) closeLightbox(); });
