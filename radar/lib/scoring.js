@@ -356,7 +356,7 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     vibe: closed ? 'closed' : (consensus?.vibe || vibeFromFullness(fullnessEst)),
     source,
     open: openState.open,
-    hours: { open: openState.open, source: openState.source, opensLabel: openState.opensLabel, closesLabel: openState.closesLabel, nextCloseLabel: openState.nextCloseLabel || null, opensInMin: openState.opensInMin != null ? openState.opensInMin : null },
+    hours: { open: openState.open, source: openState.source, opensLabel: openState.opensLabel, closesLabel: openState.closesLabel, nextCloseLabel: openState.nextCloseLabel || null, opensInMin: openState.opensInMin != null ? openState.opensInMin : null, openedAgoMin: openState.openedAgoMin != null ? openState.openedAgoMin : null },
     // tonight's real event/lineup (Ticketmaster), when we have a confident match.
     // The single-venue detail passes fullEvents so the card can list the whole week.
     tonight: upcomingFor(venue.id, venue.city, ref, !!opts.fullEvents),
@@ -401,6 +401,7 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     special: owner?.specials || null,
     forecast,
     expectedPeak: forecast.peakLabel,
+    peakInMin: forecast.peakInMin != null ? forecast.peakInMin : null,
     radar, // {score,label,bar,components}
     decision,
     lastReportAgeMin: consensus ? round(consensus.lastAgeMin) : null,

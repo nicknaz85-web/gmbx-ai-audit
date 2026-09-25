@@ -224,7 +224,7 @@ function scheduleOpen(venue, ref) {
 
   const closeLbl = fmtHour(closeH);
   // minutes until the next opening (for "opens soon / opens tonight" notifications)
-  let opensInMin = null;
+  let opensInMin = null, openedAgoMin = null;
   if (!open) {
     if (isClubLike(venue) && !CLUB_NIGHTS.has(nightDow)) {
       const nn = nextClubNight(nightDow);
@@ -233,10 +233,14 @@ function scheduleOpen(venue, ref) {
       opensInMin = openMin - nowMin;
     }
     opensInMin = ((Math.round(opensInMin) % WEEK_MIN) + WEEK_MIN) % WEEK_MIN;
+  } else {
+    // minutes since this session opened (for "just opened" notifications)
+    openedAgoMin = (nowMin >= openMin && nowMin < closeMin) ? nowMin - openMin : nowMin + 1440 - openMin;
+    openedAgoMin = Math.round(openedAgoMin);
   }
   // closesLabel only when open (that's the "till X" while open); nextCloseLabel is
   // always the night's closing time so a closed venue can still show its hours.
-  return { open, source: 'schedule', opensLabel, closesLabel: open ? closeLbl : null, nextCloseLabel: closeLbl, opensInMin };
+  return { open, source: 'schedule', opensLabel, closesLabel: open ? closeLbl : null, nextCloseLabel: closeLbl, opensInMin, openedAgoMin };
 }
 
 // A "nightlife" opening period: starts in the evening, or runs past midnight,
@@ -260,7 +264,7 @@ function openFromPeriods(periods, venue, ref) {
   const dow = d.getUTCDay();
   const nowWM = dow * 1440 + d.getUTCHours() * 60 + d.getUTCMinutes();
   // callers guard against empty periods (see resolveOpen) — always non-empty here
-  let open = false, curCloseWM = null;
+  let open = false, curCloseWM = null, curOpenAgo = null;
   let next = null; // soonest upcoming open: { delta, day, hour, closeWM }
   for (const p of periods) {
     if (!p.open) continue;
@@ -270,7 +274,7 @@ function openFromPeriods(periods, venue, ref) {
       : oWM + 1440;
     if (cWM <= oWM) cWM += WEEK_MIN; // wraps past midnight / end of week
     for (const t of [nowWM, nowWM + WEEK_MIN]) {
-      if (t >= oWM && t < cWM) { open = true; curCloseWM = cWM; }
+      if (t >= oWM && t < cWM) { open = true; curCloseWM = cWM; curOpenAgo = t - oWM; }
     }
     const delta = ((oWM - nowWM) % WEEK_MIN + WEEK_MIN) % WEEK_MIN;
     if (!next || delta < next.delta) next = { delta, day: p.open.day, hour: p.open.hour + (p.open.minute || 0) / 60, closeWM: cWM };
@@ -278,7 +282,7 @@ function openFromPeriods(periods, venue, ref) {
 
   if (open) {
     const cl = fmtHour((curCloseWM % 1440) / 60);
-    return { open: true, source: 'google', opensLabel: null, closesLabel: cl, nextCloseLabel: cl, opensInMin: null };
+    return { open: true, source: 'google', opensLabel: null, closesLabel: cl, nextCloseLabel: cl, opensInMin: null, openedAgoMin: curOpenAgo != null ? Math.round(curOpenAgo) : null };
   }
   // closed now → label the next opening (prefix the weekday when it's not today)
   // and, so every venue can show a closing time, the close of that next opening.
@@ -288,7 +292,7 @@ function openFromPeriods(periods, venue, ref) {
   const nextCloseLabel = next ? fmtHour((next.closeWM % 1440) / 60) : null;
   // minutes until that next opening (drives "opens soon / opens tonight" notifications)
   const opensInMin = next ? Math.round(next.delta) : null;
-  return { open: false, source: 'google', opensLabel, closesLabel: null, nextCloseLabel, opensInMin };
+  return { open: false, source: 'google', opensLabel, closesLabel: null, nextCloseLabel, opensInMin, openedAgoMin: null };
 }
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
