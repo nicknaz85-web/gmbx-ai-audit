@@ -356,7 +356,7 @@ export function venueSnapshot(venue, ref = now(), opts = {}) {
     vibe: closed ? 'closed' : (consensus?.vibe || vibeFromFullness(fullnessEst)),
     source,
     open: openState.open,
-    hours: { open: openState.open, source: openState.source, opensLabel: openState.opensLabel, closesLabel: openState.closesLabel, nextCloseLabel: openState.nextCloseLabel || null },
+    hours: { open: openState.open, source: openState.source, opensLabel: openState.opensLabel, closesLabel: openState.closesLabel, nextCloseLabel: openState.nextCloseLabel || null, opensInMin: openState.opensInMin != null ? openState.opensInMin : null },
     // tonight's real event/lineup (Ticketmaster), when we have a confident match.
     // The single-venue detail passes fullEvents so the card can list the whole week.
     tonight: upcomingFor(venue.id, venue.city, ref, !!opts.fullEvents),

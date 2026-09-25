@@ -223,9 +223,20 @@ function scheduleOpen(venue, ref) {
   }
 
   const closeLbl = fmtHour(closeH);
+  // minutes until the next opening (for "opens soon / opens tonight" notifications)
+  let opensInMin = null;
+  if (!open) {
+    if (isClubLike(venue) && !CLUB_NIGHTS.has(nightDow)) {
+      const nn = nextClubNight(nightDow);
+      opensInMin = nn.inDays * 1440 + openMin - nowMin;
+    } else {
+      opensInMin = openMin - nowMin;
+    }
+    opensInMin = ((Math.round(opensInMin) % WEEK_MIN) + WEEK_MIN) % WEEK_MIN;
+  }
   // closesLabel only when open (that's the "till X" while open); nextCloseLabel is
   // always the night's closing time so a closed venue can still show its hours.
-  return { open, source: 'schedule', opensLabel, closesLabel: open ? closeLbl : null, nextCloseLabel: closeLbl };
+  return { open, source: 'schedule', opensLabel, closesLabel: open ? closeLbl : null, nextCloseLabel: closeLbl, opensInMin };
 }
 
 // A "nightlife" opening period: starts in the evening, or runs past midnight,
@@ -267,7 +278,7 @@ function openFromPeriods(periods, venue, ref) {
 
   if (open) {
     const cl = fmtHour((curCloseWM % 1440) / 60);
-    return { open: true, source: 'google', opensLabel: null, closesLabel: cl, nextCloseLabel: cl };
+    return { open: true, source: 'google', opensLabel: null, closesLabel: cl, nextCloseLabel: cl, opensInMin: null };
   }
   // closed now → label the next opening (prefix the weekday when it's not today)
   // and, so every venue can show a closing time, the close of that next opening.
@@ -275,7 +286,9 @@ function openFromPeriods(periods, venue, ref) {
     ? (next.day !== dow ? DAY_NAMES[next.day] + ' ' : '') + fmtHour(next.hour)
     : null;
   const nextCloseLabel = next ? fmtHour((next.closeWM % 1440) / 60) : null;
-  return { open: false, source: 'google', opensLabel, closesLabel: null, nextCloseLabel };
+  // minutes until that next opening (drives "opens soon / opens tonight" notifications)
+  const opensInMin = next ? Math.round(next.delta) : null;
+  return { open: false, source: 'google', opensLabel, closesLabel: null, nextCloseLabel, opensInMin };
 }
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
