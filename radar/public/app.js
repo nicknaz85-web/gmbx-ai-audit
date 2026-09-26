@@ -126,6 +126,46 @@ function venueIcon(v) {
   if (c === 'Late Night') return PIN_ICONS.moon;                     // late-night spots
   return PIN_ICONS.beer;                                             // plain bars
 }
+// ---- Clubbit pin system ----
+// CATEGORY (what the venue is) stays visible via a persistent accent colour, kept
+// SEPARATE from ACTIVITY (how alive it is), which is a glow/brightness/size layer.
+// Low-energy venues never go plain grey — they show a muted category tint instead.
+const CAT_COLOR = { club: '#a855f7', bar: '#f59e0b', live: '#ec4899', rooftop: '#22d3ee', wine: '#c084fc', lgbtq: '#ff5fa2', mixed: '#7c3aed' };
+function venueCategory(v) {
+  if (v.lgbtq) return 'lgbtq';
+  const k = v.kind, c = v.category;
+  if (k === 'Club' || c === 'Dancing') return 'club';
+  if (k === 'Rooftop' || c === 'Rooftops') return 'rooftop';
+  if (k === 'Venue' || c === 'Live') return 'live';
+  if (k === 'Wine Bar' || c === 'Wine') return 'wine';
+  if (k === 'Bar' || k === 'Pub' || c === 'Cocktails' || c === 'Late Night') return 'bar';
+  return 'mixed';
+}
+function catColor(v) { return CAT_COLOR[venueCategory(v)] || CAT_COLOR.mixed; }
+// crowd-level activity ramp: closed · quiet · steady · busy · popping · packed.
+// Drives the pin colour/glow/size hierarchy so energy reads at a glance.
+function venueActivity(v) {
+  if (v.open === false) return 'closed';
+  const s = (v.fullness && typeof v.fullness.est === 'number') ? v.fullness.est : (v.radar ? v.radar.score : 0);
+  if (s >= 84) return 'packed';
+  if (s >= 70) return 'popping';
+  if (s >= 50) return 'busy';
+  if (s >= 28) return 'steady';
+  return 'quiet';
+}
+const PIN_BADGE = {
+  closed: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>',
+  saved: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.6l2.9 5.87 6.48.94-4.69 4.57 1.11 6.45L12 17.9l-5.79 3.05 1.1-6.45L2.63 9.94l6.48-.94z"/></svg>',
+  event: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 8a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2.2a2 2 0 0 0 0 3.6V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2.2a2 2 0 0 0 0-3.6z"/></svg>',
+  pop: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3-2 4-2 7a2 2 0 0 0 4 0c2 2 3 4 3 6a5 5 0 0 1-10 0c0-4 5-5 5-13z"/></svg>',
+};
+// one status badge per pin, by priority
+function pinBadge(v, state) {
+  if (typeof isSaved === 'function' && isSaved(v.id)) return 'saved'; // gold star, keeps activity body
+  if (state === 'closed') return 'closed';
+  if (v.tonight) return 'event';
+  return null; // popping/busy is shown by the pin body itself
+}
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function ago(min) { if (min < 1) return 'now'; if (min < 60) return Math.round(min) + 'm'; return Math.round(min / 60) + 'h'; }
 function queueText(q) { return { none: 'No queue', '<10': '<10 min', '10-20': '10–20 min', '20-30': '20–30 min', '30+': '30+ min', guestlist: 'Guest list', unknown: 'Queue ?' }[q] || q; }
@@ -267,22 +307,13 @@ class RadarMap {
   }
   // Create the DOM marker for one venue (structure only; live state via _applyPinState)
   _markerFor(v) {
-    const col = BAND_COLOR[fullnessBand(v)].core;
     const el = document.createElement('div');
-    if (v.photo && !v.lgbtq) {
-      el.className = 'pin photo';
-      el.innerHTML = `<div class="pin-body" style="--pc:${col}"><img class="pin-photo" src="${v.photo}" alt="" loading="lazy" /></div>`;
-    } else {
-      el.className = 'pin' + (v.lgbtq ? ' lgbtq' : '');
-      el.innerHTML = `<div class="pin-body" style="--pc:${col}"><span class="pin-ic">${venueIcon(v)}</span></div>`;
-    }
-    el.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      // a stacked pin (multiple venues within a few px) opens a list of them so you
-      // can pick either — co-located venues never separate no matter how far you zoom.
-      if (el._stackCount > 1 && el._stackMembers && el._stackMembers.length > 1) showPinStack(el._stackMembers);
-      else openVenue(v.id);
-    });
+    // Every venue keeps its clean category-icon pin. A user's report photo is NEVER
+    // promoted to the map pin (it lives on the venue profile) — reporting the vibe must
+    // not swap the pin out for a photo.
+    el.className = 'pin';
+    el.innerHTML = `<div class="pin-body"><span class="pin-ic">${venueIcon(v)}</span></div><span class="pin-badge2" hidden></span>`;
+    el.addEventListener('click', (ev) => { ev.stopPropagation(); openVenue(v.id); });
     const wrap = document.createElement('div'); wrap.className = 'pin-wrap'; wrap.appendChild(el);
     wrap.style.zIndex = '4'; // venue pins sit ABOVE neighbourhood labels
     const marker = new maplibregl.Marker({ element: wrap, anchor: 'bottom', opacityWhenCovered: '0' }).setLngLat([v.coords.lng, v.coords.lat]);
@@ -291,11 +322,24 @@ class RadarMap {
   }
   // Update a venue pin's live state (colour / open / selected) in place — no DOM churn
   _applyPinState(el, v) {
-    const band = fullnessBand(v);
-    el.classList.toggle('closed', v.open === false);
-    if (!(v.photo && !v.lgbtq)) el.classList.toggle('amber', band === 'busy');
+    let state = venueActivity(v);
+    // While painting from the (up-to-12h-old) cache, the crowd score is stale — a peak-
+    // hour score would flash pins bright pink/packed until live data lands. Hold open
+    // pins at a calm baseline (steady) until the fresh /api/state arrives, then they
+    // animate to their real state. Closed stays closed (open flag still reads right).
+    if (S._cachePaint && state !== 'closed') {
+      const rank = { quiet: 1, steady: 2, busy: 3, popping: 4, packed: 5 };
+      if ((rank[state] || 0) > 2) state = 'steady';
+    }
+    el.dataset.state = state;
+    el.classList.toggle('closed', state === 'closed');
     el.classList.toggle('sel', this.selected === v.id);
-    const body = el.querySelector('.pin-body'); if (body) body.style.setProperty('--pc', BAND_COLOR[band].core);
+    const bd = el.querySelector('.pin-badge2');
+    if (bd) {
+      const key = pinBadge(v, state);
+      if (key) { bd.className = 'pin-badge2 b-' + key; bd.innerHTML = PIN_BADGE[key]; bd.hidden = false; }
+      else { bd.hidden = true; }
+    }
   }
   // group venues that overlap on screen (within ~30px) into stacks so pins stop
   // hiding behind each other; the strongest-radar venue represents the stack.
@@ -307,9 +351,11 @@ class RadarMap {
       pts.push({ v, x, y });
     }
     pts.sort((a, b) => b.v.radar.score - a.v.radar.score); // strongest venue leads its stack
-    // only merge pins that genuinely sit ON TOP of each other (roughly one pin
-    // radius apart). Once zooming separates them they show individually — no badge.
-    const PIX = 17, groups = [];
+    // ONLY merge pins that sit almost directly on top of each other on screen — anything
+    // with room to be tapped separately stays a separate pin. Clustering is a last resort
+    // for genuine overlap, never mere geographic closeness. Tapping a cluster zooms in,
+    // and this (screen-space) check drops the cluster the moment the pins clear each other.
+    const PIX = 15, groups = [];
     for (const p of pts) {
       let g = null;
       for (const gg of groups) { const dx = gg.x - p.x, dy = gg.y - p.y; if (dx * dx + dy * dy < PIX * PIX) { g = gg; break; } }
@@ -328,12 +374,119 @@ class RadarMap {
       b.textContent = count > 99 ? '99+' : count; b.hidden = false;
     } else if (b) { b.hidden = true; }
   }
+  // geographic centre of a group of venues (cluster marker sits here, between them)
+  _groupCenter(members) {
+    let lat = 0, lng = 0, n = 0;
+    for (const v of members) { if (v.coords) { lat += v.coords.lat; lng += v.coords.lng; n++; } }
+    return n ? { lat: lat / n, lng: lng / n } : null;
+  }
+  // Tap a cluster → smoothly fly the camera so its venues fit on screen at their REAL
+  // locations (never move a pin off its true spot). As the zoom rises past the point
+  // where the pins no longer collide, the normal sync drops the cluster and shows the
+  // individual pins. Only if the venues are so co-located that even max zoom can't
+  // separate them do we fall back to a Clubbit bottom sheet.
+  _zoomToCluster(members) {
+    if (!members || members.length < 2) { if (members && members[0]) openVenue(members[0].id); return; }
+    if (!this.map || !this._ready) { showPinStack(members); return; }
+    let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+    for (const v of members) {
+      const c = v.coords; if (!c) continue;
+      if (c.lng < minLng) minLng = c.lng; if (c.lng > maxLng) maxLng = c.lng;
+      if (c.lat < minLat) minLat = c.lat; if (c.lat > maxLat) maxLat = c.lat;
+    }
+    if (!isFinite(minLng)) { showPinStack(members); return; }
+    // venues stacked on essentially the same coordinate can never separate → sheet now
+    const spanKm = haversineKm({ lat: minLat, lng: minLng }, { lat: maxLat, lng: maxLng });
+    if (spanKm < 0.006) { showPinStack(members); return; }
+    try {
+      if (minLng === maxLng && minLat === maxLat) {
+        this.map.flyTo({ center: [minLng, minLat], zoom: 17, duration: 450 });
+      } else {
+        this.map.fitBounds([[minLng, minLat], [maxLng, maxLat]],
+          { padding: { top: 130, bottom: 200, left: 70, right: 70 }, duration: 450, maxZoom: 17.5 });
+      }
+    } catch (e) { showPinStack(members); return; }
+    this.zoomed = true; const zr = document.getElementById('zoomReset'); if (zr) zr.hidden = false;
+    // after the flight settles: if they STILL overlap at (near) max zoom, use the sheet
+    this.map.once('moveend', () => {
+      try {
+        if (this.map.getZoom() < 17.2) return; // room remains; the sync already split them
+        const groups = this._stackGroups(members);
+        if (groups.some((g) => g.count > 1)) showPinStack(members);
+      } catch (e) {}
+    });
+  }
+  // Move each neighbourhood label to the nearest PIN-FREE spot around its anchor, so a
+  // label like "Savamala / QUIET · 22" never sits on top of venue pins. We search a few
+  // directions at growing distance and pick the first placement whose chip box clears
+  // every pin; if a spot is genuinely crowded everywhere, we take the least-blocked one.
+  _deconflictLabels() {
+    const labels = this._labelById ? Object.values(this._labelById) : [];
+    if (!labels.length) { return; }
+    const mks = this._markerById ? Object.values(this._markerById) : [];
+    const pts = [];
+    for (const m of mks) { try { const p = this.map.project([m._lng, m._lat]); pts.push(p); } catch (e) {} }
+    // a pin is anchored at its tip, its body/badge sit ABOVE the tip → occupancy box,
+    // padded so the label keeps clear BREATHING ROOM, not just barely non-overlapping.
+    const PW = 24, PT = 52, PB = 12; // half-width, height above tip, below tip
+    // candidate directions in preference order (up first, then diagonals, sides, down)
+    const dirs = [[0, -1], [-0.7, -0.75], [0.7, -0.75], [-1, -0.15], [1, -0.15], [-0.75, 0.7], [0.75, 0.7], [0, 1]];
+    const radii = [30, 52, 76, 104];
+    for (const lm of labels) {
+      const inner = lm.getElement() && lm.getElement().querySelector('.hz-inner');
+      if (!inner) continue;
+      let lp; try { lp = this.map.project(lm.getLngLat()); } catch (e) { continue; }
+      const box = inner.getBoundingClientRect();
+      const hw = box.width / 2 + 8, hh = box.height / 2 + 8;
+      const hits = (cx, cy) => {
+        const lx0 = cx - hw, lx1 = cx + hw, ly0 = cy - hh, ly1 = cy + hh;
+        let n = 0;
+        for (const p of pts) {
+          if (lx0 < p.x + PW && lx1 > p.x - PW && ly0 < p.y + PB && ly1 > p.y - PT) n++;
+        }
+        return n;
+      };
+      // HYSTERESIS: keep the label exactly where it is as long as that spot is still
+      // clear of pins — only relocate when a pin actually encroaches. This stops the
+      // label from wandering every time you pan or zoom.
+      const cur = lm._lblOffset;
+      if (cur && hits(lp.x + cur.x, lp.y + cur.y) === 0) {
+        inner.style.transform = `translate(${cur.x}px, ${cur.y}px)`;
+        continue;
+      }
+      let best = { x: 0, y: -14 }, bestN = Infinity, found = false;
+      for (const rad of radii) {
+        for (const d of dirs) {
+          const ox = Math.round(d[0] * rad), oy = Math.round(d[1] * rad - 6); // slight upward bias
+          const n = hits(lp.x + ox, lp.y + oy);
+          if (n === 0) { best = { x: ox, y: oy }; found = true; break; }
+          if (n < bestN) { bestN = n; best = { x: ox, y: oy }; }
+        }
+        if (found) break;
+      }
+      lm._lblOffset = best;
+      inner.style.transform = `translate(${best.x}px, ${best.y}px)`;
+    }
+  }
+  // neighbourhood labels fade in/out (instead of popping) when they cross the zoom
+  // threshold or scroll in/out of view.
+  _fadeInLabel(lm) {
+    const el = lm && lm.getElement(); if (!el) return;
+    el.classList.add('hz-out');
+    requestAnimationFrame(() => requestAnimationFrame(() => { el.classList.remove('hz-out'); }));
+  }
+  _fadeRemoveLabel(lm) {
+    if (!lm || lm._rm) { return; }
+    lm._rm = true;
+    const el = lm.getElement(); if (el) el.classList.add('hz-out');
+    setTimeout(() => { try { lm.remove(); } catch (e) {} }, 260);
+  }
   _labelFor(a) {
     const band = bandKey(a.nightScore);
     const el = document.createElement('div');
     el.className = 'hz-label';
-    el.style.zIndex = '1'; // neighbourhood labels sit BEHIND venue pins
-    el.innerHTML = `<div class="area-name">${esc(a.name)}</div><div class="area-badge bg-${band}">${a.hotzone ? '🔥 ' : ''}${esc(a.label)} · ${a.nightScore}</div>`;
+    el.style.zIndex = '6'; // labels sit ABOVE pins as a clean chip so text is never buried
+    el.innerHTML = `<div class="hz-inner"><div class="area-name">${esc(a.name)}</div><div class="area-badge bg-${band}">${a.hotzone ? '🔥 ' : ''}${esc(a.label)} · ${a.nightScore}</div></div>`;
     el.addEventListener('click', (ev) => { ev.stopPropagation(); openArea(a.id); });
     return new maplibregl.Marker({ element: el, anchor: 'center', opacityWhenCovered: '0' }).setLngLat([a.center.lng, a.center.lat]);
   }
@@ -389,12 +542,39 @@ class RadarMap {
   // Tapping it flies into the city (zoom 11.8) so its individual pins appear.
   _clusterFor(w) {
     const el = document.createElement('div');
-    el.className = 'cluster';
+    el.className = 'cluster' + (w.pop ? ' has-pop' : '');
     el.innerHTML = `<div class="cl-in"><span class="cl-count">${w.n}</span></div>`;
     el.title = `${w.name} · ${w.n} venue${w.n === 1 ? '' : 's'}`;
     el.addEventListener('click', (ev) => { ev.stopPropagation(); if (this.map) this.map.flyTo({ center: [w.center.lng, w.center.lat], zoom: 11.8, duration: 900 }); });
     const m = new maplibregl.Marker({ element: el, anchor: 'center', opacityWhenCovered: '0' }).setLngLat([w.center.lng, w.center.lat]);
     m._el = el; m._lat = w.center.lat; m._lng = w.center.lng; return m;
+  }
+  // A cluster of 2+ overlapping venues is drawn as ONE native Clubbit pin (same
+  // teardrop shape as a venue) with the COUNT baked into its centre — no floating
+  // bubble, no stacked ghost outlines, no child badges. Its colour reflects the
+  // liveliest member so a busy cluster glows like a busy venue. Tap fans it apart.
+  _clusterPairFor(g) {
+    const ctr = this._groupCenter(g.members) || g.v.coords;
+    const el = document.createElement('div');
+    el.className = 'cluster-pin';
+    el.innerHTML = `<div class="cp-dot"><span class="cp-num">${g.count > 99 ? '99+' : g.count}</span></div>`;
+    el.addEventListener('click', (ev) => { ev.stopPropagation(); this._zoomToCluster(g.members); });
+    const wrap = document.createElement('div'); wrap.className = 'pin-wrap'; wrap.appendChild(el); wrap.style.zIndex = '5';
+    const marker = new maplibregl.Marker({ element: wrap, anchor: 'center', opacityWhenCovered: '0' }).setLngLat([ctr.lng, ctr.lat]);
+    marker._el = el; marker._lat = ctr.lat; marker._lng = ctr.lng; marker._vid = g.v.id; marker._isStack = true;
+    el._stackCount = g.count; el._stackMembers = g.members;
+    return marker;
+  }
+  _applyClusterPair(m, g) {
+    m._el._stackCount = g.count; m._el._stackMembers = g.members;
+    const ctr = this._groupCenter(g.members) || g.v.coords;
+    m._lat = ctr.lat; m._lng = ctr.lng;
+    const c = m._el.querySelector('.cp-num'); if (c) c.textContent = g.count > 99 ? '99+' : g.count;
+    // soft extra glow only when the cluster holds a genuinely lively venue — suppressed
+    // while painting stale cache so a peak-hour score doesn't glow pink until live data.
+    const pop = !S._cachePaint && g.members.some((v) => v.open !== false && v.radar && v.radar.score >= 70);
+    m._el.classList.toggle('has-pop', pop);
+    try { m.setLngLat([ctr.lng, ctr.lat]); } catch (e) {}
   }
   // Sync markers to the current view. Two modes:
   //   • zoomed OUT (z<6): one COUNT bubble per city ("how many venues are there"),
@@ -433,7 +613,16 @@ class RadarMap {
         let g = this._cityCountCache;
         if (!g || this._cityCountKey !== ckey) {
           g = {};
-          for (const v of this.venues) { if (!venueMatches(v)) continue; const c = v.city || '?'; g[c] = (g[c] || 0) + 1; }
+          for (const v of this.venues) {
+            if (!venueMatches(v)) continue;
+            const c = v.city || '?';
+            let e = g[c]; if (!e) e = g[c] = { n: 0, cats: {}, pop: false };
+            e.n++;
+            const ck = venueCategory(v); e.cats[ck] = (e.cats[ck] || 0) + 1;
+            if (v.open !== false && v.radar && v.radar.score >= 78) e.pop = true;
+          }
+          // pick each city's dominant category (for a subtle cluster tint)
+          for (const c in g) { let best = 'mixed', bn = -1; for (const k in g[c].cats) { if (g[c].cats[k] > bn) { bn = g[c].cats[k]; best = k; } } g[c].cat = best; }
           this._cityCountCache = g; this._cityCountKey = ckey;
         }
         for (const c in g) {
@@ -441,7 +630,7 @@ class RadarMap {
           if (!ctr) continue;
           if (!inView(ctr)) continue;                      // city centre off-screen → skip
           const id = 'city_' + c;
-          wantC[id] = { id, name: c, n: g[c], center: ctr, members: 1 };
+          wantC[id] = { id, name: c, n: g[c].n, center: ctr, cat: g[c].cat, pop: g[c].pop, members: 1 };
         }
         // FALLBACK: the viewport filter (map.getBounds) can glitch at the
         // globe↔flat transition (~z5-7) and return nothing, which made the whole
@@ -451,7 +640,7 @@ class RadarMap {
           for (const c in g) {
             const ctr = centers[c]; if (!ctr) continue;
             const id = 'city_' + c;
-            wantC[id] = { id, name: c, n: g[c], center: ctr, members: 1 };
+            wantC[id] = { id, name: c, n: g[c].n, center: ctr, cat: g[c].cat, pop: g[c].pop, members: 1 };
           }
         }
         // Build bubbles for every in-view city (NOT just the front of the globe), so
@@ -478,17 +667,27 @@ class RadarMap {
       // ---- individual venue pins (only when zoomed in) ----
       // merge overlapping pins into stacks (one pin + a count badge) so close-together
       // venues don't hide behind each other; zooming in fans the stack out.
+      // A group of 1 → a normal venue pin. A group of 2+ → a single clean mini-cluster
+      // object (integrated count, no stacked ghost pins, no child badges) that fans
+      // apart on tap. Keyed 'stk_'+lead so switching pin↔cluster swaps cleanly.
       const wanted = {};
-      if (!clusterMode) for (const g of this._stackGroups(this._wantedVenues())) wanted[g.v.id] = g;
+      if (!clusterMode) for (const g of this._stackGroups(this._wantedVenues())) {
+        wanted[(g.count > 1 ? 'stk_' : '') + g.v.id] = g;
+      }
       for (const id of Object.keys(this._markerById)) {
         if (!wanted[id]) { this._fadeRemove(this._markerById[id]); delete this._markerById[id]; }
       }
       for (const id in wanted) {
         const g = wanted[id];
+        const isStack = g.count > 1;
         let m = this._markerById[id];
-        if (!m) { m = this._markerFor(g.v); m.addTo(this.map); this._markerById[id] = m; this._fadeIn(m.getElement()); }
-        this._applyPinState(m._el, g.v);
-        this._applyPinCount(m._el, g.count, g.members);
+        if (m && !!m._isStack !== isStack) { this._fadeRemove(m); delete this._markerById[id]; m = null; }
+        if (!m) {
+          m = isStack ? this._clusterPairFor(g) : this._markerFor(g.v);
+          m.addTo(this.map); this._markerById[id] = m; this._fadeIn(m.getElement());
+        }
+        if (isStack) this._applyClusterPair(m, g);
+        else { this._applyPinState(m._el, g.v); this._applyPinCount(m._el, 1); }
       }
       this._markers = Object.values(this._markerById);
 
@@ -497,12 +696,13 @@ class RadarMap {
       const wantA = {};
       if (z >= 11.5) for (const a of this.areas) { if (inView(a.center)) wantA[a.id] = a; }
       for (const id of Object.keys(this._labelById)) {
-        if (!wantA[id]) { this._labelById[id].remove(); delete this._labelById[id]; }
+        if (!wantA[id]) { this._fadeRemoveLabel(this._labelById[id]); delete this._labelById[id]; }
       }
       for (const id in wantA) {
-        if (!this._labelById[id]) { const lm = this._labelFor(wantA[id]); lm.addTo(this.map); this._labelById[id] = lm; }
+        if (!this._labelById[id]) { const lm = this._labelFor(wantA[id]); lm.addTo(this.map); this._labelById[id] = lm; this._fadeInLabel(lm); }
       }
       this._labelMarkers = Object.values(this._labelById);
+      this._deconflictLabels();
       // hide any far-side globe markers we just added (the cull otherwise only runs
       // while moving — a static globe would flash back-side bubbles through it)
       this._cullBackface();
@@ -552,7 +752,7 @@ class RadarMap {
     };
     cull(clusters); cull(pins);
   }
-  _mkInner(root) { return root && root.querySelector('.pin, .cl-in'); }
+  _mkInner(root) { return root && root.querySelector('.pin, .cl-in, .cp-dot'); }
   _fadeIn(root) {
     const c = this._mkInner(root); if (!c) return;
     c.classList.add('mk-enter');
@@ -673,8 +873,9 @@ class RadarMap {
       if (d < bestD) { bestD = d; best = m; }
     }
     if (best) {
-      const el = best._el; // a stacked pin opens its picker; otherwise open the venue
-      if (el && el._stackCount > 1 && el._stackMembers && el._stackMembers.length > 1) showPinStack(el._stackMembers);
+      const el = best._el; // a cluster zooms in to reveal its venues; else open the venue
+      if (el && el._stackCount > 1 && el._stackMembers && el._stackMembers.length > 1)
+        this._zoomToCluster(el._stackMembers);
       else openVenue(best._vid);
       return;
     }
@@ -1427,7 +1628,9 @@ function renderVenue(v, opts) {
     } else play();
   }
 }
-function titleCase(s) { s = String(s).toLowerCase(); return s.charAt(0).toUpperCase() + s.slice(1); }
+// Title Case every word so multi-word verdicts read correctly: GO NOW → Go Now,
+// YOUR CALL → Your Call, WAIT → Wait, CLOSED → Closed.
+function titleCase(s) { return String(s).toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()); }
 
 // SVG conic-style dial for the radar score
 function dial(score, color) {
@@ -2005,19 +2208,21 @@ async function refresh() {
 let _rt, _searchFlyT;
 function refreshSoon() { clearTimeout(_rt); _rt = setTimeout(refresh, 900); }
 
-// the bell now opens the notification center, so its badge = unread notifications
+// ONE shared source of truth for unread notifications — the bell badge, the
+// Notifications subtitle and everything else read from this same set (the "All"
+// feed) so the counts can never diverge.
 function notifUnreadCount() {
   try {
     const all = ncAllItems(buildNotifs());
     const read = ncReadSet();
-    return all.filter((n) => !read.has(n.id)).length;
+    return all.filter((n) => n.kind !== 'more' && !read.has(n.id)).length;
   } catch (e) { return 0; }
 }
 function updateChrome() {
   const d = S.data; if (!d) return;
   const badge = $('#feedBadge'); if (!badge) return;
   const n = notifUnreadCount();
-  if (n > 0) { badge.textContent = Math.min(99, n); badge.style.display = 'flex'; }
+  if (n > 0) { badge.textContent = n > 99 ? '99+' : n; badge.style.display = 'flex'; }
   else { badge.style.display = 'none'; }
 }
 
@@ -3022,7 +3227,7 @@ function paintProfile(me) {
         </div>
         <div class="lr-menuwrap myrep-act"><button class="lr-menu" aria-label="Report options" onclick="event.stopPropagation();toggleRepMenu('mr_${r.id}')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button><div class="lr-menupop" id="mr_${r.id}_m" hidden><button class="lr-del" onclick="event.stopPropagation();deleteMyReport('${r.id}')">Delete report</button></div></div>
       </div>`; }).join('')}</div>`
-      : `<div class="prep-empty"><img class="prep-empty-ic" src="/mascot-quiet.png" alt="" onerror="this.style.display='none'" /><div class="prep-empty-t">No reports yet</div><div class="prep-empty-s">Report a vibe to build your profile</div></div>`}`;
+      : `<div class="prep-empty"><img class="prep-empty-ic" src="/mascot-quiet.png" alt="" onerror="this.style.display='none'" /><div class="prep-empty-t">No reports yet</div><div class="prep-empty-s">Report a vibe to build your profile!</div></div>`}`;
   // pencil / change photo
   const picInput = $('#profilePicInput');
   const he = $('#heroEdit'); if (he) he.onclick = () => picInput && picInput.click();
@@ -3155,19 +3360,25 @@ const NC_ICON = {
 // keep headlines short — drop a trailing city/neighbourhood ("Monkey Bar Belgrade" → "Monkey Bar")
 function nfShort(v) {
   let n = (v.name || '').trim();
+  // drop a trailing city / neighbourhood ("A for Athens" is protected)
   [v.city, v.neighborhoodName].forEach((w) => {
     if (!w) return;
     const suf = ' ' + String(w).toLowerCase();
     if (n.toLowerCase().endsWith(suf)) {
       const cand = n.slice(0, -suf.length).trim();
-      // keep the trim only if it still reads like a real name (not "A for", "The")
       if (cand.length >= 5 && !/\b(a|an|the|for|of|at|on|in|by|to|and|de|la|le)$/i.test(cand)) n = cand;
     }
   });
+  // drop a trailing generic venue-type ("Hype Belgrade Night Club" → "Hype Belgrade")
+  { const c = n.replace(/\s+(night ?club|cocktail bar|wine bar|sports bar|rooftop bar|beach club|music hall|nightclub|club)$/i, '').trim(); if (c.length >= 4) n = c; }
+  // drop a leading generic type ("Kafe Bar Blaznavac" → "Blaznavac")
+  { const c = n.replace(/^(kafe bar|cocktail bar|wine bar|kafana|klub|the)\s+/i, '').trim(); if (c.length >= 4) n = c; }
   return n || (v.name || '');
 }
 function nfMins(m) { m = Math.max(5, Math.round(m / 5) * 5); if (m < 60) return m + ' min'; const h = Math.floor(m / 60), mm = m % 60; return mm === 0 ? h + ' hour' + (h === 1 ? '' : 's') : h + 'h ' + mm + 'm'; }
-function nfOpensAt(v) { return String(v.hours.opensLabel || '').replace(/^[A-Za-z]{3}\s+/, ''); } // strip weekday prefix
+// clean clock labels — "11:00 PM" → "11 PM", keep "12:45 AM"
+function nfTime(s) { return String(s || '').replace(/:00(\s*[AP]M)\b/i, '$1'); }
+function nfOpensAt(v) { return nfTime(String(v.hours.opensLabel || '').replace(/^[A-Za-z]{3}\s+/, '')); }
 // The specific, current state of a venue — used for saved venues so a saved card
 // says exactly what's happening (never a vague "is live now").
 function nfState(v, distStr) {
@@ -3178,10 +3389,10 @@ function nfState(v, distStr) {
     return null;
   }
   if (v.open) {
-    if (h.openedAgoMin != null && h.openedAgoMin <= 45) return { title: `${nfShort(v)} just opened`, sub: [distStr] };
+    if (h.openedAgoMin != null && h.openedAgoMin <= 45) return { title: `${nfShort(v)} just opened`, sub: [distStr, h.openedAgoMin >= 1 ? h.openedAgoMin + ' min ago' : 'just now'] };
     if (['surging', 'exploding', 'heating'].includes(v.momentum.state)) return { title: `${nfShort(v)} is getting busy`, sub: [distStr] };
     if (s >= 84) return { title: `${nfShort(v)} is packed right now`, sub: [distStr] };
-    if (v.peakInMin != null && v.peakInMin > 0 && v.peakInMin <= 90 && v.expectedPeak) return { title: `${nfShort(v)} peaks around ${v.expectedPeak}`, sub: [distStr] };
+    if (v.peakInMin != null && v.peakInMin > 0 && v.peakInMin <= 90 && v.expectedPeak) return { title: `${nfShort(v)} peaks around ${nfTime(v.expectedPeak)}`, sub: [distStr] };
     return { title: `${nfShort(v)} is open now`, sub: [v.radar.label, distStr] };
   }
   return null;
@@ -3195,11 +3406,12 @@ function nfVenues() {
   if (loc) { const near = vs.filter((v) => v._ndist != null && v._ndist <= 40); vs = near.length ? near : vs.slice().sort((a, b) => (a._ndist == null ? 1e9 : a._ndist) - (b._ndist == null ? 1e9 : b._ndist)).slice(0, 60); }
   const dist = (v) => (v._ndist != null ? distLabel(v._ndist) : null);
   const out = []; const seen = new Set();
-  const add = (v, rank, accent, title, subBits) => {
-    if (seen.has(v.id) || out.length >= 24) return; seen.add(v.id);
+  const add = (v, rank, accent, title, subBits, opts) => {
+    if (seen.has(v.id) || out.length >= 30) return; seen.add(v.id);
     out.push({ id: 'vn_' + v.id, kind: 'venue', rank, accent, title, sub: subBits.filter(Boolean).join(' · '),
       img: v.googlePhoto || v.photo || null, band: bandKey(v.radar.score), score: v.radar.score,
-      tap: `ncGo('${v.id}')`, sort: v._ndist == null ? 1e9 : v._ndist });
+      openKind: 'venue', openId: v.id, saved: isSaved(v.id), group: (opts && opts.group) || null,
+      sort: (opts && opts.sort != null) ? opts.sort : (v._ndist == null ? 1e9 : v._ndist) });
   };
   const open = vs.filter((v) => v.open);
   const closed = vs.filter((v) => v.open === false && v.hours && v.hours.opensInMin != null);
@@ -3208,35 +3420,32 @@ function nfVenues() {
   // 1 — SAVED SPOT: say exactly what the saved venue is doing right now
   [...open.filter((v) => isSaved(v.id)), ...closed.filter((v) => isSaved(v.id))].slice(0, 4)
     .forEach((v) => { const st = nfState(v, dist(v)); if (st) add(v, 1, 'Saved spot', st.title, st.sub); });
-  // 2 — JUST OPENED (opened within the last ~45 min)
+  // 2 — JUST OPENED (within ~45 min) + OPENING SOON (in ~5–90 min)
   open.filter((v) => v.hours && v.hours.openedAgoMin != null && v.hours.openedAgoMin <= 45)
     .sort((a, b) => a.hours.openedAgoMin - b.hours.openedAgoMin).slice(0, 4)
-    .forEach((v) => add(v, 2, 'Just opened', `${nfShort(v)} just opened`, [dist(v)]));
-  // 2 — OPENING SOON (opens in ~5–90 min)
-  closed.filter((v) => v.hours.opensInMin >= 0 && v.hours.opensInMin <= 90).sort(byOpen).slice(0, 4)
-    .forEach((v) => add(v, 2, 'Opening soon', `${nfShort(v)} opens in ${nfMins(Math.max(5, v.hours.opensInMin))}`, [dist(v)]));
-  // 3 — GETTING BUSY (crowd meaningfully rising)
+    .forEach((v) => add(v, 2, 'Just opened', `${nfShort(v)} just opened`, [dist(v), v.hours.openedAgoMin >= 1 ? v.hours.openedAgoMin + ' min ago' : 'just now'], { sort: v.hours.openedAgoMin }));
+  closed.filter((v) => v.hours.opensInMin >= 0 && v.hours.opensInMin <= 90).sort(byOpen).slice(0, 5)
+    .forEach((v) => add(v, 2, 'Opening soon', `${nfShort(v)} opens in ${nfMins(Math.max(5, v.hours.opensInMin))}`, [dist(v)], { sort: v.hours.opensInMin }));
+  // 3 — reports rank here (handled in nfReports)
+  // 4 — GETTING BUSY / PACKED NOW
   open.filter((v) => ['surging', 'exploding', 'heating'].includes(v.momentum.state)).sort((a, b) => b.momentum.M - a.momentum.M).slice(0, 3)
-    .forEach((v) => add(v, 3, 'Getting busy', `${nfShort(v)} is getting busy`, [v.pct > 0 ? '+' + v.pct + '% busier' : v.radar.label, dist(v)]));
-  // 3 — PACKED NOW (currently packed)
+    .forEach((v) => add(v, 4, 'Getting busy', `${nfShort(v)} is getting busy`, [v.pct > 0 ? '+' + v.pct + '% busier' : v.radar.label, dist(v)]));
   open.filter((v) => v.radar.score >= 84).sort(byScore).slice(0, 3)
-    .forEach((v) => add(v, 3, 'Packed now', `${nfShort(v)} is packed right now`, [dist(v)]));
-  // 4 — FREE ENTRY (worthwhile free spot open now)
+    .forEach((v) => add(v, 4, 'Packed now', `${nfShort(v)} is packed right now`, [dist(v)]));
   open.filter((v) => v.entry === 0 && v.radar.score >= 55).sort(byScore).slice(0, 2)
-    .forEach((v) => add(v, 4, 'Free entry', `Free entry at ${nfShort(v)} tonight`, [dist(v)]));
-  // 5 — PEAKING SOON (forecast peak within ~90 min, and open)
+    .forEach((v) => add(v, 4.5, 'Free entry', `Free entry at ${nfShort(v)} tonight`, [dist(v)]));
+  // 5 — TOP PICK (best nearby right now)
+  open.slice().sort(byScore).slice(0, 2)
+    .forEach((v) => add(v, 5, 'Top pick', `${nfShort(v)} is a top pick nearby`, [v.radar.label, dist(v)]));
+  open.filter((v) => v.radar.score >= 68).sort(byScore).slice(0, 4)
+    .forEach((v) => add(v, 5.5, 'Open now', `${nfShort(v)} is open now`, [v.radar.label, dist(v)]));
+  // 6 — OPENING TONIGHT (opens later tonight; grouped so it doesn't repeat endlessly)
+  closed.filter((v) => v.hours.opensInMin > 90 && v.hours.opensInMin <= 600).sort(byOpen).slice(0, 14)
+    .forEach((v) => add(v, 6, 'Opening tonight', `${nfShort(v)} opens at ${nfOpensAt(v)}`, [dist(v)], { group: 'opening', sort: v.hours.opensInMin }));
+  // 7 — PEAKING SOON (forecast peak within ~90 min, and open)
   open.filter((v) => v.peakInMin != null && v.peakInMin > 0 && v.peakInMin <= 90 && v.expectedPeak)
     .sort((a, b) => a.peakInMin - b.peakInMin).slice(0, 3)
-    .forEach((v) => add(v, 5, 'Peaking soon', `${nfShort(v)} peaks around ${v.expectedPeak}`, [dist(v)]));
-  // 6 — OPEN NOW (a few lively open spots worth knowing)
-  open.filter((v) => v.radar.score >= 68).sort(byScore).slice(0, 4)
-    .forEach((v) => add(v, 6, 'Open now', `${nfShort(v)} is open now`, [v.radar.label, dist(v)]));
-  // 7 — TOP PICK (best nearby right now)
-  open.slice().sort(byScore).slice(0, 2)
-    .forEach((v) => add(v, 7, 'Top pick', `${nfShort(v)} is a top pick nearby`, [v.radar.label, dist(v)]));
-  // 8 — OPENING TONIGHT (opens later tonight, up to ~10h out so afternoon checks see it)
-  closed.filter((v) => v.hours.opensInMin > 90 && v.hours.opensInMin <= 600).sort(byOpen).slice(0, 6)
-    .forEach((v) => add(v, 8, 'Opening tonight', `${nfShort(v)} opens at ${nfOpensAt(v)}`, [dist(v)]));
+    .forEach((v) => add(v, 7, 'Peaking soon', `${nfShort(v)} peaks around ${nfTime(v.expectedPeak)}`, [dist(v)]));
   return out.sort((a, b) => a.rank - b.rank || a.sort - b.sort);
 }
 // REPORT stream — fresh community reports nearby + your own, always available
@@ -3252,14 +3461,14 @@ function nfReports() {
         let accent = 'Fresh report', title = `New report at ${nfShort(v)}`;
         if (noQueue) { accent = 'No queue'; title = `No queue at ${nfShort(v)}`; }
         const bits = [rep.vibe ? cap(VIBE_WORD[rep.vibe] || rep.vibe) : null, !noQueue && rep.queue ? rep.queue : null, rep.entry != null ? (rep.entry === 0 ? 'Free' : '€' + rep.entry) : null].filter(Boolean).join(' · ');
-        out.push({ id: 'rc_' + v.id, kind: 'report', rank: 4, accent, title, sub: [bits, ago].filter(Boolean).join(' · '),
-          img: v.googlePhoto || v.photo || null, tap: `ncGo('${v.id}')`, sort: v.lastReportAgeMin });
+        out.push({ id: 'rc_' + v.id, kind: 'report', rank: 3, accent, title, sub: [bits, ago].filter(Boolean).join(' · '),
+          img: v.googlePhoto || v.photo || null, openKind: 'venue', openId: v.id, sort: v.lastReportAgeMin });
       });
   }
   (S.myReports || []).forEach((r) => {
-    out.push({ id: 'rp_' + r.id, kind: 'report', rank: 7.5, accent: 'Your report', title: `You reported at ${r.venueName || 'a venue'}`,
+    out.push({ id: 'rp_' + r.id, kind: 'report', rank: 3.5, accent: 'Your report', title: `You reported at ${r.venueName || 'a venue'}`,
       sub: [cap(VIBE_WORD[r.vibe] || r.vibe || 'the vibe'), (freshLabel(r.ageMin) || '').replace('Reported ', '')].filter(Boolean).join(' · '),
-      img: r.mediaType === 'image' ? (r.mediaUrl || null) : null, tap: `ncReport('${r.id}')`, sort: 1e5 + (r.ageMin == null ? 1e4 : r.ageMin) });
+      img: r.mediaType === 'image' ? (r.mediaUrl || null) : null, openKind: 'report', openId: r.id, sort: 1e5 + (r.ageMin == null ? 1e4 : r.ageMin) });
   });
   return out.sort((a, b) => a.rank - b.rank || a.sort - b.sort);
 }
@@ -3269,27 +3478,53 @@ function nfEvents() {
   const out = [];
   eventsNearYou().forEach((v) => {
     const ev = v.tonight; const when = ev.isTonight ? 'Tonight' : eventDay(ev.date);
-    out.push({ id: 'ev_' + v.id, kind: 'event', tonight: !!ev.isTonight, rank: ev.isTonight ? 1 : 2,
-      accent: `${when}${ev.time ? ' · ' + ev.time : ''}`,
+    out.push({ id: 'ev_' + v.id, kind: 'event', tonight: !!ev.isTonight, rank: ev.isTonight ? 8 : 8.5,
+      accent: `${when}${ev.time ? ' · ' + nfTime(ev.time) : ''}`,
       title: (ev.artists && ev.artists.length) ? ev.artists.join(', ') : ev.name,
-      sub: [v.name, v.neighborhoodName, v._dist != null ? distLabel(v._dist) : null].filter(Boolean).join(' · '),
+      sub: [nfShort(v), v.neighborhoodName, v._dist != null ? distLabel(v._dist) : null].filter(Boolean).join(' · '),
       tag: ev.count > 1 ? '+' + (ev.count - 1) + ' more' : 'Live lineup',
-      img: ev.image || null, tap: `ncGo('${v.id}')`, sort: v._dist != null ? v._dist : 1e9 });
+      img: ev.image || null, openKind: 'venue', openId: v.id, sort: v._dist != null ? v._dist : 1e9 });
   });
   return out;
 }
 function buildNotifs() { return { venue: nfVenues(), report: nfReports(), event: nfEvents() }; }
 // The "All" activity feed leads with core Clubbit signals (venues + reports) and only
 // folds in a small, capped set of events — so Notifications never becomes an events browser.
-// The full events list still lives in the Events tab.
 function ncAllItems(data) {
   const core = [...data.venue, ...data.report].sort((a, b) => a.rank - b.rank || a.sort - b.sort);
   return [...core, ...data.event.slice(0, 6)];
 }
-function ncGo(id) { closeEventsNear(); rowClick(id); }
-function ncReport(id) { closeEventsNear(); showMyReportDetail(id); }
-window.ncGo = ncGo; window.ncReport = ncReport;
+// collapse an over-long run of "opening tonight" venues into a single summary row
+// (saved venues + the two soonest stay individual; the rest fold into "N more").
+let _ncExpandOpening = false;
+function ncCollapseOpening(items) {
+  if (_ncExpandOpening) return items;
+  const opening = items.filter((n) => n.group === 'opening');
+  if (opening.length <= 2) return items;
+  const keep = new Set(); let shown = 0;
+  for (const n of opening) { if (n.saved) keep.add(n.id); else if (shown < 2) { keep.add(n.id); shown++; } }
+  const collapsed = opening.length - keep.size;
+  if (collapsed <= 0) return items;
+  const out = []; let inserted = false;
+  for (const n of items) {
+    if (n.group === 'opening') {
+      if (keep.has(n.id)) out.push(n);
+      else if (!inserted) { out.push({ id: 'more_opening', kind: 'more', accent: 'More opening tonight', title: `${collapsed} more venue${collapsed === 1 ? '' : 's'} opening tonight`, sub: 'Tap to see all', tapExpand: true }); inserted = true; }
+    } else out.push(n);
+  }
+  return out;
+}
+// open a notification: mark it read (persisted), refresh the shared count, then go
+function ncOpen(id, kind, target) {
+  ncMarkRead([id]);
+  if (typeof updateChrome === 'function') updateChrome();
+  closeEventsNear();
+  if (kind === 'report') showMyReportDetail(target); else if (target) rowClick(target);
+}
+function ncExpandOpening() { _ncExpandOpening = true; ncRender(); }
+window.ncOpen = ncOpen; window.ncExpandOpening = ncExpandOpening;
 let _ncFilter = 'all';
+let _ncData = null;
 function ncEmptyHtml(f) {
   let title = 'Nothing new nearby right now', sub = 'Fresh nightlife activity will show up here.';
   if (f === 'report') { title = 'No fresh reports yet'; sub = 'Live crowd, queue and entry reports appear here.'; }
@@ -3299,15 +3534,22 @@ function ncEmptyHtml(f) {
 }
 // sections per tab. All = one mixed relevance feed; Events = Tonight/Upcoming.
 function ncSections(data, f) {
-  if (f === 'venue') return [{ label: '', items: data.venue }];
+  if (f === 'venue') return [{ label: '', items: ncCollapseOpening(data.venue.slice().sort((a, b) => a.rank - b.rank || a.sort - b.sort)) }];
   if (f === 'report') return [{ label: '', items: data.report }];
   if (f === 'event') {
     const tn = data.event.filter((n) => n.tonight); const up = data.event.filter((n) => !n.tonight);
     return [{ label: 'Tonight', items: tn }, { label: 'Upcoming', items: up }].filter((s) => s.items.length);
   }
-  return [{ label: '', items: ncAllItems(data) }];
+  return [{ label: '', items: ncCollapseOpening(ncAllItems(data)) }];
 }
 function ncItemHtml(n, read) {
+  // summary row that expands the collapsed "opening tonight" list
+  if (n.kind === 'more') {
+    return `<button class="nc-item nc-more" onclick="ncExpandOpening()">
+      <span class="nc-img nc-more-ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+      <span class="nc-body"><span class="nc-title">${esc(n.title)}</span><span class="nc-sub2">${esc(n.sub)}</span></span>
+    </button>`;
+  }
   const unread = !read.has(n.id);
   let box;
   if (n.img) {
@@ -3317,8 +3559,9 @@ function ncItemHtml(n, read) {
   } else {
     box = `<span class="nc-fallback nc-fb-${n.kind} show">${NC_ICON[n.kind] || ''}</span>`;
   }
-  return `<button class="nc-item${unread ? ' unread' : ''}" onclick="${n.tap}">
-      <span class="nc-img">${box}</span>
+  const star = n.saved ? '<span class="nc-star" title="Saved"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.6l2.9 5.87 6.48.94-4.69 4.57 1.11 6.45L12 17.9l-5.79 3.05 1.1-6.45L2.63 9.94l6.48-.94z"/></svg></span>' : '';
+  return `<button class="nc-item${unread ? ' unread' : ''}" onclick="ncOpen('${esc(n.id)}','${esc(n.openKind || 'venue')}','${esc(n.openId || '')}')">
+      <span class="nc-img">${box}${star}</span>
       <span class="nc-body">
         <span class="nc-accent nc-k-${n.kind}">${esc(n.accent)}${n.tag ? `<span class="nc-tag">${esc(n.tag)}</span>` : ''}</span>
         <span class="nc-title">${esc(n.title)}</span>
@@ -3326,8 +3569,17 @@ function ncItemHtml(n, read) {
       </span>
     </button>`;
 }
-function ncRender(data) {
+// subtitle + "Mark all read" both reflect the ONE shared unread count
+function ncSyncHeader() {
+  const el = document.getElementById('eventsNearOv'); if (!el) return;
+  const read = ncReadSet();
+  const unread = ncAllItems(_ncData || buildNotifs()).filter((n) => n.kind !== 'more' && !read.has(n.id)).length;
+  const sub = el.querySelector('.nc-sub'); if (sub) sub.textContent = unread ? `${unread} new update${unread === 1 ? '' : 's'}` : "You're all caught up";
+  const mr = el.querySelector('#ncMarkRead'); if (mr) mr.style.display = unread ? '' : 'none';
+}
+function ncRender() {
   const list = document.getElementById('ncList'); if (!list) return;
+  const data = _ncData || (_ncData = buildNotifs());
   const read = ncReadSet();
   const secs = ncSections(data, _ncFilter);
   const total = secs.reduce((n, s) => n + s.items.length, 0);
@@ -3338,16 +3590,17 @@ function ncRender(data) {
     const line = R === 'all' ? 'Event radius: Any' : 'Events within ' + ncRadiusLabel();
     head = `<div class="nc-evctx"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg><span>${esc(line)}</span></div>`;
   }
-  if (!total) { list.innerHTML = head + ncEmptyHtml(_ncFilter); return; }
+  if (!total) { list.innerHTML = head + ncEmptyHtml(_ncFilter); ncSyncHeader(); return; }
   const showLabels = secs.length > 1;
   list.innerHTML = head + secs.map((s) => `${showLabels && s.label ? `<div class="nc-sect">${esc(s.label)}</div>` : ''}<div class="nc-group">${s.items.map((n) => ncItemHtml(n, read)).join('')}</div>`).join('');
+  ncSyncHeader();
 }
 function showEventsNearYou() {
   let el = document.getElementById('eventsNearOv');
   if (el) el.remove();
   _ncFilter = 'all';
-  const data = buildNotifs();
-  const total = ncAllItems(data).length;
+  _ncExpandOpening = false;
+  _ncData = buildNotifs();
   const eventsOn = notifOn('events');
   el = document.createElement('div');
   el.className = 'nc-ov'; el.id = 'eventsNearOv';
@@ -3355,7 +3608,7 @@ function showEventsNearYou() {
     <div class="nc-sheet">
       <div class="nc-top">
         <button class="nc-back" data-x="1" aria-label="Back"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-        <div class="nc-titles"><h2>Notifications</h2><div class="nc-sub">${total ? total + ' update' + (total === 1 ? '' : 's') + ' around you' : "You're all caught up"}</div></div>
+        <div class="nc-titles"><h2>Notifications</h2><div class="nc-sub"></div></div>
         <button class="nc-markread" id="ncMarkRead">Mark all read</button>
       </div>
       <div class="nc-tabs" id="ncTabs">
@@ -3370,16 +3623,17 @@ function showEventsNearYou() {
   requestAnimationFrame(() => el.classList.add('open'));
   el.querySelectorAll('[data-x]').forEach((b) => b.onclick = closeEventsNear);
   el.querySelectorAll('#ncTabs .nc-tab').forEach((b) => b.onclick = () => {
-    _ncFilter = b.dataset.f;
+    _ncFilter = b.dataset.f; _ncExpandOpening = false;
     el.querySelectorAll('#ncTabs .nc-tab').forEach((x) => x.classList.toggle('on', x === b));
-    ncRender(data);
+    ncRender();
   });
   document.getElementById('ncMarkRead').onclick = () => {
-    const all = [...data.venue, ...data.report, ...data.event].map((n) => n.id);
-    ncMarkRead(all); ncRender(data);
+    const all = ncAllItems(_ncData).filter((n) => n.kind !== 'more').map((n) => n.id)
+      .concat(_ncData.venue.map((n) => n.id), _ncData.report.map((n) => n.id), _ncData.event.map((n) => n.id));
+    ncMarkRead(all); ncRender();
     if (typeof updateChrome === 'function') updateChrome();
   };
-  ncRender(data);
+  ncRender();
 }
 function closeEventsNear() {
   const el = document.getElementById('eventsNearOv'); if (!el) return;
@@ -3393,23 +3647,27 @@ window.closeEventsNear = closeEventsNear;
 function showPinStack(members) {
   if (!members || members.length < 2) return;
   const list = members.slice().sort((a, b) => b.radar.score - a.radar.score);
+  const STATE_LABEL = { closed: 'Closed', quiet: 'Quiet', steady: 'Steady', busy: 'Busy', popping: 'Popping', packed: 'Packed' };
   const rows = list.map((v) => {
     const band = bandKey(v.radar.score);
-    const d = S.userLoc ? ' · ' + distLabel(haversineKm(S.userLoc, v.coords)) : '';
+    const d = S.userLoc ? distLabel(haversineKm(S.userLoc, v.coords)) : '';
     const ev = v.tonight ? ' · 🎫 event' : '';
+    const status = STATE_LABEL[venueActivity(v)] || (v.open === false ? 'Closed' : 'Open');
+    const sub = [status, d].filter(Boolean).join(' · ');
     const pic = v.googlePhoto || v.photo;
     const cover = pic
       ? `<span class="evr-cover"><img src="${esc(pic)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('noimg');this.parentNode.style.background='${BAND_COLOR[band].core}';this.parentNode.style.color='#fff';this.replaceWith(document.createTextNode('${v.radar.score}'))"/></span>`
       : `<span class="evr-cover" style="background:${BAND_COLOR[band].core};color:#fff;font-weight:800;font-size:15px">${v.radar.score}</span>`;
     return `<div class="evrow" onclick="closePinStack();rowClick('${v.id}')">
       ${cover}
-      <span class="evr-txt"><b>${esc(v.kind)}${esc(ev)}</b><span class="evr-name">${esc(v.name)}</span><span class="evr-sub">${esc(v.neighborhoodName)}${esc(d)}</span></span>
-      <span class="evr-go">View ›</span></div>`;
+      <span class="evr-txt"><b>${esc(v.kind)}${esc(ev)}</b><span class="evr-name">${esc(v.name)}</span><span class="evr-sub">${esc(sub)}</span></span></div>`;
   }).join('');
-  const el = document.createElement('div'); el.className = 'rdetail-ov'; el.id = 'pinStackOv';
+  const hood = list[0] && list[0].neighborhoodName;
+  const title = `${list.length} venues${hood ? ' in ' + esc(hood) : ' nearby'}`;
+  const el = document.createElement('div'); el.className = 'rdetail-ov pinstack'; el.id = 'pinStackOv';
   el.innerHTML = `<div class="rdetail-scrim"></div>
     <div class="rdetail-card">
-      <div class="rdetail-head"><h3>${list.length} venues here</h3><button class="msheet-x ev-x">✕</button></div>
+      <div class="rdetail-head"><h3>${title}</h3><button class="msheet-x ev-x">✕</button></div>
       <div class="evlist">${rows}</div>
     </div>`;
   document.body.appendChild(el);
@@ -3450,23 +3708,27 @@ function openChat() {
     ov = document.createElement('div'); ov.id = 'chatScreen'; ov.className = 'chatscreen';
     ov.innerHTML = `
       <div class="chat-head">
-        <span class="chat-title">${chatAvatar('chat-ai-av')}<span>Clubbit AI<small>Nightlife concierge</small></span></span>
+        <span class="chat-title">${chatAvatar('chat-ai-av')}<span>Clubbit AI<small>Nightlife concierge <span class="chat-live"><i></i>Live</span></small></span></span>
         <button class="chat-close" id="chatClose" aria-label="Close chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="chat-body" id="chatBody"></div>
       <form class="chat-inputbar" id="chatForm" autocomplete="off">
-        <input id="chatInput" type="text" placeholder="Ask about any venue or where to party…" />
-        <button class="chat-send" type="submit" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+        <input id="chatInput" type="text" placeholder="Ask Clubbit AI…" />
+        <button class="chat-send" type="submit" aria-label="Send" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
       </form>`;
     document.body.appendChild(ov);
     ov.querySelector('#chatClose').onclick = closeChat;
-    ov.querySelector('#chatForm').onsubmit = (e) => { e.preventDefault(); const i = document.getElementById('chatInput'); const t = (i.value || '').trim(); if (!t || S._chatPending) return; i.value = ''; sendChat(t); };
+    ov.querySelector('#chatForm').onsubmit = (e) => { e.preventDefault(); const i = document.getElementById('chatInput'); const t = (i.value || '').trim(); if (!t || S._chatPending) return; i.value = ''; sendChat(t); const sb = ov.querySelector('.chat-send'); if (sb) sb.disabled = true; };
+    // enable the send button only when there's something to send
+    const ci = ov.querySelector('#chatInput'), sb = ov.querySelector('.chat-send');
+    if (ci && sb) ci.addEventListener('input', () => { sb.disabled = !ci.value.trim() || S._chatPending; });
   }
   // the header is built once, so refresh its mascot each open to match the current
   // profile (man / woman / non-binary)
   try { const av = ov.querySelector('.chat-ai-av'); if (av) { av.className = 'chat-ai-av ' + chatMascotClass(); const im = av.querySelector('img'); if (im) { im.src = chatMascot(); im.style.display = ''; } } } catch (e) {}
-  // stop the panel above the bottom nav so the nav stays visible & tappable (always an exit)
-  try { const nav = document.querySelector('.bottomnav'); ov.style.bottom = (nav ? nav.offsetHeight : 64) + 'px'; } catch (e) {}
+  // full-screen chat: cover the bottom nav (the ✕ is the exit) so it never overlaps
+  // the nav buttons and the input can dock straight onto the keyboard with no gap.
+  ov.style.bottom = '0px';
   ov.hidden = false;
   // commit the closed (translateY 100%) start state with a forced reflow, THEN add
   // .open so the slide-up transition always plays — more reliable than rAF, which a
@@ -3486,14 +3748,37 @@ function openChat() {
         .catch(() => {});
     }).catch(() => {});
   }
+  // keep the panel matched to the VISIBLE viewport so the keyboard can never crop the
+  // header/mascot — the panel shrinks to the area above the keyboard and the body scrolls.
+  bindChatViewport();
+  chatViewportSync();
   // don't auto-focus the input on open — that pops the keyboard and hides the
   // recommended questions. The keyboard appears only when you tap the text box.
+}
+// Pin the chat panel to window.visualViewport (the region NOT covered by the keyboard),
+// so nothing gets panned off the top or hidden behind the keyboard. No transition on
+// height/top → it snaps with the keyboard instead of wobbling.
+function chatViewportSync() {
+  const ov = document.getElementById('chatScreen'); const vv = window.visualViewport;
+  if (!ov || ov.hidden || !vv) return;
+  ov.style.top = Math.round(vv.offsetTop) + 'px';
+  ov.style.height = Math.round(vv.height) + 'px';
+  ov.style.bottom = 'auto';
+}
+function bindChatViewport() {
+  const vv = window.visualViewport; if (!vv || S._chatVVbound) return;
+  S._chatVVbound = true;
+  const h = () => chatViewportSync();
+  vv.addEventListener('resize', h);
+  vv.addEventListener('scroll', h);
 }
 function closeChat() {
   const ov = document.getElementById('chatScreen');
   if (ov) {
     ov.classList.add('closing');   // crisp accelerate-out easing for the dismiss
     ov.classList.remove('open');   // slide back down, then hide once it's off-screen
+    // clear the viewport-fit inline styles so the closed panel rests normally
+    ov.style.top = ''; ov.style.height = ''; ov.style.bottom = '0px';
     setTimeout(() => { if (ov && !ov.classList.contains('open')) { ov.hidden = true; ov.classList.remove('closing'); } }, 300);
   }
   setBn('map'); S.tab = 'near';
@@ -3509,18 +3794,52 @@ function nearestCity(loc) {
   for (const v of S.data.venues) { if (!v.coords) continue; const d = haversineKm(loc, v.coords); if (d < bestD) { bestD = d; best = v.city; } }
   return (best && bestD <= 150) ? best : null; // only if you're plausibly in/near it
 }
+// time-of-day + location aware suggestion set: one FEATURED prompt + secondary chips.
+// Changes through the night so it feels live, not a fixed button grid.
+function chatSuggestions() {
+  const h = new Date().getHours();
+  const near = !!S.userLoc;
+  const spot = near ? 'nearby' : 'tonight';
+  const city = nearestCity(S.userLoc);
+  let featured, rest, label;
+  if (h >= 5 && h < 18) {            // daytime → planning the night ahead
+    label = city ? `Tonight in ${city}` : 'Popular tonight';
+    featured = 'Where should I party tonight?';
+    rest = ['Best area tonight', `Best clubs ${spot}`, 'What opens later?', `Cheap bars ${spot}`, 'Best techno tonight', 'Hidden gems nearby'];
+  } else if (h >= 18 && h < 21) {    // early evening → warm-ups
+    label = 'Start your night';
+    featured = 'Best warm-up bars';
+    rest = ['What opens later?', 'Best area tonight', `Cheap bars ${spot}`, 'Where to start?', `Best clubs ${spot}`, 'Best techno'];
+  } else if (h >= 21 || h < 1) {     // prime time → what's live now
+    label = "What's happening now";
+    featured = "What's busiest now?";
+    rest = [`Best clubs ${spot}`, 'No queue', 'Best techno', 'Open late', 'Best after midnight', 'Best area tonight'];
+  } else {                           // late night (01–05) → after-hours
+    label = 'Late night picks';
+    featured = 'After-hours spots';
+    rest = ['Where to now?', 'Still open?', 'No queue', 'Best techno', 'Somewhere closer', 'Open late'];
+  }
+  if (!near) rest = rest.map((c) => c.replace(/ nearby$/, ' tonight'));
+  return { label, featured, rest: rest.slice(0, 6) };
+}
 function renderChatWelcome() {
   const body = document.getElementById('chatBody'); if (!body) return;
-  const n = (S.data && S.data.venues) ? S.data.venues.length : 'thousands of';
-  const city = nearestCity(S.userLoc);
-  const chips = city
-    ? [`Best clubs in ${city}?`, `Where should I party tonight in ${city}?`, `Best area for a night out in ${city}`, 'Cheap bars near me']
-    : ['Best clubs near me?', 'Where should I party tonight?', 'Best area for a night out near me', 'Cheap bars near me'];
+  const n = (S.data && S.data.venues) ? S.data.venues.length : 0;
+  const nLine = n ? `Live data from ${n.toLocaleString()} venues` : 'Live nightlife data';
+  const { label, featured, rest } = chatSuggestions();
+  // personality: statements get a "!", direct questions keep their "?"
+  const punch = (s) => /[?!]$/.test(s) ? s : s + '!';
+  const chip = (c, cls) => { const d = punch(c); return `<button class="${cls}" onclick="sendChat('${esc(d).replace(/'/g, "\\'")}')">${esc(d)}</button>`; };
   body.innerHTML = `<div class="chat-welcome">
       ${chatAvatar('chat-welcome-av')}
       <h3>Ask me anything about nightlife</h3>
-      <p>Venues, vibes, the best areas to party — I've got live data on ${esc(String(n))} spots worldwide.</p>
-      <div class="chat-chips">${chips.map((c) => `<button class="chat-chip" onclick="sendChat(this.textContent)">${esc(c)}</button>`).join('')}</div>
+      <p>Live venues, crowds, queues, events and where to go tonight.</p>
+      <div class="chat-datline"><i></i>${esc(nLine)}</div>
+      <div class="chat-suggest">
+        <div class="chat-poplabel">${esc(label)}</div>
+        ${chip(featured, 'chat-chip-hero')}
+        <div class="chat-grid">${rest.map((c) => chip(c, 'chat-chip')).join('')}</div>
+      </div>
     </div>`;
 }
 function chatMd(t) {
@@ -3554,49 +3873,215 @@ function typeOutLast(done) {
   };
   tick();
 }
-// venues the assistant named → clickable chips. The AI bolds the venues it
-// recommends, so match those first (precise); fall back to a strict word scan.
+// venues the assistant named → clickable cards. The AI bolds the venues it recommends.
+// CRITICAL: many venues share a name across cities/countries (e.g. "Ambar" in Belgrade
+// AND elsewhere). We match by name but, when several match, pick the one NEAREST the
+// user — never a same-named venue thousands of km away. When no location is known we
+// keep the highest-Party-Radar match instead of a random first hit.
 function findMentionedVenues(text) {
   const d = S.data; if (!d || !text) return [];
+  const loc = S.userLoc || null;
+  const rank = (v) => loc ? -haversineKm(loc, v.coords) : (v.radar ? v.radar.score : 0); // higher = better
   const bolds = (text.match(/\*\*([^*]+)\*\*/g) || []).map((s) => s.replace(/\*\*/g, '').trim().toLowerCase());
   const out = [], seen = new Set();
-  const add = (v) => { if (!seen.has(v.id)) { seen.add(v.id); out.push({ id: v.id, name: v.name, photo: v.googlePhoto || v.photo || null }); } };
-  if (bolds.length) {
+  const add = (v) => { if (v && !seen.has(v.id)) { seen.add(v.id); out.push({ id: v.id, name: v.name, photo: v.googlePhoto || v.photo || null }); } };
+  // best (nearest / strongest) venue whose name matches `nm`
+  const bestMatch = (nm) => {
+    let best = null, bestR = -Infinity;
     for (const v of d.venues) {
-      if (out.length >= 6) break;
-      const nm = v.name.toLowerCase();
-      if (bolds.some((bd) => bd === nm || (nm.length >= 5 && (bd.includes(nm) || nm.includes(bd))))) add(v);
+      const n = v.name.toLowerCase();
+      if (!(n === nm || (n.length >= 5 && (nm.includes(n) || n.includes(nm))))) continue;
+      const r = rank(v); if (r > bestR) { bestR = r; best = v; }
     }
+    return best;
+  };
+  if (bolds.length) {
+    for (const bd of bolds) { if (out.length >= 6) break; add(bestMatch(bd)); }
     if (out.length) return out;
   }
+  // fallback: strict whole-name scan, then keep the nearest/strongest of each name
   const low = ' ' + text.toLowerCase() + ' ';
+  const hits = [];
   for (const v of d.venues) {
-    if (out.length >= 6) break;
     const nm = v.name.toLowerCase(); if (nm.length < 5) continue;
     const i = low.indexOf(nm); if (i < 0) continue;
     if (/[a-z0-9]/.test(low[i - 1] || '') || /[a-z0-9]/.test(low[i + nm.length] || '')) continue;
-    add(v);
+    hits.push(v);
   }
+  hits.sort((a, b) => rank(b) - rank(a));
+  const byName = new Set();
+  for (const v of hits) { const nm = v.name.toLowerCase(); if (byName.has(nm)) continue; byName.add(nm); add(v); if (out.length >= 6) break; }
   return out;
 }
+// full live venue object (from /api/state) for a venue the AI named
+function chatVenueById(id) { return ((S.data && S.data.venues) || []).find((x) => x.id === id) || null; }
+// small live status chips for a venue card (max 2) — each reflects ACTUAL live data,
+// never a blanket "busy". Colour carries meaning: green=open/live, purple=normal,
+// amber=later/wait, pink=hot.
+function chatStatusChips(v) {
+  const out = [];
+  if (v.open === false) {
+    out.push({ t: v.hours && v.hours.opensLabel ? 'OPENS ' + String(v.hours.opensLabel).toUpperCase() : 'CLOSED', c: 'amber' });
+    return out;
+  }
+  // primary = the real crowd state
+  const CH = { quiet: ['QUIET', 'purple'], steady: ['STEADY', 'purple'], busy: ['BUSY', 'amber'], popping: ['POPPING', 'pink'], packed: ['POPPING', 'pink'] };
+  const [t, c] = CH[venueActivity(v)] || ['OPEN NOW', 'green'];
+  out.push({ t, c });
+  // secondary (only one, only when the data genuinely supports it)
+  const st = venueActivity(v);
+  if (typeof v.peakInMin === 'number' && v.peakInMin > 5 && v.peakInMin <= 45 && (st === 'steady' || st === 'busy')) out.push({ t: 'PEAKING SOON', c: 'amber' });
+  else if (v.report && v.report.queue === 'none') out.push({ t: 'NO QUEUE', c: 'green' });
+  else if (typeof v.lastReportAgeMin === 'number' && v.lastReportAgeMin <= 40) out.push({ t: 'RECENT REPORT', c: 'green' });
+  else if (v.entry === 0) out.push({ t: 'FREE', c: 'green' });
+  return out.slice(0, 2);
+}
+// one short live-data reason a venue fits — varied by venue TYPE so two different
+// venues don't get the same line (only used when the AI didn't supply a specific one).
+function chatWhy(v) {
+  const club = isClubKind(v), bar = !club;
+  if (v.open === false) return v.hours && v.hours.opensLabel ? `Opens ${v.hours.opensLabel} — one for later.` : 'Opens later tonight.';
+  const st = venueActivity(v);
+  if (st === 'packed' || st === 'popping') return club ? 'Peak late-night energy right now.' : 'Buzzing right now.';
+  if (st === 'busy') return club ? 'Really picking up now.' : 'Filling up nicely now.';
+  if (typeof v.peakInMin === 'number' && v.peakInMin > 0 && v.peakInMin <= 60) return 'Open now and about to peak.';
+  if (st === 'steady') return bar ? 'Solid spot for drinks now.' : 'Warming up now.';
+  return bar ? 'Relaxed now — good early stop.' : 'Still quiet — better a little later.';
+}
+function isClubKind(v) { return v.kind === 'Club' || v.category === 'Dancing' || v.category === 'Late Night'; }
+// a rich, tappable live venue card built entirely from Clubbit data. `reason` is the
+// AI's short specific line when available (else a live-derived one); `top` marks the
+// strongest pick (subtle glow + TOP PICK label).
+function chatVenueCard(v, reason, top, accent) {
+  const pic = v.googlePhoto || v.photo;
+  const cat = v.category || v.kind || '';
+  const price = v.entry === 0 ? 'Free' : (v.entryLabel || null);
+  const dist = S.userLoc ? distLabel(haversineKm(S.userLoc, v.coords)) : null;
+  const rating = v.google && v.google.rating ? '★ ' + v.google.rating : null;
+  const chips = chatStatusChips(v).map((c) => `<span class="cv-chip cv-${c.c}">${esc(c.t)}</span>`).join('');
+  const meta = [cat, price, dist].filter(Boolean).map(esc).join(' · ');
+  const thumb = pic
+    ? `<img class="cv-img" src="${esc(pic)}" loading="lazy" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cv-img cv-noimg',textContent:'📍'}))"/>`
+    : `<span class="cv-img cv-noimg">📍</span>`;
+  return `<button class="chat-vcard${top ? ' top' : ''}${accent ? ' acc-' + accent : ''}" onclick="closeChatAndOpen('${v.id}')">
+      ${top ? '<span class="cv-toplabel">Top pick</span>' : ''}
+      ${thumb}
+      <span class="cv-main">
+        <span class="cv-top"><span class="cv-name">${esc(v.name)}</span>${rating ? `<span class="cv-rating">${esc(rating)}</span>` : ''}</span>
+        ${chips ? `<span class="cv-chips">${chips}</span>` : ''}
+        ${meta ? `<span class="cv-meta">${meta}</span>` : ''}
+        <span class="cv-why">${esc(reason || chatWhy(v))}</span>
+      </span>
+      <span class="cv-go">›</span>
+    </button>`;
+}
+// the AI's short specific reason for a venue (from "**Name** — reason" lines), else
+// a live-data derived one.
+function chatReason(v, reasons) {
+  if (!reasons) return null;
+  const nm = v.name.toLowerCase();
+  if (reasons[nm]) return reasons[nm];
+  for (const k in reasons) { if (k.length >= 5 && (k.includes(nm) || nm.includes(k))) return reasons[k]; }
+  return null;
+}
+// venue cards for a message under a "Recommended tonight" header, split into
+// "go now" vs "go later" when both exist. The very first card is the TOP PICK.
+function chatVenueBlock(venues, reasons) {
+  const full = (venues || []).map((x) => chatVenueById(x.id) || x).filter(Boolean);
+  const withData = full.filter((v) => v.coords); // real live records (fallback objs lack coords)
+  if (!withData.length) return '';
+  const nowV = withData.filter((v) => v.open !== false);
+  const laterV = withData.filter((v) => v.open === false);
+  let first = true;
+  const card = (v, accent) => { const html = chatVenueCard(v, chatReason(v, reasons), first, accent); first = false; return html; };
+  const sect = (label, list, cls) => list.length
+    ? `<div class="chat-vsect"><div class="chat-vsect-h ${cls}">${esc(label)}</div>${list.map((v) => card(v, cls)).join('')}</div>` : '';
+  // never force a GO NOW when nothing's actually open now — show a GO LATER plan instead
+  let inner;
+  if (nowV.length && laterV.length) inner = sect('Go now', nowV, 'now') + sect('Go later', laterV, 'later');
+  else if (laterV.length && !nowV.length) inner = sect('Go later', laterV, 'later');
+  else inner = withData.map((v) => card(v, 'now')).join('');
+  return `<div class="chat-reclabel">Recommended tonight</div><div class="chat-vcards">${inner}</div>`;
+}
+// split an assistant reply into the short verdict text + per-venue reason lines
+// ("**Venue** — reason"), which become the cards' reasons (and are removed from the
+// text so nothing is said twice).
+function parseAssistant(content) {
+  const reasons = {}, keep = [];
+  for (const ln of String(content || '').split('\n')) {
+    const m = ln.match(/^\s*[•*\-]?\s*\*\*([^*]+)\*\*\s*[—–\-:]\s*(.+?)\s*$/);
+    if (m && m[2].length <= 90) { reasons[m[1].trim().toLowerCase()] = m[2].trim(); continue; }
+    keep.push(ln);
+  }
+  let text = keep.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  // drop a leading "Best move tonight:" — the card supplies that label itself
+  text = text.replace(/^\s*best move( tonight)?\s*[:\-–—]?\s*/i, '');
+  return { text, reasons };
+}
+// exactly FOUR short, contextual follow-up chips (for the 2×2 grid), chosen from what
+// was actually recommended: closed → open/opens-soon, pricey → cheaper/free, far → closer.
+function chatFollowups(userText, venues) {
+  const t = (userText || '').toLowerCase();
+  const vs = (venues || []).map((x) => chatVenueById(x.id)).filter(Boolean);
+  const allClosed = vs.length && vs.every((v) => v.open === false);
+  const pricey = vs.some((v) => typeof v.entry === 'number' && v.entry >= 15);
+  const far = S.userLoc && vs.some((v) => v.coords && haversineKm(S.userLoc, v.coords) >= 5);
+  const pool = [];
+  if (allClosed) pool.push('Open right now', 'Opens soon', 'Best bars', 'Go later');
+  if (pricey && !/cheap|budget|free/.test(t)) pool.push('Cheaper options', 'Free entry');
+  if (far && !/closer|near/.test(t)) pool.push('Closer options');
+  if (!/busiest|busy/.test(t)) pool.push("What's busiest?");
+  if (!/cheap|budget|free/.test(t)) pool.push('Cheaper options');
+  if (!/techno/.test(t)) pool.push('Best techno');
+  if (!/open/.test(t)) pool.push('Open right now');
+  if (!/\bbar/.test(t)) pool.push('Best bars');
+  pool.push('Best area', 'Less crowded', 'No queue', "What's popping", 'Best for dancing', 'Anything nearby');
+  const seen = new Set(), out = [];
+  for (const c of pool) { if (!seen.has(c)) { seen.add(c); out.push(c); } if (out.length >= 6) break; }
+  return out;
+}
+const CHAT_THINK = ['Checking live spots near you\u2026', 'Reading tonight\u2019s crowd reports\u2026', 'Comparing nearby venues\u2026', 'Checking what opens later\u2026'];
 function renderChatMessages() {
   const body = document.getElementById('chatBody'); if (!body) return;
-  const rows = (S.chatMessages || []).map((m) => {
+  const msgs = S.chatMessages || [];
+  const lastAssistantIdx = (() => { for (let i = msgs.length - 1; i >= 0; i--) if (msgs[i].role === 'assistant') return i; return -1; })();
+  const rows = msgs.map((m, i) => {
     if (m.role !== 'assistant') return `<div class="chat-msg user"><div class="chat-bubble">${esc(m.content)}</div></div>`;
-    // while typing out, show the revealed slice (+ a caret) and hold the chips back
-    const body = m._typing ? partialMd(m.content.slice(0, m._typed)) + '<span class="chat-caret"></span>' : chatMd(m.content);
-    const chips = (!m._typing && m.venues && m.venues.length) ? `<div class="chat-venues">${m.venues.map((v) => `<button class="chat-venue-chip" onclick="closeChatAndOpen('${v.id}')">${v.photo ? `<img src="${esc(v.photo)}" alt="" loading="lazy" onerror="this.remove()"/>` : '<span class="cvc-ic">📍</span>'}<span class="cvc-name">${esc(v.name)}</span><span class="cvc-go">›</span></button>`).join('')}</div>` : '';
-    return `<div class="chat-msg assistant">${chatAvatar('chat-av')}<div class="chat-col"><div class="chat-bubble">${body}</div>${chips}</div></div>`;
+    const done = !m._typing;
+    let topCard, cards = '', follow = '';
+    if (done) {
+      // finished: split verdict text from venue reasons → compact "Best move" card,
+      // then the labelled cards, then follow-ups (no repetition anywhere).
+      const p = parseAssistant(m.content);
+      const hasVenues = m.venues && m.venues.length;
+      topCard = p.text ? `<div class="chat-best"><div class="chat-best-h">Best move tonight</div><div class="chat-best-b">${chatMd(p.text)}</div></div>` : '';
+      cards = hasVenues ? chatVenueBlock(m.venues, p.reasons) : '';
+      if (i === lastAssistantIdx && !S._chatPending) {
+        const punch = (s) => /[?!]$/.test(s) ? s : s + '!';
+        const fchips = chatFollowups(m._forQuery, m.venues).map((c) => { const d = punch(c); return `<button class="chat-fchip" onclick="sendChat('${esc(d).replace(/'/g, "\\'")}')">${esc(d)}</button>`; }).join('');
+        follow = `<div class="chat-followwrap"><div class="chat-follow">${fchips}</div></div>`;
+      }
+    } else {
+      // typing out: plain revealed slice with a caret (structure snaps in when done)
+      topCard = `<div class="chat-bubble">${partialMd(m.content.slice(0, m._typed))}<span class="chat-caret"></span></div>`;
+    }
+    return `<div class="chat-msg assistant"><div class="chat-col wide">${topCard}${cards}${follow}</div></div>`;
   }).join('');
-  const typing = S._chatPending ? `<div class="chat-msg assistant"><span class="chat-av-load">${chatAvatar('chat-av')}</span><div class="chat-col"><div class="chat-bubble typing"><span></span><span></span><span></span></div></div></div>` : '';
-  body.innerHTML = rows + typing;
+  const thinking = S._chatPending
+    ? `<div class="chat-msg assistant"><span class="chat-av-load">${chatAvatar('chat-av')}</span><div class="chat-col"><div class="chat-bubble chat-think"><span class="chat-think-dots"><span></span><span></span><span></span></span><span class="chat-think-txt">${esc(CHAT_THINK[(S._chatThinkI || 0) % CHAT_THINK.length])}</span></div></div></div>` : '';
+  body.innerHTML = rows + thinking;
   body.scrollTop = body.scrollHeight;
 }
 async function sendChat(text) {
   text = String(text || '').trim(); if (!text || S._chatPending) return;
   if (!S.chatMessages) S.chatMessages = [];
   S.chatMessages.push({ role: 'user', content: text });
-  S._chatPending = true; renderChatMessages();
+  S._chatPending = true; S._chatLastQuery = text;
+  // cycle the "thinking" status so the wait feels alive (mascot + live-data checks)
+  S._chatThinkI = 0;
+  clearInterval(S._chatThinkTimer);
+  S._chatThinkTimer = setInterval(() => { S._chatThinkI = (S._chatThinkI || 0) + 1; const el = document.querySelector('.chat-think-txt'); if (el) el.textContent = CHAT_THINK[S._chatThinkI % CHAT_THINK.length]; }, 1500);
+  renderChatMessages();
   // "near me" answers need the freshest REAL location — grab a fresh GPS fix
   let loc = S.userLoc || null;
   if (/\bnear me\b|\bnearby\b|\baround me\b|\bmy area\b|\bnear here\b/i.test(text)) {
@@ -3606,12 +4091,13 @@ async function sendChat(text) {
     const hist = S.chatMessages.filter((m) => m.role === 'user' || m.role === 'assistant').map((m) => ({ role: m.role, content: m.content })).slice(-12);
     const r = await API.chat(hist, loc);
     const reply = (r && r.reply) || "Sorry, I couldn't answer that one.";
-    S.chatMessages.push({ role: 'assistant', content: reply, venues: findMentionedVenues(reply) });
+    S.chatMessages.push({ role: 'assistant', content: reply, venues: findMentionedVenues(reply), _forQuery: text });
   } catch (e) {
-    S.chatMessages.push({ role: 'assistant', content: "Sorry, I'm having trouble connecting right now — try again in a moment." });
+    S.chatMessages.push({ role: 'assistant', content: "Sorry, I'm having trouble connecting right now — try again in a moment.", _forQuery: text });
   }
   S._chatPending = false;
-  typeOutLast(); // reveal the reply with a typewriter effect (chips appear at the end)
+  clearInterval(S._chatThinkTimer);
+  typeOutLast(); // reveal the reply with a typewriter effect (cards + follow-ups appear at the end)
 }
 window.sendChat = sendChat;
 // the "Events near you" call-to-action, shown in the Tonight feed AND the main list
