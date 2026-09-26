@@ -298,6 +298,7 @@ OUTPUT FORMAT (the app parses this — follow it exactly):
 **Venue Name** — a short, SPECIFIC reason (max ~7 words).
 Good reasons: "Best late-night techno option." / "Good river warm-up before the big clubs." / "Open-air electronic near the fortress." / "Affordable late-night option."
 Bad reasons (never use): "Busy right now — strong energy." / generic vibe descriptions / anything the card already shows.
+- Use PLAIN nightlife language everywhere. No travel-blog / marketing adjectives ("iconic", "industrial cathedral", "eclectic garden", "legendary"). Say it like a friend who knows the scene: "good warm-up", "gets busy after midnight", "commercial crowd", "cheap early drinks".
 - Do NOT claim a venue is the "cheapest" / "most affordable" / "best value" unless you have actually compared its price to the others in the data. When unsure, say "affordable" or "good-value option", not "cheapest".
 
 Rules:
