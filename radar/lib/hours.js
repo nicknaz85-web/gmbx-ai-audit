@@ -39,6 +39,9 @@ const CITY_OFFSET = {
   'Medellín': -5, 'Lima': -5, 'Santiago': -3,
   // Asia
   'Bangkok': 7, 'Ho Chi Minh City': 7, 'Hanoi': 7, 'Tokyo': 9, 'Osaka': 9,
+  'Phuket': 7, 'Krabi': 7, 'Ao Nang': 7, 'Chiang Mai': 7, 'Chiang Rai': 7, 'Pattaya': 7, 'Hua Hin': 7,
+  'Koh Phangan': 7, 'Ko Pha-ngan': 7, 'Koh Samui': 7, 'Ko Samui': 7, 'Koh Tao': 7, 'Ko Tao': 7,
+  'Koh Phi Phi': 7, 'Koh Lanta': 7, 'Koh Chang': 7,
   'Seoul': 9, 'Bali': 8, 'Singapore': 8, 'Dubai': 4, 'Tel Aviv': 3,
   // Eastern Europe / Baltics / Belarus / Turkey (EET/EEST, +3 in summer)
   'Minsk': 3, 'Vilnius': 3, 'Riga': 3, 'Tallinn': 3, 'Istanbul': 3,
@@ -86,6 +89,12 @@ const CITY_IANA = {
   'Buenos Aires': 'America/Argentina/Buenos_Aires', 'Bogotá': 'America/Bogota', 'Medellín': 'America/Bogota',
   Cartagena: 'America/Bogota', Lima: 'America/Lima', Santiago: 'America/Santiago', Montevideo: 'America/Montevideo',
   Bangkok: 'Asia/Bangkok', 'Ho Chi Minh City': 'Asia/Ho_Chi_Minh', Hanoi: 'Asia/Ho_Chi_Minh',
+  // Thailand (all +7) — several islands sit just east of 100°E where the longitude
+  // fallback would otherwise read +8 (Asia/Shanghai), so list them explicitly.
+  Phuket: 'Asia/Bangkok', Krabi: 'Asia/Bangkok', 'Ao Nang': 'Asia/Bangkok',
+  'Chiang Mai': 'Asia/Bangkok', 'Chiang Rai': 'Asia/Bangkok', Pattaya: 'Asia/Bangkok', 'Hua Hin': 'Asia/Bangkok',
+  'Koh Phangan': 'Asia/Bangkok', 'Ko Pha-ngan': 'Asia/Bangkok', 'Koh Samui': 'Asia/Bangkok', 'Ko Samui': 'Asia/Bangkok',
+  'Koh Tao': 'Asia/Bangkok', 'Ko Tao': 'Asia/Bangkok', 'Koh Phi Phi': 'Asia/Bangkok', 'Koh Lanta': 'Asia/Bangkok', 'Koh Chang': 'Asia/Bangkok',
   Tokyo: 'Asia/Tokyo', Osaka: 'Asia/Tokyo', Seoul: 'Asia/Seoul', Bali: 'Asia/Makassar', Jakarta: 'Asia/Jakarta',
   Singapore: 'Asia/Singapore', Dubai: 'Asia/Dubai', 'Tel Aviv': 'Asia/Jerusalem',
   Mumbai: 'Asia/Kolkata', Delhi: 'Asia/Kolkata', Bangalore: 'Asia/Kolkata', Goa: 'Asia/Kolkata',
@@ -185,7 +194,7 @@ function scheduleFor(venue) {
 
 // Local wall-clock parts for a venue right now.
 function localNow(venue, ref) {
-  const tz = cityTz(venue.city);
+  const tz = cityTz(venue.city, venue.coords);
   const d = new Date(ref + tz * 3600 * 1000);
   const h = d.getUTCHours() + d.getUTCMinutes() / 60;
   const dow = d.getUTCDay();
@@ -259,7 +268,7 @@ const WEEK_MIN = 7 * 1440;
 // the venue's local time. `periods` = [{ open:{day,hour,minute}, close:{...} }],
 // day 0=Sunday. Empty periods + operational = open 24/7.
 function openFromPeriods(periods, venue, ref) {
-  const tz = cityTz(venue.city);
+  const tz = cityTz(venue.city, venue.coords);
   const d = new Date(ref + tz * 3600 * 1000);
   const dow = d.getUTCDay();
   const nowWM = dow * 1440 + d.getUTCHours() * 60 + d.getUTCMinutes();
@@ -299,7 +308,7 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'];
 // Local calendar month (1–12) for the venue's city.
 function localMonth(venue, ref) {
-  const d = new Date(ref + cityTz(venue.city) * 3600 * 1000);
+  const d = new Date(ref + cityTz(venue.city, venue.coords) * 3600 * 1000);
   return d.getUTCMonth() + 1;
 }
 // Is `month` inside the venue's open season? Handles ranges that wrap the year.

@@ -3990,7 +3990,7 @@ export function dayFactor(dow) {
 // Expected check-ins per 30 min for a venue at a given moment (its historical
 // baseline — the "normally 10 check-ins" figure the surge detector compares to).
 export function expectedRate(venue, ts = now()) {
-  const tz = cityTz(venue.city); // peakHour is local time — evaluate the curve in the venue's tz
+  const tz = cityTz(venue.city, venue.coords); // peakHour is local time — evaluate the curve in the venue's tz
   const h = nightHour(ts, tz);
   const dow = dayOfWeek(ts, tz);
   const curve = nightCurve(h, venue.peakHour, venue.spread);
